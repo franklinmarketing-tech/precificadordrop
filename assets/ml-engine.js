@@ -26,6 +26,12 @@ const PADRAO = {
   // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
   comissaoClassico: 0.13,
   comissaoPremium: 0.18,
+  /* Categorias selecionadas entre R$ 150 e R$ 700 têm redução na tarifa,
+     em pontos percentuais (ex.: 15% com redução de 3pp vira 12%).
+     Quanto é a redução depende da categoria — por isso vem em branco. */
+  reducaoDe: 150,
+  reducaoAte: 700,
+  reducaoPP: 0,
   /* Custo fixo por unidade, conforme a tabela oficial do Mercado Livre.
      Abaixo de R$ 12,50 a cobrança é proporcional (metade do preço do
      produto), por isso a faixa usa `percentual` em vez de `valor`.     */
@@ -75,10 +81,21 @@ function parseNumero(v) {
 /* ── componentes do custo de venda ───────────────────────────────────────── */
 /* A tarifa de venda varia por categoria (Clássico 10%–14%, Premium 15%–19%),
    então cada produto pode trazer a sua em `comissaoProduto`.              */
-const comissaoPct = p => {
+const comissaoBase = p => {
   const propria = Number(p.comissaoProduto);
   if (isFinite(propria) && propria > 0) return propria;
   return (p.tipoAnuncio === 'premium' ? p.comissaoPremium : p.comissaoClassico) || 0;
+};
+
+/* Tarifa efetiva num preço: aplica a redução por faixa quando houver.
+   Sem preço, devolve a tarifa cheia da categoria.                     */
+const comissaoPct = (p, preco) => {
+  const base = comissaoBase(p);
+  const pp = Number(p.reducaoPP) || 0;
+  if (!pp || preco == null) return base;
+  const de = Number(p.reducaoDe) || 0, ate = Number(p.reducaoAte) || 0;
+  if (preco >= de && preco <= ate) return Math.max(0, base - pp / 100);
+  return base;
 };
 
 /* Devolve a faixa de custo fixo que vale para esse preço. */
@@ -111,7 +128,8 @@ function analisar(preco, custo, peso, params) {
   const cu = Number(custo) || 0;
   if (!isFinite(pr) || pr <= 0) return null;
 
-  const comissao = centavos(pr * comissaoPct(p));
+  const pctComissao = comissaoPct(p, pr);
+  const comissao = centavos(pr * pctComissao);
   const taxaFixa = taxaFixaDe(pr, p);
   const frete    = centavos(freteDe(pr, peso, p));
   const rebate   = Number(p.rebate) || 0;
@@ -128,7 +146,7 @@ function analisar(preco, custo, peso, params) {
 
   return {
     preco: pr, custo: cu, peso: pesoUsado,
-    comissao, comissaoPct: comissaoPct(p), taxaFixa, frete, rebate,
+    comissao, comissaoPct: pctComissao, taxaFixa, frete, rebate,
     receitaLiquida, margemContrib,
     imposto, perdas, embalagem,
     lucroLiquido,
@@ -151,9 +169,9 @@ function precoPara(custo, margemAlvo, peso, params) {
   const alvo = Number(margemAlvo);
   if (!isFinite(cu) || cu <= 0 || !isFinite(alvo) || alvo >= 1) return null;
 
-  const base = 1 - comissaoPct(p) - (Number(p.aliquotaImposto) || 0)
-                 - (Number(p.taxaDevolucao) || 0) - alvo;
-  if (base <= 0) return null;   // taxas somadas à margem passam de 100%
+  const outros = (Number(p.aliquotaImposto) || 0) + (Number(p.taxaDevolucao) || 0) + alvo;
+  if (1 - comissaoPct(p, null) - outros <= 0 && 1 - comissaoPct(p, Number(p.reducaoDe)) - outros <= 0)
+    return null;   // taxas somadas à margem passam de 100% em qualquer faixa
 
   const entrega = pr => {
     const a = analisar(pr, cu, peso, p);
@@ -165,6 +183,7 @@ function precoPara(custo, margemAlvo, peso, params) {
   const limites = Array.from(new Set(
     (MLFretes ? MLFretes.FAIXAS_PRECO : [1e9])
       .concat((p.taxaFixa || []).map(f => Number(f.ate)))
+      .concat(Number(p.reducaoPP) ? [Number(p.reducaoDe) - 0.01, Number(p.reducaoAte)] : [])
       .filter(v => isFinite(v) && v > 0)
   )).sort((a, b) => a - b);
 
@@ -172,6 +191,8 @@ function precoPara(custo, margemAlvo, peso, params) {
   for (const limite of limites) {
     const referencia = Math.min(limite, Math.max(anterior + 0.01, 0.01));
     const faixa = faixaTaxaFixa(referencia, p);
+    const base = 1 - comissaoPct(p, referencia) - outros;   // tarifa da faixa
+    if (base <= 0) { anterior = limite; continue; }
     // faixa proporcional (metade do preço) entra no divisor, não no numerador
     const pctFixo = faixa && faixa.percentual ? Number(faixa.percentual) : 0;
     const tf      = faixa && !faixa.percentual ? (Number(faixa.valor) || 0) : 0;
@@ -190,7 +211,7 @@ function precoPara(custo, margemAlvo, peso, params) {
   }
 
   // não coube em nenhuma faixa: procura o menor preço que entregue a margem
-  let pr = centavos(cu / base);
+  let pr = centavos(cu / Math.max(0.01, 1 - comissaoPct(p, null) - outros));
   for (let i = 0; i < 5000 && !entrega(pr); i++) pr = centavos(pr + 0.05);
   return entrega(pr) ? pr : null;
 }

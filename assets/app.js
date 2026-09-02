@@ -300,6 +300,9 @@ function abrirParamsML(){
   const set = (id, v) => { const el = $(id); if(el) el.value = v; };
   set('m_comissaoClassico', (pml.comissaoClassico * 100).toFixed(2).replace(/\.?0+$/, ''));
   set('m_comissaoPremium',  (pml.comissaoPremium  * 100).toFixed(2).replace(/\.?0+$/, ''));
+  set('m_reducaoDe', pml.reducaoDe);
+  set('m_reducaoAte', pml.reducaoAte);
+  set('m_reducaoPP', +(pml.reducaoPP || 0));
   faixasEditor = (pml.taxaFixa || []).map(f => Object.assign({}, f));
   if(!faixasEditor.length) faixasEditor = OFICIAIS();
   renderFaixas();
@@ -329,6 +332,9 @@ function salvarParamsML(){
   Object.assign(pml, {
     comissaoClassico: n('m_comissaoClassico') / 100,
     comissaoPremium:  n('m_comissaoPremium')  / 100,
+    reducaoDe:  n('m_reducaoDe'),
+    reducaoAte: n('m_reducaoAte'),
+    reducaoPP:  n('m_reducaoPP'),
     taxaFixa: faixas.length ? faixas : ML.PADRAO.taxaFixa,
     freteAutomatico: $('m_freteAutomatico').checked,
     freteManual: n('m_freteManual'),
@@ -739,7 +745,8 @@ function montarTaxas(){
 
   $('formulaML').innerHTML = [
     ['Preço de venda',        'o que o comprador paga',                       ''],
-    ['− Comissão',            'percentual do tipo de anúncio',                pct(ML.comissaoPct(pml))],
+    ['− Comissão',            'tarifa da categoria, pelo tipo de anúncio',    pct(ML.comissaoPct(pml, null))],
+    ['− Redução por faixa',    'categorias selecionadas entre R$ 150 e R$ 700', pml.reducaoPP ? '−' + String(pml.reducaoPP).replace('.', ',') + 'pp' : 'não se aplica'],
     ['− Custo fixo',          'por unidade, em produtos abaixo de R$ 79',     'até R$ 6,75'],
     ['− Custo de envio',      'tabela oficial por peso e faixa de preço',     rep.desc],
     ['+ Rebate',              'subsídio do Mercado Livre',                    ML.brl(pml.rebate)],
