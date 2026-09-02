@@ -114,6 +114,8 @@ document.querySelector('.tool-1').addEventListener('mouseenter', contarPreco);
 const CHAVE_ML = 'precificador-drop:params-ml';
 let mlAba = 'calc', modo = 'a';
 let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
+let mlConferencia = null, mlFiltro = null, mlPagina = 0;
+const ML_POR_PAGINA = 100;
 let pml = carregarParamsML();
 
 function carregarParamsML(){
@@ -667,6 +669,25 @@ function mlValidaCol(){
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
+  /* A escolha manual também precisa ser conferida: escolher "Estoque" ou
+     "Largura" como custo gera preços plausíveis e completamente errados. */
+  const numeros = i => {
+    if(i < 0) return {n:0, total:0};
+    let n = 0, total = 0;
+    mlAoa.slice(1).forEach(l => {
+      const v = ML.parseNumero(l[i]);
+      total++;
+      if(!isNaN(v) && v > 0) n++;
+    });
+    return {n, total};
+  };
+  const q = numeros(ic);
+  if(ic >= 0 && q.n === 0){
+    $('mlCustoNota').innerHTML = `<b style="color:var(--red)">⚠ "${esc(mlCabecalho[ic])}" não tem nenhum valor maior que zero</b> — o cálculo não vai funcionar`;
+  }else if(ic >= 0 && q.n < q.total){
+    $('mlCustoNota').innerHTML = `✓ "${esc(mlCabecalho[ic])}" — custo do produto <b style="color:var(--amber)">· ${q.total - q.n} de ${q.total} sem valor</b>`;
+  }
+
   const iA = parseInt($('mlAltura').value), iL = parseInt($('mlLargura').value), iC = parseInt($('mlComprimento').value);
   $('mlDimNota').innerHTML = (iA >= 0 && iL >= 0 && iC >= 0)
     ? `✓ peso volumétrico será calculado: (${esc(mlCabecalho[iA])} × ${esc(mlCabecalho[iL])} × ${esc(mlCabecalho[iC])}) ÷ ${pml.divisorVolumetrico} — o frete usa o maior entre ele e o peso`
@@ -686,33 +707,28 @@ function mlProcessar(){
   const iComp = parseInt($('mlComprimento').value);
   if(ic < 0) return;
 
-  mlLinhas = mlAoa.slice(1).map(linha => {
-    const custo = ML.parseNumero(linha[ic]);
-    const peso  = ip >= 0 ? ML.parseNumero(linha[ip]) : NaN;
-    if(isNaN(custo) || custo <= 0) return {custo:null};
-    const kg = isNaN(peso) ? 0 : peso;
-
-    // medidas da embalagem, para o peso volumétrico
+  // monta as entradas e deixa o motor precificar e conferir tudo de uma vez
+  const entradas = mlAoa.slice(1).map((linha, i) => {
     let dims = null;
     if(iAlt >= 0 && iLarg >= 0 && iComp >= 0){
       const a = ML.parseNumero(linha[iAlt]), l = ML.parseNumero(linha[iLarg]), c = ML.parseNumero(linha[iComp]);
       if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0)
         dims = {altura:a, largura:l, comprimento:c};
     }
-
-    // tarifa própria do produto: aceita 13 ou 0,13
-    let p = pml;
-    if(im >= 0){
-      let taxa = ML.parseNumero(linha[im]);
-      if(!isNaN(taxa) && taxa > 0){
-        if(taxa > 1) taxa = taxa / 100;
-        p = Object.assign({}, pml, {comissaoProduto: taxa});
-      }
-    }
-    const preco = ML.precoPara(custo, mlMargem, kg, p, dims);
-    if(preco == null) return {custo, preco:null, peso:kg};
-    return ML.analisar(preco, custo, kg, p, dims);
+    return {
+      linha: i + 1,
+      custo: linha[ic],
+      peso: ip >= 0 ? linha[ip] : '',
+      dimensoes: dims,
+      comissaoProduto: im >= 0 ? linha[im] : '',
+    };
   });
+
+  const lote = ML.precificarLote(entradas, Object.assign({}, pml, {margemAlvo: mlMargem}));
+  mlLinhas = lote.linhas;
+  mlConferencia = lote.conferencia;
+  mlFiltro = null;
+  mlPagina = 0;
 
   const ok = mlLinhas.filter(r => r.preco != null);
   if(!ok.length){
@@ -720,54 +736,152 @@ function mlProcessar(){
         + 'escolha a coluna que guarda o custo do produto.');
     return;
   }
+  mlRenderStats();
+  mlRenderChecks();
+  mlRenderTabela();
+
+  $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar planilha pronta para o Bling (${ok.length} produtos)`;
+  mlPasso(3);
+}
+
+/* ── estatísticas do lote ── */
+function mlRenderStats(){
+  const ok = mlLinhas.filter(r => r.preco != null);
   const lucros = ok.map(r => r.lucroLiquido);
   const soma = lucros.reduce((a,b) => a + b, 0);
-  const semPeso = mlLinhas.filter(r => r.custo != null && !r.peso).length;
+  const revisar = mlConferencia ? mlConferencia.revisar : 0;
 
   const cards = [
-    {n: mlLinhas.length,                 l:'Produtos',             c:'var(--ink)'},
-    {n: ok.length,                       l:'Preços calculados',    c:'var(--green-dk)'},
-    {n: (mlMargem*100).toFixed(0) + '%', l:'Margem líquida',       c:'var(--blue-dk)'},
-    {n: ML.brl(soma / lucros.length),    l:'Lucro médio',          c:'var(--violet-dk)'},
-    {n: ML.brl(soma),                    l:'Lucro total estimado', c:'var(--green-dk)'},
+    {n: mlLinhas.length,              l:'Produtos',             c:'var(--ink)'},
+    {n: ok.length,                    l:'Preços calculados',    c:'var(--green-dk)'},
+    {n: revisar,                      l:'Precisam de revisão',  c: revisar ? 'var(--red)' : 'var(--faint)'},
+    {n: ML.brl(soma / (lucros.length || 1)), l:'Lucro médio',   c:'var(--violet-dk)'},
+    {n: ML.brl(soma),                 l:'Lucro total estimado', c:'var(--green-dk)'},
   ];
   $('mlStats').innerHTML = cards.map((c,i) =>
     `<div class="stat" style="animation-delay:${i*.04}s"><div class="stat-n" style="color:${c.c}">${c.n}</div>
      <div class="stat-l">${c.l}</div></div>`).join('');
+}
 
+/* ── conferência: o que precisa de atenção antes de exportar ── */
+function mlRenderChecks(){
+  const c = mlConferencia;
+  if(!c) return;
+
+  const badge = $('mlBadge');
+  badge.textContent = c.ok ? (c.revisar ? 'CONFIRA' : 'TUDO CERTO') : 'REVISAR';
+  badge.className = 'pill ' + (c.ok ? 'pill-ok' : 'pill-bad');
+
+  if(!c.grupos.length){
+    $('mlChecks').innerHTML = `<div class="chk ok">
+      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div><div class="chk-t">Nada a revisar</div>
+      <div class="chk-d">Os ${c.total} produtos têm custo, peso e medidas — os preços podem ser usados como estão.</div></div>
+    </div>`;
+    return;
+  }
+
+  $('mlChecks').innerHTML = c.grupos.map(g => `
+    <div class="chk ${g.gravidade === 'erro' ? 'bad' : 'ok'}">
+      <div class="chk-i">${g.gravidade === 'erro'
+        ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'}</div>
+      <div><div class="chk-t">${esc(g.titulo)} <span class="tag">${g.n} ${g.n === 1 ? 'produto' : 'produtos'}</span></div>
+        <div class="chk-d">${esc(g.descricao)}</div></div>
+      <button class="chk-btn${mlFiltro === g.id ? ' on' : ''}" onclick="mlVerLinhas('${g.id}')">
+        ${mlFiltro === g.id ? 'ver todos' : 'ver as linhas'}</button>
+    </div>`).join('');
+}
+
+/* filtra a tabela por um tipo de problema — inclusive linhas além da centésima */
+function mlVerLinhas(id){
+  mlFiltro = (mlFiltro === id) ? null : id;
+  mlPagina = 0;
+  mlRenderChecks();
+  mlRenderTabela();
+}
+function mlIrPagina(n){ mlPagina = n; mlRenderTabela(); }
+
+/* ── tabela de conferência, com filtro e paginação ── */
+function mlRenderTabela(){
   const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
-  const prev = mlLinhas.slice(0, 100);
+  const grupo = mlFiltro && mlConferencia
+    ? mlConferencia.grupos.find(g => g.id === mlFiltro) : null;
+  const alvo = grupo ? grupo.linhas.map(i => mlLinhas[i]) : mlLinhas;
+
+  const total = alvo.length;
+  const paginas = Math.max(1, Math.ceil(total / ML_POR_PAGINA));
+  if(mlPagina >= paginas) mlPagina = 0;
+  const inicio = mlPagina * ML_POR_PAGINA;
+  const pagina = alvo.slice(inicio, inicio + ML_POR_PAGINA);
+
+  const situacao = r => {
+    if(!r.avisos || !r.avisos.length) return '<span style="color:var(--green-dk)">ok</span>';
+    return r.avisos.map(a => `<span class="tag ${ (ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
+  };
+
   $('mlTabela').innerHTML =
-    `<thead><tr><th>#</th><th>Descrição</th><th>Custo</th><th>Peso</th><th>Preço de venda</th>
-      <th>Comissão</th><th>Envio</th><th>Receita líq.</th><th>Lucro</th></tr></thead><tbody>` +
-    prev.map((r,i) => {
-      const desc = iDesc >= 0 ? String(mlAoa[i+1][iDesc] || '').slice(0, 42) : '';
+    `<thead><tr><th>Linha</th><th>Descrição</th><th>Custo</th><th>Peso</th><th>Preço de venda</th>
+      <th>Comissão</th><th>Envio</th><th>Lucro</th><th>Situação</th></tr></thead><tbody>` +
+    pagina.map(r => {
+      const desc = iDesc >= 0 ? String((mlAoa[r.linha] || [])[iDesc] || '').slice(0, 40) : '';
       if(r.preco == null) return `<tr>
-        <td style="color:var(--faint)">${i+1}</td>
+        <td style="color:var(--faint)">${r.linha + 1}</td>
         <td title="${esc(desc)}">${esc(desc) || '—'}</td>
-        <td colspan="7" style="color:var(--faint)">${r.custo == null ? 'sem custo na planilha' : 'margem não alcançável'}</td></tr>`;
+        <td colspan="6" style="color:var(--faint)">sem preço calculado</td>
+        <td>${situacao(r)}</td></tr>`;
       return `<tr>
-        <td style="color:var(--faint)">${i+1}</td>
+        <td style="color:var(--faint)">${r.linha + 1}</td>
         <td title="${esc(desc)}">${esc(desc) || '—'}</td>
         <td style="color:var(--amber)">${ML.brl(r.custo)}</td>
         <td style="color:var(--faint)">${r.peso ? String(r.peso).replace('.', ',') + ' kg' : '—'}</td>
         <td style="font-weight:700">${ML.brl(r.preco)}</td>
         <td style="color:var(--red)">${ML.brl(-r.comissao)}</td>
         <td style="color:var(--red)">${ML.brl(-r.frete)}</td>
-        <td style="color:var(--blue-dk)">${ML.brl(r.receitaLiquida)}</td>
         <td style="color:${r.lucroLiquido > 0 ? 'var(--green-dk)' : 'var(--red)'}">${ML.brl(r.lucroLiquido)}</td>
+        <td>${situacao(r)}</td>
       </tr>`;
     }).join('') + '</tbody>';
 
-  $('mlPrevInfo').textContent = `PRÉVIA DOS ${Math.min(100, prev.length)} PRIMEIROS`
-    + (semPeso ? ` · ${semPeso} SEM PESO` : '');
-  $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar planilha pronta para o Bling (${ok.length} produtos)`;
-  mlPasso(3);
+  // barra de filtro
+  $('mlFiltroBar').innerHTML = grupo
+    ? `<div class="filtro-bar">Mostrando só: <b>${esc(grupo.titulo)}</b> (${grupo.n})
+        <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button></div>`
+    : '';
+  mostrar('mlFiltroBar', !!grupo);
+
+  // paginação
+  const fim = Math.min(inicio + ML_POR_PAGINA, total);
+  $('mlPaginacao').innerHTML = paginas > 1
+    ? `<div class="paginacao">
+        <button ${mlPagina === 0 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina - 1})">‹ Anterior</button>
+        <span>${inicio + 1}–${fim} de ${total}</span>
+        <button ${mlPagina >= paginas - 1 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina + 1})">Próximas ${ML_POR_PAGINA} ›</button>
+      </div>` : '';
+
+  const c = mlConferencia;
+  $('mlPrevInfo').textContent = c && c.revisar ? `${c.revisar} PRECISAM DE REVISÃO` : 'TUDO CERTO';
+  $('mlPrevInfo').className = 'pill ' + (c && !c.ok ? 'pill-bad' : 'pill-ok');
 }
 
 function mlBaixar(){
+  if(!mlLinhas.length || !mlBytes) return;
   const id = parseInt($('mlPreco').value);
   const comAnalise = $('mlColunasAnalise').checked;
+
+  /* Linha sem preço mantém o valor antigo na planilha. Avisamos antes de
+     gerar, senão o arquivo vai para o Bling com preços novos e velhos
+     misturados, sem como distinguir. */
+  const semPreco = mlLinhas.filter(r => r.preco == null).length;
+  if(semPreco && id >= 0){
+    const ok = confirm(
+      `${semPreco} ${semPreco === 1 ? 'produto ficou' : 'produtos ficaram'} sem preço calculado.\n\n`
+      + `Nessas linhas a coluna "${mlCabecalho[id]}" mantém o valor que já estava lá — `
+      + 'o arquivo vai ter preços novos e antigos misturados.\n\n'
+      + 'Gerar assim mesmo?');
+    if(!ok) return;
+  }
+
   let nome;
   try{
     // relê o arquivo enviado e troca só o que muda, preservando tipos e formato
@@ -778,24 +892,25 @@ function mlBaixar(){
     const base = mlCabecalho.length;
 
     const NOVAS = ['Custo do produto','Peso (kg)','Preço de venda ML','Comissão','Custo fixo',
-                   'Custo de envio','Receita líquida','Lucro líquido','Margem líquida'];
+                   'Custo de envio','Receita líquida','Lucro líquido','Margem líquida','Conferência'];
     if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
 
     mlLinhas.forEach((r, i) => {
       const linha = i + 1;
       if(id >= 0 && r.preco != null) XU.escrever(ws, linha, id, r.preco);
       if(comAnalise){
+        const conf = (r.avisos || []).map(a => (ML.AVISOS[a] || {}).titulo || a).join(' · ');
         const vals = r.preco == null
-          ? [r.custo, r.peso, '', '', '', '', '', '', '']
+          ? [r.custo, r.peso, '', '', '', '', '', '', '', conf || 'sem preço calculado']
           : [r.custo, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
-             r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4)];
+             r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4), conf];
         vals.forEach((v, k) => XU.escrever(ws, linha, base + k, v === undefined ? '' : v));
       }
     });
 
     if(comAnalise){
       const cols = ws['!cols'] ? ws['!cols'].slice() : [];
-      NOVAS.forEach((_, k) => cols[base + k] = {wch:18});
+      NOVAS.forEach((_, k) => cols[base + k] = {wch: k === NOVAS.length - 1 ? 40 : 18});
       ws['!cols'] = cols;
     }
 
@@ -809,11 +924,13 @@ function mlBaixar(){
   }
 
   const ok = mlLinhas.filter(r => r.preco != null).length;
+  const pendentes = mlConferencia ? mlConferencia.revisar : 0;
   const rep = MLFretes.REPUTACOES.find(r => r.id === pml.reputacao);
   $('mlDoneMsg').innerHTML =
     `<b style="color:var(--ink)">${ok} produtos</b> precificados a <b style="color:var(--green-dk)">${(mlMargem*100).toFixed(0)}% de margem líquida</b><br/>
      Arquivo salvo como <b>${esc(nome)}</b><br/><br/>
      <span style="font-size:12px;color:var(--faint)">
+     ${pendentes ? '⚠ ' + pendentes + ' produto(s) precisam de revisão — veja a conferência<br/>' : ''}
      ✔ Anúncio ${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'} · reputação ${esc(rep ? rep.nome.toLowerCase() : pml.reputacao)}<br/>
      ✔ Preço gravado ${id >= 0 ? 'na coluna "' + esc(mlCabecalho[id]) + '"' : 'em nova coluna'}<br/>
      ${comAnalise ? '✔ Colunas de análise incluídas — remova antes de subir no Bling'

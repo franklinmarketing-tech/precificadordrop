@@ -256,7 +256,121 @@ const custoTotal = (fornecedor, extra) => {
   return centavos(c + (isNaN(e) ? 0 : e));
 };
 
-return {PADRAO, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+/* ══════════════════════════════════════════════════════════════════════════
+   PRECIFICAÇÃO EM LOTE COM CONFERÊNCIA
+
+   O preço só vale se os dados de entrada valem. Um produto sem peso, por
+   exemplo, seria precificado com frete zero e pareceria muito mais lucrativo
+   do que é — por isso cada linha volta com a lista de problemas encontrados.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const AVISOS = {
+  sem_custo: {gravidade:'erro', titulo:'Sem custo na planilha',
+    descricao:'A coluna de custo está vazia nessas linhas — sem custo não há preço.'},
+  custo_invalido: {gravidade:'erro', titulo:'Custo não é um número',
+    descricao:'Há texto onde deveria haver valor. Confira se a coluna de custo está certa.'},
+  margem_inalcancavel: {gravidade:'erro', titulo:'Margem não alcançável',
+    descricao:'As taxas somadas à margem desejada passam de 100% do preço. Reduza a margem.'},
+  frete_zero: {gravidade:'erro', titulo:'Preço calculado com frete zero',
+    descricao:'Sem peso, sem medidas e sem frete manual, o envio entrou como R$ 0,00 — o lucro real será menor.'},
+  lucro_negativo: {gravidade:'erro', titulo:'Prejuízo no preço sugerido',
+    descricao:'Mesmo no preço calculado, esses produtos não cobrem os custos.'},
+  sem_peso: {gravidade:'alerta', titulo:'Sem peso',
+    descricao:'O frete usou as medidas ou o peso padrão. Confira a coluna de peso.'},
+  sem_dimensoes: {gravidade:'alerta', titulo:'Sem as três medidas',
+    descricao:'Sem altura, largura e comprimento não dá para calcular o peso volumétrico — o frete pode sair menor que o real.'},
+  peso_suspeito: {gravidade:'alerta', titulo:'Peso parece errado',
+    descricao:'Peso abaixo de 10 g. Se estiver em gramas em vez de quilos, o frete sai muito abaixo do real.'},
+  tarifa_suspeita: {gravidade:'alerta', titulo:'Tarifa da categoria fora do esperado',
+    descricao:'A coluna de tarifa trouxe mais de 50%. Foi ignorada — confira se é mesmo a coluna certa.'},
+  markup_alto: {gravidade:'alerta', titulo:'Preço muito acima do custo',
+    descricao:'O preço passou de 5x o custo, quase sempre por causa do frete. Confira se o produto vende nesse valor.'},
+};
+
+/* Precifica uma linha e devolve, junto, o que há de errado com ela.
+   entrada = {linha, custo, peso, dimensoes, comissaoProduto} */
+function precificarLinha(entrada, params) {
+  const p = Object.assign({}, PADRAO, params || {});
+  const avisos = [];
+  const linha = entrada.linha;
+  const alvo = Number(p.margemAlvo);
+
+  // custo: distingue "vazio" de "texto onde deveria ter número"
+  const cru = entrada.custo;
+  const vazio = cru === '' || cru == null;
+  const custo = vazio ? NaN : parseNumero(cru);
+  if (vazio || custo === 0) { avisos.push('sem_custo'); return {linha, custo:null, preco:null, avisos}; }
+  if (isNaN(custo) || custo < 0) { avisos.push('custo_invalido'); return {linha, custo:null, preco:null, avisos}; }
+
+  // peso e medidas
+  const peso = parseNumero(entrada.peso);
+  const kg = isNaN(peso) ? 0 : peso;
+  const dims = entrada.dimensoes || null;
+  if (!kg) avisos.push('sem_peso');
+  else if (kg < 0.01) avisos.push('peso_suspeito');
+  if (p.usarPesoVolumetrico && !dims) avisos.push('sem_dimensoes');
+
+  /* Tarifa própria da categoria: aceita 13 ou 0,13. Acima de 50% é quase
+     certo que a coluna escolhida não é de tarifa — ignoramos e avisamos,
+     em vez de precificar com uma comissão absurda.                     */
+  const pl = Object.assign({}, p);
+  const taxa = parseNumero(entrada.comissaoProduto);
+  if (!isNaN(taxa) && taxa > 0) {
+    const fracao = taxa > 1 ? taxa / 100 : taxa;
+    if (fracao > 0.5) avisos.push('tarifa_suspeita');
+    else pl.comissaoProduto = fracao;
+  }
+
+  const preco = precoPara(custo, alvo, kg, pl, dims);
+  if (preco == null) { avisos.push('margem_inalcancavel'); return {linha, custo, peso:kg, preco:null, avisos}; }
+
+  const r = analisar(preco, custo, kg, pl, dims);
+  // frete zero com cálculo automático ligado significa que faltou dado de peso
+  if (pl.freteAutomatico && r.frete === 0) avisos.push('frete_zero');
+  if (r.lucroLiquido <= 0) avisos.push('lucro_negativo');
+  if (r.markup > 5) avisos.push('markup_alto');
+
+  return Object.assign({linha, avisos}, r);
+}
+
+/* Agrupa os problemas do lote. Guarda TODOS os índices de cada grupo, para a
+   tela poder mostrar linhas que ficariam fora de uma prévia truncada.      */
+function conferir(linhas) {
+  const ordem = {erro:0, alerta:1, info:2};
+  const mapa = new Map();
+
+  linhas.forEach((l, i) => {
+    (l.avisos || []).forEach(id => {
+      if (!mapa.has(id)) mapa.set(id, []);
+      mapa.get(id).push(i);
+    });
+  });
+
+  const grupos = Array.from(mapa.entries()).map(([id, idx]) => {
+    const a = AVISOS[id] || {gravidade:'info', titulo:id, descricao:''};
+    return {id, gravidade:a.gravidade, titulo:a.titulo, descricao:a.descricao, n:idx.length, linhas:idx};
+  }).sort((x, y) => (ordem[x.gravidade] - ordem[y.gravidade]) || (y.n - x.n));
+
+  const comErro   = linhas.filter(l => (l.avisos || []).some(id => (AVISOS[id] || {}).gravidade === 'erro')).length;
+  const comAlerta = linhas.filter(l => (l.avisos || []).some(id => (AVISOS[id] || {}).gravidade === 'alerta')).length;
+
+  return {
+    total: linhas.length,
+    precificados: linhas.filter(l => l.preco != null).length,
+    comErro, comAlerta,
+    revisar: linhas.filter(l => (l.avisos || []).length).length,
+    ok: comErro === 0,
+    grupos,
+  };
+}
+
+function precificarLote(entradas, params) {
+  const linhas = (entradas || []).map(e => precificarLinha(e, params));
+  return {linhas, conferencia: conferir(linhas)};
+}
+
+return {PADRAO, AVISOS, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
-        analisar, precoPara, custoTotal};
+        analisar, precoPara, custoTotal,
+        precificarLinha, precificarLote, conferir};
 });

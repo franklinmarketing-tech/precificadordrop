@@ -349,10 +349,21 @@
 
       <div id="mlStep3" class="hide">
         <div class="stats stats-5" id="mlStats"></div>
+
+        <div class="panel">
+          <div class="panel-h">
+            <div class="panel-t verde">Conferência antes de exportar</div>
+            <span class="pill" id="mlBadge"></span>
+          </div>
+          <div class="checks" id="mlChecks"></div>
+        </div>
+
         <div class="panel">
           <div class="panel-h"><div class="panel-t verde"><span class="n">3</span> Conferir os preços calculados</div>
             <span class="pill pill-ok" id="mlPrevInfo"></span></div>
+          <div id="mlFiltroBar" class="hide"></div>
           <div class="tbl-wrap"><table id="mlTabela"></table></div>
+          <div id="mlPaginacao"></div>
           <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="mlPasso(2)"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
             <button class="btn btn-green" style="flex:1" id="mlBtnDl" onclick="mlBaixar()">

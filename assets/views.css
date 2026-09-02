@@ -433,3 +433,29 @@ body.view-hub .wrap{min-height:0}
 .regra-v{font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;color:var(--green-dk);white-space:nowrap}
 .regra.off .regra-v{color:var(--faint)}
 @media(max-width:600px){.regra{grid-template-columns:22px 1fr}.regra-v{grid-column:2;margin-top:4px}}
+
+/* ═══ CONFERÊNCIA DO LOTE ═════════════════════════════════ */
+.chk-btn{border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;font-size:10.5px;
+  font-weight:600;color:var(--blue-dk);padding:7px 13px;border-radius:9px;white-space:nowrap;transition:all .15s}
+.chk-btn:hover{background:#f0f4ff;border-color:var(--blue);transform:translateY(-1px)}
+.chk-btn.on{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent}
+.chk{grid-template-columns:19px 1fr auto;display:grid;align-items:center}
+
+.tag-erro{background:rgba(229,72,77,.12);color:var(--red)}
+.tag-alerta{background:rgba(247,144,9,.14);color:#9a5b00}
+
+.filtro-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;
+  border-radius:11px;background:rgba(79,124,255,.07);border:1px solid rgba(79,124,255,.2);
+  font-size:11.5px;color:var(--sub)}
+.filtro-bar b{color:var(--ink)}
+.filtro-bar button{margin-left:auto;border:none;background:#fff;cursor:pointer;font-family:inherit;
+  font-size:10.5px;font-weight:600;color:var(--blue-dk);padding:6px 12px;border-radius:8px;
+  box-shadow:0 1px 4px rgba(20,30,60,.15)}
+.filtro-bar button:hover{background:#f0f4ff}
+
+.paginacao{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+.paginacao button{border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:600;color:var(--sub);padding:9px 16px;border-radius:10px;transition:all .15s}
+.paginacao button:hover:not(:disabled){border-color:var(--blue);color:var(--blue-dk);transform:translateY(-1px)}
+.paginacao button:disabled{opacity:.4;cursor:not-allowed}
+.paginacao span{font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--faint)}
