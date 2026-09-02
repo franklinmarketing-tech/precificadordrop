@@ -20,13 +20,19 @@
 
 /* ── parâmetros (todos editáveis na interface) ───────────────────────────── */
 const PADRAO = {
+  versao: 2,                     // sobe quando os padrões mudam, para migrar o que está salvo
   reputacao: 'verde',            // verde | amarela | vermelha
   tipoAnuncio: 'classico',       // classico | premium
-  comissaoClassico: 0.13,        // 13% do preço
-  comissaoPremium: 0.18,         // 18% do preço
-  // custo fixo por unidade, por faixa de preço do anúncio
+  // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
+  comissaoClassico: 0.13,
+  comissaoPremium: 0.18,
+  /* Custo fixo por unidade, conforme a tabela oficial do Mercado Livre:
+     abaixo de R$ 12,50 é isento; R$ 6,25 até R$ 29; R$ 6,50 até R$ 50;
+     R$ 6,75 até R$ 79; a partir de R$ 79 não há custo fixo.            */
   taxaFixa: [
+    {ate: 12.49, valor: 0},
     {ate: 29,    valor: 6.25},
+    {ate: 50,    valor: 6.50},
     {ate: 78.99, valor: 6.75},
     {ate: 1e9,   valor: 0},
   ],
@@ -67,8 +73,13 @@ function parseNumero(v) {
 }
 
 /* ── componentes do custo de venda ───────────────────────────────────────── */
-const comissaoPct = p =>
-  (p.tipoAnuncio === 'premium' ? p.comissaoPremium : p.comissaoClassico) || 0;
+/* A tarifa de venda varia por categoria (Clássico 10%–14%, Premium 15%–19%),
+   então cada produto pode trazer a sua em `comissaoProduto`.              */
+const comissaoPct = p => {
+  const propria = Number(p.comissaoProduto);
+  if (isFinite(propria) && propria > 0) return propria;
+  return (p.tipoAnuncio === 'premium' ? p.comissaoPremium : p.comissaoClassico) || 0;
+};
 
 function taxaFixaDe(preco, p) {
   const faixas = (p.taxaFixa || []).slice().sort((a, b) => a.ate - b.ate);

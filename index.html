@@ -265,6 +265,15 @@
             </div>
           </div>
 
+          <div class="grid2" style="margin-bottom:18px">
+            <div>
+              <div class="lbl verde">Coluna da tarifa por categoria (%)</div>
+              <select id="mlComissao" onchange="mlValidaCol()"><option value="-1">Usar a tarifa do tipo de anúncio</option></select>
+              <div class="nota" id="mlComissaoNota"></div>
+            </div>
+            <div></div>
+          </div>
+
           <div class="lbl verde">Margem líquida desejada</div>
           <div class="margens" id="mlMargens"></div>
           <div class="margem-custom">
@@ -504,20 +513,22 @@
     </div>
 
     <div class="grp">
-      <div class="grp-t">COMISSÃO POR TIPO DE ANÚNCIO</div>
-      <div class="grp-d">Percentual do preço cobrado pelo Mercado Livre em cada venda.</div>
+      <div class="grp-t">TARIFA DE VENDA POR CATEGORIA</div>
+      <div class="grp-d">A tarifa muda conforme a categoria do produto: <b>Clássico entre 10% e 14%</b>, <b>Premium entre 15% e 19%</b>. Ajuste aqui a tarifa da sua categoria — na planilha em massa dá para usar uma coluna com a tarifa de cada produto.</div>
       <div class="grid2">
-        <div class="f"><label>Clássico (%)</label><input type="number" id="m_comissaoClassico" min="0" max="50" step="0.1"/></div>
-        <div class="f"><label>Premium (%)</label><input type="number" id="m_comissaoPremium" min="0" max="50" step="0.1"/></div>
+        <div class="f"><label>Clássico (%)</label><input type="number" id="m_comissaoClassico" min="0" max="50" step="0.1"/>
+          <div class="hint">oficial: 10% a 14%</div></div>
+        <div class="f"><label>Premium (%)</label><input type="number" id="m_comissaoPremium" min="0" max="50" step="0.1"/>
+          <div class="hint">oficial: 15% a 19%</div></div>
       </div>
     </div>
 
     <div class="grp">
       <div class="grp-t">CUSTO FIXO POR UNIDADE</div>
-      <div class="grp-d">Cobrado em produtos abaixo de R$ 79. Uma faixa por linha, no formato <b>até preço = valor</b>.</div>
+      <div class="grp-d">Tabela oficial do Mercado Livre. Uma faixa por linha, no formato <b>até preço = valor</b>.</div>
       <div class="f">
-        <textarea id="m_taxaFixa" spellcheck="false"></textarea>
-        <div class="hint">Ex.: <b>29 = 6,25</b> · <b>78,99 = 6,75</b> · <b>999999 = 0</b></div>
+        <textarea id="m_taxaFixa" spellcheck="false" rows="6"></textarea>
+        <div class="hint">Oficial: abaixo de R$ 12,50 isento · R$ 6,25 até R$ 29 · R$ 6,50 até R$ 50 · R$ 6,75 até R$ 79 · a partir de R$ 79 sem custo fixo</div>
       </div>
     </div>
 

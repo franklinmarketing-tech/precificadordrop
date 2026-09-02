@@ -119,7 +119,13 @@ let pml = carregarParamsML();
 function carregarParamsML(){
   try{
     const s = localStorage.getItem(CHAVE_ML);
-    if(s) return Object.assign({}, ML.PADRAO, JSON.parse(s));
+    if(s){
+      const salvo = JSON.parse(s);
+      // parâmetros de uma versão anterior: as tabelas oficiais voltam ao padrão
+      // (a de custo fixo mudou), o resto das escolhas do usuário é mantido
+      if((salvo.versao || 1) < ML.PADRAO.versao) delete salvo.taxaFixa;
+      return Object.assign({}, ML.PADRAO, salvo, {versao: ML.PADRAO.versao});
+    }
   }catch(e){}
   return Object.assign({}, ML.PADRAO);
 }
@@ -374,6 +380,7 @@ function mlCarregar(f){
       $('mlCusto').innerHTML = '<option value="-1">— Selecione —</option>' + opcoes;
       $('mlPeso').innerHTML  = '<option value="-1">Sem peso — usar frete manual</option>' + opcoes;
       $('mlPreco').innerHTML = '<option value="-1">Nova coluna no final</option>' + opcoes;
+      $('mlComissao').innerHTML = '<option value="-1">Usar a tarifa do tipo de anúncio</option>' + opcoes;
 
       // auto-seleção: só serve coluna que realmente tenha número > 0
       const temValores = i => i >= 0 && mlAoa.slice(1).some(l => {
@@ -398,17 +405,22 @@ function mlCarregar(f){
 }
 
 function mlValidaCol(){
-  const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value), id = parseInt($('mlPreco').value);
+  const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value);
+  const id = parseInt($('mlPreco').value), im = parseInt($('mlComissao').value);
   $('mlCustoNota').textContent = ic >= 0 ? `✓ "${mlCabecalho[ic]}" — custo do produto` : '';
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
+  $('mlComissaoNota').textContent = im >= 0
+    ? `✓ "${mlCabecalho[im]}" — tarifa de cada produto`
+    : `todos com ${(ML.comissaoPct(pml)*100).toFixed(1).replace('.0','').replace('.', ',')}% (${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'})`;
   $('mlBtnCalc').disabled = ic < 0;
 }
 
 function mlProcessar(){
   const ic = parseInt($('mlCusto').value);
   const ip = parseInt($('mlPeso').value);
+  const im = parseInt($('mlComissao').value);
   if(ic < 0) return;
 
   mlLinhas = mlAoa.slice(1).map(linha => {
@@ -416,9 +428,19 @@ function mlProcessar(){
     const peso  = ip >= 0 ? ML.parseNumero(linha[ip]) : NaN;
     if(isNaN(custo) || custo <= 0) return {custo:null};
     const kg = isNaN(peso) ? 0 : peso;
-    const preco = ML.precoPara(custo, mlMargem, kg, pml);
+
+    // tarifa própria do produto: aceita 13 ou 0,13
+    let p = pml;
+    if(im >= 0){
+      let taxa = ML.parseNumero(linha[im]);
+      if(!isNaN(taxa) && taxa > 0){
+        if(taxa > 1) taxa = taxa / 100;
+        p = Object.assign({}, pml, {comissaoProduto: taxa});
+      }
+    }
+    const preco = ML.precoPara(custo, mlMargem, kg, p);
     if(preco == null) return {custo, preco:null, peso:kg};
-    return Object.assign({peso:kg}, ML.analisar(preco, custo, kg, pml));
+    return Object.assign({peso:kg}, ML.analisar(preco, custo, kg, p));
   });
 
   const ok = mlLinhas.filter(r => r.preco != null);
