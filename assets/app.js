@@ -308,6 +308,8 @@ function abrirParamsML(){
   renderFaixas();
   $('m_freteAutomatico').checked = !!pml.freteAutomatico;
   $('m_freteRapidoAbaixo79').checked = !!pml.freteRapidoAbaixo79;
+  $('m_usarPesoVolumetrico').checked = !!pml.usarPesoVolumetrico;
+  set('m_divisorVolumetrico', pml.divisorVolumetrico);
   set('m_freteManual', pml.freteManual);
   set('m_pesoPadrao', pml.pesoPadrao);
   set('m_rebate', pml.rebate);
@@ -339,6 +341,8 @@ function salvarParamsML(){
     taxaFixa: faixas.length ? faixas : ML.PADRAO.taxaFixa,
     freteAutomatico: $('m_freteAutomatico').checked,
     freteRapidoAbaixo79: $('m_freteRapidoAbaixo79').checked,
+    usarPesoVolumetrico: $('m_usarPesoVolumetrico').checked,
+    divisorVolumetrico: n('m_divisorVolumetrico') || 6000,
     freteManual: n('m_freteManual'),
     pesoPadrao:  n('m_pesoPadrao'),
     rebate:      n('m_rebate'),
@@ -488,8 +492,27 @@ function paramsDoProduto(){
 
   return p;
 }
+/* dimensões da embalagem informadas na tela */
+function dimsDoProduto(){
+  const n = id => ML.parseNumero($(id).value);
+  const a = n('ajAltura'), l = n('ajLargura'), c = n('ajComprimento');
+  if(isNaN(a) || isNaN(l) || isNaN(c) || a <= 0 || l <= 0 || c <= 0) return null;
+  return {altura: a, largura: l, comprimento: c};
+}
+/* mostra o peso volumétrico e qual dos dois o frete vai usar */
+function avisoVolumetrico(pesoReal){
+  const el = $('ajVolumetrico');
+  if(!el) return;
+  const d = dimsDoProduto();
+  if(!d) return el.textContent = 'informe as três medidas';
+  const r = ML.pesoCobravel(pesoReal, d, pml);
+  el.innerHTML = `volumétrico <b>${String(r.volumetrico).replace('.', ',')} kg</b>`
+    + ` · cobra pelo <b>${r.usou}</b> (${String(r.cobravel).replace('.', ',')} kg)`;
+}
+
 function limparAjustes(){
-  ['ajFrete','ajRebate','ajImposto','ajDevolucao','ajEmbalagem'].forEach(id => $(id).value = '');
+  ['ajFrete','ajRebate','ajImposto','ajDevolucao','ajEmbalagem',
+   'ajAltura','ajLargura','ajComprimento'].forEach(id => $(id).value = '');
   recalc();
 }
 function recalc(){ if(modo === 'a') calcA(); else calcB(); }
@@ -518,14 +541,16 @@ function calcA(){
 
   const p = paramsDoProduto();
   const kg = isNaN(peso) ? 0 : peso;
+  const dims = dimsDoProduto();
+  avisoVolumetrico(kg);
   avisoFrete(kg);
   const alvo = margem / 100;
-  const preco = ML.precoPara(custo, alvo, kg, p);
+  const preco = ML.precoPara(custo, alvo, kg, p, dims);
   if(preco == null){
     return el.innerHTML = '<div class="aviso">Com essas taxas, essa margem não é alcançável. Reduza a margem ou revise os parâmetros.</div>';
   }
   avisoFrete(kg, preco);
-  el.innerHTML = blocoResultado(ML.analisar(preco, custo, kg, p), alvo, p);
+  el.innerHTML = blocoResultado(ML.analisar(preco, custo, kg, p, dims), alvo, p);
 }
 
 function calcB(){
@@ -537,9 +562,11 @@ function calcB(){
   if(isNaN(preco) || preco <= 0){ el.innerHTML = ''; return; }
   const p = paramsDoProduto();
   const kg = isNaN(peso) ? 0 : peso;
+  const dims = dimsDoProduto();
+  avisoVolumetrico(kg);
   avisoFrete(kg, preco);
   el.innerHTML = blocoResultado(
-    ML.analisar(preco, isNaN(custo) ? 0 : custo, kg, p), null, p);
+    ML.analisar(preco, isNaN(custo) ? 0 : custo, kg, p, dims), null, p);
 }
 
 /* ── planilha em massa ── */
@@ -601,6 +628,9 @@ function mlCarregar(f){
       $('mlPeso').innerHTML  = '<option value="-1">Sem peso — usar frete manual</option>' + opcoes;
       $('mlPreco').innerHTML = '<option value="-1">Nova coluna no final</option>' + opcoes;
       $('mlComissao').innerHTML = '<option value="-1">Usar a tarifa do tipo de anúncio</option>' + opcoes;
+      $('mlAltura').innerHTML      = '<option value="-1">Sem altura</option>' + opcoes;
+      $('mlLargura').innerHTML     = '<option value="-1">Sem largura</option>' + opcoes;
+      $('mlComprimento').innerHTML = '<option value="-1">Sem comprimento</option>' + opcoes;
 
       // auto-seleção: só serve coluna que realmente tenha número > 0
       const temValores = i => i >= 0 && mlAoa.slice(1).some(l => {
@@ -613,6 +643,12 @@ function mlCarregar(f){
       const iPreco = acha(/^pre[çc]o$/i);
       if(iCusto !== undefined) $('mlCusto').value = iCusto;
       if(iPeso  !== undefined) $('mlPeso').value  = iPeso;
+      const iAlt  = [acha(/altura/i)].find(temValores);
+      const iLarg = [acha(/largura/i)].find(temValores);
+      const iComp = [acha(/profundidade|comprimento/i)].find(temValores);
+      if(iAlt  !== undefined) $('mlAltura').value      = iAlt;
+      if(iLarg !== undefined) $('mlLargura').value     = iLarg;
+      if(iComp !== undefined) $('mlComprimento').value = iComp;
       if(iPreco >= 0) $('mlPreco').value = iPreco;
 
       $('mlFName').textContent = f.name;
@@ -631,6 +667,10 @@ function mlValidaCol(){
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
+  const iA = parseInt($('mlAltura').value), iL = parseInt($('mlLargura').value), iC = parseInt($('mlComprimento').value);
+  $('mlDimNota').innerHTML = (iA >= 0 && iL >= 0 && iC >= 0)
+    ? `✓ peso volumétrico será calculado: (${esc(mlCabecalho[iA])} × ${esc(mlCabecalho[iL])} × ${esc(mlCabecalho[iC])}) ÷ ${pml.divisorVolumetrico} — o frete usa o maior entre ele e o peso`
+    : 'sem as três medidas o frete usa só o peso da balança';
   $('mlComissaoNota').textContent = im >= 0
     ? `✓ "${mlCabecalho[im]}" — tarifa de cada produto`
     : `todos com ${(ML.comissaoPct(pml)*100).toFixed(1).replace('.0','').replace('.', ',')}% (${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'})`;
@@ -641,6 +681,9 @@ function mlProcessar(){
   const ic = parseInt($('mlCusto').value);
   const ip = parseInt($('mlPeso').value);
   const im = parseInt($('mlComissao').value);
+  const iAlt = parseInt($('mlAltura').value);
+  const iLarg = parseInt($('mlLargura').value);
+  const iComp = parseInt($('mlComprimento').value);
   if(ic < 0) return;
 
   mlLinhas = mlAoa.slice(1).map(linha => {
@@ -648,6 +691,14 @@ function mlProcessar(){
     const peso  = ip >= 0 ? ML.parseNumero(linha[ip]) : NaN;
     if(isNaN(custo) || custo <= 0) return {custo:null};
     const kg = isNaN(peso) ? 0 : peso;
+
+    // medidas da embalagem, para o peso volumétrico
+    let dims = null;
+    if(iAlt >= 0 && iLarg >= 0 && iComp >= 0){
+      const a = ML.parseNumero(linha[iAlt]), l = ML.parseNumero(linha[iLarg]), c = ML.parseNumero(linha[iComp]);
+      if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0)
+        dims = {altura:a, largura:l, comprimento:c};
+    }
 
     // tarifa própria do produto: aceita 13 ou 0,13
     let p = pml;
@@ -658,9 +709,9 @@ function mlProcessar(){
         p = Object.assign({}, pml, {comissaoProduto: taxa});
       }
     }
-    const preco = ML.precoPara(custo, mlMargem, kg, p);
+    const preco = ML.precoPara(custo, mlMargem, kg, p, dims);
     if(preco == null) return {custo, preco:null, peso:kg};
-    return Object.assign({peso:kg}, ML.analisar(preco, custo, kg, p));
+    return ML.analisar(preco, custo, kg, p, dims);
   });
 
   const ok = mlLinhas.filter(r => r.preco != null);

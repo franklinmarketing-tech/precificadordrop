@@ -20,7 +20,7 @@
 
 /* ── parâmetros (todos editáveis na interface) ───────────────────────────── */
 const PADRAO = {
-  versao: 5,                     // sobe quando os padrões mudam, para migrar o que está salvo
+  versao: 6,                     // sobe quando os padrões mudam, para migrar o que está salvo
   reputacao: 'verde',            // verde | amarela | vermelha
   tipoAnuncio: 'classico',       // classico | premium
   // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
@@ -44,6 +44,10 @@ const PADRAO = {
   ],
   freteAutomatico: true,         // usa a tabela oficial pelo peso
   freteRapidoAbaixo79: false,    // oferecer frete grátis rápido abaixo de R$ 79 (opcional)
+  /* Peso volumétrico = (altura × largura × comprimento em cm) ÷ divisor.
+     O frete usa o MAIOR entre ele e o peso real da balança.          */
+  usarPesoVolumetrico: true,
+  divisorVolumetrico: 6000,
   freteManual: 0,                // usado quando não há peso ou automático desligado
   pesoPadrao: 0,                 // kg, quando a planilha não traz peso
   rebate: 0,                     // subsídio do ML somado à receita (+)
@@ -115,15 +119,40 @@ function taxaFixaDe(preco, p) {
   return Number(f.valor) || 0;
 }
 
-function freteDe(preco, peso, p) {
+/* Peso volumétrico: (altura × largura × comprimento) ÷ divisor, em cm.
+   Ex.: 20 × 30 × 40 ÷ 6.000 = 4 kg.                                  */
+function pesoVolumetrico(dimensoes, params) {
+  const p = Object.assign({}, PADRAO, params || {});
+  if (!p.usarPesoVolumetrico || !dimensoes) return 0;
+  const a = Number(dimensoes.altura) || 0;
+  const l = Number(dimensoes.largura) || 0;
+  const c = Number(dimensoes.comprimento) || 0;
+  const div = Number(p.divisorVolumetrico) || 6000;
+  if (!a || !l || !c || div <= 0) return 0;
+  return +((a * l * c) / div).toFixed(3);
+}
+
+/* Peso que o Mercado Livre cobra: o maior entre o da balança e o volumétrico. */
+function pesoCobravel(pesoReal, dimensoes, params) {
+  const real = Number(pesoReal) || 0;
+  const vol  = pesoVolumetrico(dimensoes, params);
+  return {
+    real, volumetrico: vol,
+    cobravel: Math.max(real, vol),
+    usou: vol > real ? 'volumétrico' : 'real',
+  };
+}
+
+function freteDe(preco, peso, p, dimensoes) {
   if (!p.freteAutomatico) return Number(p.freteManual) || 0;
-  const kg = Number(peso) || Number(p.pesoPadrao) || 0;
+  const base = pesoCobravel(peso, dimensoes, p).cobravel;
+  const kg = base || Number(p.pesoPadrao) || 0;
   if (!kg) return Number(p.freteManual) || 0;
   return MLFretes ? MLFretes.custoEnvio(preco, kg, p.reputacao, p.freteRapidoAbaixo79) : 0;
 }
 
 /* ── conta completa a partir de um preço ─────────────────────────────────── */
-function analisar(preco, custo, peso, params) {
+function analisar(preco, custo, peso, params, dimensoes) {
   const p = Object.assign({}, PADRAO, params || {});
   const pr = centavos(Number(preco));
   const cu = Number(custo) || 0;
@@ -132,7 +161,8 @@ function analisar(preco, custo, peso, params) {
   const pctComissao = comissaoPct(p, pr);
   const comissao = centavos(pr * pctComissao);
   const taxaFixa = taxaFixaDe(pr, p);
-  const frete    = centavos(freteDe(pr, peso, p));
+  const pesos    = pesoCobravel(peso, dimensoes, p);
+  const frete    = centavos(freteDe(pr, peso, p, dimensoes));
   const rebate   = Number(p.rebate) || 0;
 
   const receitaLiquida = centavos(pr - comissao - taxaFixa - frete + rebate);
@@ -143,10 +173,11 @@ function analisar(preco, custo, peso, params) {
   const embalagem = Number(p.embalagem) || 0;
 
   const lucroLiquido = centavos(margemContrib - imposto - perdas - embalagem);
-  const pesoUsado = Number(peso) || Number(p.pesoPadrao) || 0;
+  const pesoUsado = pesos.cobravel || Number(p.pesoPadrao) || 0;
 
   return {
     preco: pr, custo: cu, peso: pesoUsado,
+    pesoReal: pesos.real, pesoVolumetrico: pesos.volumetrico, pesoUsou: pesos.usou,
     comissao, comissaoPct: pctComissao, taxaFixa, frete, rebate,
     receitaLiquida, margemContrib,
     imposto, perdas, embalagem,
@@ -164,7 +195,7 @@ function analisar(preco, custo, peso, params) {
 /* Frete e taxa fixa mudam em degraus conforme a faixa de preço, então
    testamos faixa por faixa: assumimos os custos da faixa, isolamos o preço
    e só aceitamos se o resultado realmente cair dentro dela.               */
-function precoPara(custo, margemAlvo, peso, params) {
+function precoPara(custo, margemAlvo, peso, params, dimensoes) {
   const p = Object.assign({}, PADRAO, params || {});
   const cu = Number(custo);
   const alvo = Number(margemAlvo);
@@ -175,7 +206,7 @@ function precoPara(custo, margemAlvo, peso, params) {
     return null;   // taxas somadas à margem passam de 100% em qualquer faixa
 
   const entrega = pr => {
-    const a = analisar(pr, cu, peso, p);
+    const a = analisar(pr, cu, peso, p, dimensoes);
     return a && a.margemLiquida >= alvo - 1e-9;
   };
 
@@ -197,7 +228,7 @@ function precoPara(custo, margemAlvo, peso, params) {
     // faixa proporcional (metade do preço) entra no divisor, não no numerador
     const pctFixo = faixa && faixa.percentual ? Number(faixa.percentual) : 0;
     const tf      = faixa && !faixa.percentual ? (Number(faixa.valor) || 0) : 0;
-    const frete   = freteDe(referencia, peso, p);
+    const frete   = freteDe(referencia, peso, p, dimensoes);
     const divisor = base - pctFixo;
     if (divisor <= 0) { anterior = limite; continue; }
 
@@ -226,5 +257,6 @@ const custoTotal = (fornecedor, extra) => {
 };
 
 return {PADRAO, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+        pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal};
 });

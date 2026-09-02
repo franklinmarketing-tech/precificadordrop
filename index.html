@@ -246,6 +246,20 @@
               <input type="number" id="ajEmbalagem" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
               <small>por unidade</small></div>
           </div>
+
+          <div class="am-cab" style="margin:14px 0 10px">
+            <div class="am-t"><span class="am-marca"></span>Medidas da embalagem (cm)
+              <i>o frete usa o maior entre o peso real e o volumétrico</i></div>
+            <span class="am-vol" id="ajVolumetrico">—</span>
+          </div>
+          <div class="am-grid">
+            <div><label>Altura (cm)</label>
+              <input type="number" id="ajAltura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+            <div><label>Largura (cm)</label>
+              <input type="number" id="ajLargura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+            <div><label>Comprimento (cm)</label>
+              <input type="number" id="ajComprimento" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+          </div>
         </div>
       </div>
 
@@ -292,6 +306,22 @@
               <div class="nota" id="mlPrecoNota" style="color:var(--amber)"></div>
             </div>
           </div>
+
+          <div class="grid3" style="margin-bottom:18px">
+            <div>
+              <div class="lbl verde">Coluna da altura (cm)</div>
+              <select id="mlAltura" onchange="mlValidaCol()"><option value="-1">Sem altura</option></select>
+            </div>
+            <div>
+              <div class="lbl verde">Coluna da largura (cm)</div>
+              <select id="mlLargura" onchange="mlValidaCol()"><option value="-1">Sem largura</option></select>
+            </div>
+            <div>
+              <div class="lbl verde">Coluna do comprimento (cm)</div>
+              <select id="mlComprimento" onchange="mlValidaCol()"><option value="-1">Sem comprimento</option></select>
+            </div>
+          </div>
+          <div class="nota" id="mlDimNota" style="margin:-10px 0 18px"></div>
 
           <div class="grid2" style="margin-bottom:18px">
             <div>
@@ -646,6 +676,12 @@
       </div>
       <label class="sw"><input type="checkbox" id="m_freteAutomatico"/> Calcular o frete pela tabela oficial (usa o peso)</label>
       <label class="sw"><input type="checkbox" id="m_freteRapidoAbaixo79"/> Ofereço frete grátis rápido abaixo de R$ 79 <i style="font-style:normal;color:var(--faint);font-size:10.5px">(opcional — paga a tabela de R$ 79 a 99,99)</i></label>
+      <label class="sw"><input type="checkbox" id="m_usarPesoVolumetrico"/> Considerar o peso volumétrico da embalagem</label>
+      <div class="grid2">
+        <div class="f"><label>Divisor do peso volumétrico</label><input type="number" id="m_divisorVolumetrico" min="1000" step="100"/>
+          <div class="hint">(altura × largura × comprimento) ÷ divisor · padrão 6.000<br/>Ex.: 20 × 30 × 40 ÷ 6.000 = 4 kg</div></div>
+        <div></div>
+      </div>
       <div class="grid2">
         <div class="f"><label>Frete manual (R$)</label><input type="number" id="m_freteManual" min="0" step="0.01"/>
           <div class="hint">Usado quando não há peso.</div></div>
