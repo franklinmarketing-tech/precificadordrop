@@ -307,6 +307,7 @@ function abrirParamsML(){
   if(!faixasEditor.length) faixasEditor = OFICIAIS();
   renderFaixas();
   $('m_freteAutomatico').checked = !!pml.freteAutomatico;
+  $('m_freteRapidoAbaixo79').checked = !!pml.freteRapidoAbaixo79;
   set('m_freteManual', pml.freteManual);
   set('m_pesoPadrao', pml.pesoPadrao);
   set('m_rebate', pml.rebate);
@@ -337,6 +338,7 @@ function salvarParamsML(){
     reducaoPP:  n('m_reducaoPP'),
     taxaFixa: faixas.length ? faixas : ML.PADRAO.taxaFixa,
     freteAutomatico: $('m_freteAutomatico').checked,
+    freteRapidoAbaixo79: $('m_freteRapidoAbaixo79').checked,
     freteManual: n('m_freteManual'),
     pesoPadrao:  n('m_pesoPadrao'),
     rebate:      n('m_rebate'),
@@ -791,6 +793,8 @@ function montarTaxas(){
     ['− Redução por faixa',    'categorias selecionadas entre R$ 150 e R$ 700', pml.reducaoPP ? '−' + String(pml.reducaoPP).replace('.', ',') + 'pp' : 'não se aplica'],
     ['− Custo fixo',          'por unidade, em produtos abaixo de R$ 79',     'até R$ 6,75'],
     ['− Custo de envio',      'tabela oficial por peso e faixa de preço',     rep.desc],
+    ['  frete abaixo de R$ 79','grátis rápido é opcional; abaixo de R$ 19 paga no máximo metade',
+                                                                   pml.freteRapidoAbaixo79 ? 'ofereço rápido' : 'padrão do ML'],
     ['+ Rebate',              'subsídio do Mercado Livre',                    ML.brl(pml.rebate)],
     ['= Receita líquida',     'o que entra na sua conta',                     ''],
     ['− Custo do produto',    'o que você paga ao fornecedor',                ''],

@@ -20,7 +20,7 @@
 
 /* ── parâmetros (todos editáveis na interface) ───────────────────────────── */
 const PADRAO = {
-  versao: 4,                     // sobe quando os padrões mudam, para migrar o que está salvo
+  versao: 5,                     // sobe quando os padrões mudam, para migrar o que está salvo
   reputacao: 'verde',            // verde | amarela | vermelha
   tipoAnuncio: 'classico',       // classico | premium
   // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
@@ -43,6 +43,7 @@ const PADRAO = {
     {ate: 1e9,   valor: 0},
   ],
   freteAutomatico: true,         // usa a tabela oficial pelo peso
+  freteRapidoAbaixo79: false,    // oferecer frete grátis rápido abaixo de R$ 79 (opcional)
   freteManual: 0,                // usado quando não há peso ou automático desligado
   pesoPadrao: 0,                 // kg, quando a planilha não traz peso
   rebate: 0,                     // subsídio do ML somado à receita (+)
@@ -118,7 +119,7 @@ function freteDe(preco, peso, p) {
   if (!p.freteAutomatico) return Number(p.freteManual) || 0;
   const kg = Number(peso) || Number(p.pesoPadrao) || 0;
   if (!kg) return Number(p.freteManual) || 0;
-  return MLFretes ? MLFretes.custoEnvio(preco, kg, p.reputacao) : 0;
+  return MLFretes ? MLFretes.custoEnvio(preco, kg, p.reputacao, p.freteRapidoAbaixo79) : 0;
 }
 
 /* ── conta completa a partir de um preço ─────────────────────────────────── */

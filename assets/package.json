@@ -1,0 +1,4 @@
+{
+  "//": "Os módulos desta pasta são UMD (funcionam no navegador e no Node). O package.json da raiz declara type:module por causa das funções em /api — este arquivo mantém estes aqui como CommonJS para os testes.",
+  "type": "commonjs"
+}

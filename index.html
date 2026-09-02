@@ -640,8 +640,12 @@
 
     <div class="grp">
       <div class="grp-t">CUSTO DE ENVIO</div>
-      <div class="grp-d">Com o peso informado, o frete sai da tabela oficial do ML conforme a reputação. Sem peso, é usado o valor manual.</div>
+      <div class="grp-d">
+        Com o peso informado, o frete sai da tabela oficial do ML conforme a reputação. Sem peso, é usado o valor manual.<br/>
+        Regras já embutidas: de <b>R$ 19 a R$ 78,99</b> o frete grátis padrão é do Mercado Livre; <b>a partir de R$ 79</b> o frete grátis rápido é por sua conta; abaixo de <b>R$ 19</b> você paga no máximo metade do preço.
+      </div>
       <label class="sw"><input type="checkbox" id="m_freteAutomatico"/> Calcular o frete pela tabela oficial (usa o peso)</label>
+      <label class="sw"><input type="checkbox" id="m_freteRapidoAbaixo79"/> Ofereço frete grátis rápido abaixo de R$ 79 <i style="font-style:normal;color:var(--faint);font-size:10.5px">(opcional — paga a tabela de R$ 79 a 99,99)</i></label>
       <div class="grid2">
         <div class="f"><label>Frete manual (R$)</label><input type="number" id="m_freteManual" min="0" step="0.01"/>
           <div class="hint">Usado quando não há peso.</div></div>

@@ -124,10 +124,20 @@ const REPUTACOES = [
   {id:'vermelha', nome:'Laranja ou vermelha',   desc:'sem desconto no envio'},
 ];
 
+/* Índice da faixa R$ 79–99,99, que é também a tabela cobrada quando o
+   vendedor escolhe oferecer frete grátis rápido abaixo de R$ 79. */
+const FAIXA_RAPIDO = 3;
+
 /* Custo de envio para um anúncio: depende da reputação, do peso da
    embalagem final e da faixa de preço do anúncio.
-   Abaixo de R$ 19 o Mercado Livre cobra no máximo metade do preço. */
-function custoEnvio(preco, pesoKg, reputacao) {
+
+   Regras do Mercado Livre já embutidas:
+   - de R$ 19 a R$ 78,99 o frete grátis padrão é oferecido pelo ML;
+   - a partir de R$ 79 o frete grátis rápido é por conta do vendedor;
+   - oferecer frete rápido abaixo de R$ 79 é opcional e, nesse caso,
+     paga-se a tabela da faixa R$ 79–99,99 (`rapidoAbaixo79`);
+   - produtos abaixo de R$ 19 pagam no máximo metade do preço.        */
+function custoEnvio(preco, pesoKg, reputacao, rapidoAbaixo79) {
   const tabela = TABELAS[reputacao] || TABELAS.verde;
   const p = Number(preco), kg = Number(pesoKg);
   if (!isFinite(p) || p <= 0) return 0;
@@ -137,6 +147,8 @@ function custoEnvio(preco, pesoKg, reputacao) {
   if (iPeso < 0) iPeso = FAIXAS_PESO.length - 1;
   let iFaixa = FAIXAS_PRECO.findIndex(lim => p <= lim);
   if (iFaixa < 0) iFaixa = FAIXAS_PRECO.length - 1;
+
+  if (rapidoAbaixo79 && p < 79) iFaixa = FAIXA_RAPIDO;
 
   const custo = tabela[iPeso][iFaixa];
   // produtos abaixo de R$ 19 pagam no máximo metade do preço
@@ -154,6 +166,6 @@ function faixaDePeso(kg) {
   return {indice: i, rotulo: ROTULO_PESO[i]};
 }
 
-return {FAIXAS_PRECO, FAIXAS_PESO, ROTULO_FAIXA, ROTULO_PESO, TABELAS,
+return {FAIXAS_PRECO, FAIXAS_PESO, ROTULO_FAIXA, ROTULO_PESO, TABELAS, FAIXA_RAPIDO,
         REPUTACOES, custoEnvio, faixaDePreco, faixaDePeso};
 });
