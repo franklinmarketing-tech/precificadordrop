@@ -121,9 +121,11 @@ function carregarParamsML(){
     const s = localStorage.getItem(CHAVE_ML);
     if(s){
       const salvo = JSON.parse(s);
-      // parâmetros de uma versão anterior: as tabelas oficiais voltam ao padrão
-      // (a de custo fixo mudou), o resto das escolhas do usuário é mantido
-      if((salvo.versao || 1) < ML.PADRAO.versao) delete salvo.taxaFixa;
+      /* Migração por versão: só o que mudou de padrão volta ao novo valor,
+         o resto das escolhas do usuário é mantido. */
+      const v = Number(salvo.versao) || 1;
+      if(v < 3) delete salvo.taxaFixa;        // tabela oficial de custo fixo corrigida
+      if(v < 4) delete salvo.taxaDevolucao;   // padrão passou de 3% para 0
       return Object.assign({}, ML.PADRAO, salvo, {versao: ML.PADRAO.versao});
     }
   }catch(e){}
