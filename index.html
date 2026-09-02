@@ -37,7 +37,7 @@
 
     <div id="topoTool" class="hide" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div class="steps hide" id="passos"></div>
-      <button class="btn btn-ghost hide" id="btnParams" onclick="abrirParams()">
+      <button class="btn btn-primary hide" id="btnParams" onclick="abrirParams()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Editar parâmetros
       </button>
@@ -56,39 +56,40 @@
 
     <div class="bento">
 
-      <button class="tool tool-1 live" data-tilt onclick="ir('ml')">
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-status st-live">ATIVO</span>
-        <div class="tool-ic ic-green"><svg viewBox="0 0 24 24"><path d="M12 2 4 8v8l8 6 8-6V8z"/><path d="M9 12l2 2 4-4"/></svg></div>
-        <div class="tool-body lift-2">
-          <div class="tool-title">Precificar Mercado Livre</div>
-          <div class="tool-desc">Calcule o preço ideal com custo do fornecedor + frete, individual ou em massa via planilha — taxas oficiais do ML já embutidas.</div>
-          <ul class="feats">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Produto a produto ou planilha inteira</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>11 faixas de taxa do ML mapeadas</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Excel pronto com preço, lucro e faixa</li>
-          </ul>
-        </div>
-        <div class="live-box">
-          <div>
-            <div class="live-lbl">PREÇO SUGERIDO</div>
-            <div class="live-price" id="livePrice">R$ 0,00</div>
-            <div class="live-meta">lucro líquido <b id="liveProfit">R$ 0,00</b> · margem <b>20%</b></div>
-          </div>
-          <div class="bars"><i></i><i></i><i></i><i></i></div>
-        </div>
-        <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-      </button>
-
-      <button class="tool tool-2 live" data-tilt onclick="ir('planilha')">
+      <button class="tool tool-1 live" data-tilt onclick="ir('planilha')">
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-status st-live">ATIVO</span>
         <div class="tool-ic ic-blue"><svg viewBox="0 0 24 24"><g class="arrow-anim"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/></g><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Carregar planilha Excel</div>
-          <div class="tool-desc">Resume descrições, limpa o bloco cadastral e padroniza a condição — com parâmetros editáveis.</div>
+        <div class="tool-body lift-2">
+          <div class="tool-title">Edição completa de planilha de produtos</div>
+          <div class="tool-desc">Carregue a planilha e receba um Excel novo com a aba original intacta e uma aba <b>Modificado</b> com todas as alterações aplicadas.</div>
+          <ul class="feats azul">
+            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Descrição resumida em até 60 caracteres</li>
+            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Bloco cadastral removido do fim da descrição</li>
+            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Condição do produto padronizada como NOVO</li>
+            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Parâmetros editáveis a qualquer momento</li>
+          </ul>
         </div>
-        <div class="tool-cta">EDITAR PLANILHA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="live-box azul">
+          <div>
+            <div class="live-lbl">VALIDAÇÃO AUTOMÁTICA</div>
+            <div class="live-price" id="liveChecks">0/8</div>
+            <div class="live-meta">linhas preservadas · nada apagado por engano</div>
+          </div>
+          <div class="bars"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+      </button>
+
+      <button class="tool tool-2 live" data-tilt onclick="ir('ml')">
+        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+        <span class="tool-status st-live">ATIVO</span>
+        <div class="tool-ic ic-green"><svg viewBox="0 0 24 24"><path d="M12 2 4 8v8l8 6 8-6V8z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div class="tool-body lift-1">
+          <div class="tool-title">Precificar Mercado Livre</div>
+          <div class="tool-desc">Custo do fornecedor + frete e margem, com as taxas oficiais do ML já embutidas — individual ou em massa.</div>
+        </div>
+        <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
       </button>
 
       <button class="tool tool-3 soon" data-tilt>
@@ -128,9 +129,9 @@
 
     <div class="hub-foot">
       <div class="strip">
+        <span><i class="sdot" style="background:linear-gradient(135deg,#7ea1ff,#2f5ae0)"></i><b>PLANILHA DE PRODUTOS</b> · ATIVO</span>
         <span><i class="sdot" style="background:linear-gradient(135deg,#1ed67f,#0e9a58)"></i><b>MERCADO LIVRE</b> · ATIVO</span>
         <span><i class="sdot" style="background:linear-gradient(135deg,#ffa259,#e2620a)"></i><b>SHOPEE</b> · EM BREVE</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#b18cfa,#6d3fe0)"></i><b>MULTI-MARKETPLACE</b> · ROADMAP</span>
       </div>
       <div class="pagenum">01</div>
     </div>
@@ -301,8 +302,8 @@
   <!-- ═══════════════ VIEW: EDITOR DE PLANILHA ═══════════════ -->
   <div id="view-planilha" class="view hide">
     <div style="margin-bottom:20px">
-      <h1>Edição da <span class="grad">planilha de produtos.</span></h1>
-      <div class="h-sub">Resume a descrição, remove o bloco cadastral do fim da descrição curta e padroniza a condição — gerando um Excel com a aba original intacta e uma aba <b>Modificado</b>.</div>
+      <h1>Edição completa da <span class="grad">planilha de produtos.</span></h1>
+      <div class="h-sub">Resume a descrição, remove o bloco cadastral do fim da descrição curta e padroniza a condição — gerando um Excel com a aba original intacta e uma aba <b>Modificado</b>. Use <b>Editar parâmetros</b> quando quiser mudar as regras e reprocessar.</div>
     </div>
 
     <div class="panel">
@@ -440,6 +441,7 @@
   </div>
 </aside>
 
+<script src="assets/xlsx-utils.js"></script>
 <script src="assets/ml-engine.js"></script>
 <script src="assets/planilha-engine.js"></script>
 <script src="assets/app.js"></script>

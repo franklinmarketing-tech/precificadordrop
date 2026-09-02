@@ -9,15 +9,19 @@ const brl = ML.brl;
 const reduzido = matchMedia('(prefers-reduced-motion:reduce)').matches;
 const preciso  = matchMedia('(hover:hover) and (pointer:fine)').matches;
 
+const XU = XlsxUtils;
 const $  = id => document.getElementById(id);
-const esc = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+/* escapa também aspas: o texto vem de planilhas de terceiros e é usado
+   dentro de atributos (title="…") */
+const esc = s => String(s == null ? '' : s)
+  .replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const mostrar = (id, sim) => $(id).classList.toggle('hide', !sim);
 
 /* ══ ROUTER ═══════════════════════════════════════════════════════════════ */
 const VIEWS = {
   hub:      {sub:'HUB DO ECOSSISTEMA',            titulo:'Precificador Drop — Hub do Ecossistema'},
   ml:       {sub:'PRECIFICAR MERCADO LIVRE',      titulo:'Precificar Mercado Livre — Precificador Drop'},
-  planilha: {sub:'EDIÇÃO DE PLANILHA DE PRODUTOS',titulo:'Edição de Planilha — Precificador Drop'},
+  planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
 };
 let viewAtual = 'hub';
 
@@ -87,18 +91,20 @@ if(preciso && !reduzido){
   });
 }
 
-function subirAte(el, alvo, dur){
-  if(reduzido){ el.textContent = brl(alvo); return; }
-  const t0 = performance.now();
+/* contador das validações no cartão em destaque */
+let rafContador = null;
+function contarPreco(){
+  const el = $('liveChecks');
+  if(!el) return;
+  const total = 8;
+  if(reduzido){ el.textContent = total + '/' + total; return; }
+  if(rafContador) cancelAnimationFrame(rafContador);   // evita loops empilhados
+  const t0 = performance.now(), dur = 1100;
   (function passo(agora){
     const p = Math.min((agora - t0) / dur, 1);
-    el.textContent = brl(alvo * (1 - Math.pow(1 - p, 3)));
-    if(p < 1) requestAnimationFrame(passo);
+    el.textContent = Math.round(total * (1 - Math.pow(1 - p, 3))) + '/' + total;
+    rafContador = p < 1 ? requestAnimationFrame(passo) : null;
   })(t0);
-}
-function contarPreco(){
-  subirAte($('livePrice'),  79.90, 1100);
-  subirAte($('liveProfit'), 16.48, 1300);
 }
 document.querySelector('.tool-1').addEventListener('mouseenter', contarPreco);
 
@@ -170,10 +176,18 @@ function copiar(txt, btn){
 }
 
 function calcA(){
-  const custo = ML.custoTotal($('cA').value, $('frA').value);
-  const pct   = parseFloat($('mgA').value) / 100;
   const el    = $('resCalc');
-  if(custo == null || !pct){ el.innerHTML = ''; return; }
+  const bruto = ML.parseNumero($('cA').value);
+  const frete = ML.parseNumero($('frA').value);
+  const margem = ML.parseNumero($('mgA').value);
+
+  if(bruto < 0 || frete < 0) return el.innerHTML = '<div class="aviso">Custo e frete não podem ser negativos.</div>';
+  if(!isNaN(margem) && (margem <= 0 || margem >= 100))
+    return el.innerHTML = '<div class="aviso">A margem precisa ficar entre 1% e 99%.</div>';
+
+  const custo = ML.custoTotal($('cA').value, $('frA').value);
+  const pct   = margem / 100;
+  if(custo == null || !pct || isNaN(pct)){ el.innerHTML = ''; return; }
   const preco = ML.precoPara(custo, pct);
   if(!preco){ el.innerHTML = '<div class="aviso">Não foi possível calcular com esses valores. Revise custo e margem.</div>'; return; }
   const fat   = ML.faturam(preco);
@@ -182,12 +196,13 @@ function calcA(){
 }
 
 function calcB(){
-  const preco = parseFloat($('pB').value);
-  const cf    = parseFloat($('cB').value)  || 0;
-  const fr    = parseFloat($('frB').value) || 0;
+  const preco = ML.parseNumero($('pB').value);
+  const cf    = ML.parseNumero($('cB').value)  || 0;
+  const fr    = ML.parseNumero($('frB').value) || 0;
   const custo = (cf || fr) ? +(cf + fr).toFixed(2) : null;
   const el    = $('resCalc');
-  if(!preco){ el.innerHTML = ''; return; }
+  if(cf < 0 || fr < 0) return el.innerHTML = '<div class="aviso">Custo e frete não podem ser negativos.</div>';
+  if(isNaN(preco) || !preco){ el.innerHTML = ''; return; }
   if(preco < 5){ el.innerHTML = '<div class="aviso">O preço mínimo no Mercado Livre é R$ 5,00.</div>'; return; }
   const fat   = ML.faturam(preco);
   const faixa = ML.faixaDe(preco);
@@ -240,10 +255,11 @@ function mlCarregar(f){
   if(!f) return;
   mlNome = f.name;
   const rd = new FileReader();
+  rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
   rd.onload = ev => {
     try{
       mlWb = XLSX.read(ev.target.result, {type:'array'});
-      const ws = mlWb.Sheets[mlWb.SheetNames[0]];
+      const ws = XU.normalizarRef(mlWb.Sheets[mlWb.SheetNames[0]]);
       mlAoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
       if(mlAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
       mlCabecalho = mlAoa[0].map(String);
@@ -303,6 +319,11 @@ function mlProcessar(){
   });
 
   const ok     = mlLinhas.filter(r => r.preco != null);
+  if(!ok.length){
+    alert(`Nenhum preço foi calculado.\n\nA coluna "${mlCabecalho[ic]}" não tem valores numéricos maiores que zero — `
+        + 'escolha a coluna que guarda o custo do produto.');
+    return;
+  }
   const lucros = ok.map(r => r.lucro);
   const soma   = lucros.reduce((a,b) => a + b, 0);
   const cards  = [
@@ -341,32 +362,37 @@ function mlProcessar(){
 
 function mlBaixar(){
   const ip = parseInt($('mlPreco').value);
-  const n2 = v => v == null ? '' : +v.toFixed(2);
+  let nome;
+  try{
+    // parte da aba original e troca só o que muda: assim custo, EAN e datas
+    // continuam com o tipo certo (nada de "número armazenado como texto")
+    const ws = XU.clonarWs(mlWb.Sheets[mlWb.SheetNames[0]]);
+    const base = mlCabecalho.length;
+    const NOVAS = ['Custo Total (Fornecedor+Frete)','Preço de Venda ML','FATURAM (Receita Líquida)','Lucro Líquido (R$)','Faixa ML'];
+    NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
 
-  const saida = mlAoa.map((linha, i) => {
-    const nova = [...linha];
-    if(i === 0){
-      nova.push('Custo Total (Fornecedor+Frete)','Preço de Venda ML','FATURAM (Receita Líquida)','Lucro Líquido (R$)','Faixa ML');
-      return nova;
-    }
-    const r = mlLinhas[i-1];
-    if(ip >= 0 && r && r.preco != null) nova[ip] = r.preco;
-    nova.push(
-      r ? n2(r.custo) : '',
-      r && r.preco != null ? n2(r.preco) : '',
-      r ? n2(r.fat)   : '',
-      r ? n2(r.lucro) : '',
-      r && r.faixa ? r.faixa.lb : '—',
-    );
-    return nova;
-  });
+    mlLinhas.forEach((r, i) => {
+      const linha = i + 1;
+      if(ip >= 0 && r && r.preco != null) XU.escrever(ws, linha, ip, r.preco);
+      XU.escrever(ws, linha, base + 0, r ? r.custo : '');
+      XU.escrever(ws, linha, base + 1, r ? r.preco : '');
+      XU.escrever(ws, linha, base + 2, r ? r.fat   : '');
+      XU.escrever(ws, linha, base + 3, r ? r.lucro : '');
+      XU.escrever(ws, linha, base + 4, r && r.faixa ? r.faixa.lb : '');
+    });
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(saida);
-  ws['!cols'] = saida[0].map((_, i) => ({wch: i >= mlCabecalho.length ? 24 : 18}));
-  XLSX.utils.book_append_sheet(wb, ws, mlWb.SheetNames[0].slice(0, 31));
-  const nome = mlNome.replace(/\.[^.]+$/, '') + '_PRECOS_ML.xlsx';
-  XLSX.writeFile(wb, nome);
+    const cols = ws['!cols'] ? ws['!cols'].slice() : [];
+    NOVAS.forEach((_, k) => cols[base + k] = {wch:24});
+    ws['!cols'] = cols;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, XU.nomeDeAbaValido(mlWb.SheetNames[0], 'Planilha'));
+    nome = mlNome.replace(/\.[^.]+$/, '') + '_PRECOS_ML.xlsx';
+    XLSX.writeFile(wb, nome);
+  }catch(err){
+    alert('Não consegui gerar o arquivo: ' + err.message);
+    return;
+  }
 
   const ok = mlLinhas.filter(r => r.preco != null).length;
   $('mlDoneMsg').innerHTML =
@@ -414,6 +440,7 @@ function montarTaxas(){
 const CHAVE = 'precificador-drop:params-planilha';
 let params = carregarParams();
 let plWb = null, plAoa = null, plRes = null, plNome = '', plAbaAtual = 'desc';
+let plBytes = null;   // bytes do arquivo enviado: cada download relê daqui
 
 function carregarParams(){
   try{
@@ -484,10 +511,12 @@ function plCarregar(f){
   if(!f) return;
   plNome = f.name;
   const rd = new FileReader();
+  rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
   rd.onload = ev => {
     try{
-      plWb  = XLSX.read(ev.target.result, {type:'array', cellStyles:true});
-      plAoa = XLSX.utils.sheet_to_json(plWb.Sheets[plWb.SheetNames[0]], {header:1, defval:'', raw:false});
+      plBytes = ev.target.result;
+      plWb  = XLSX.read(plBytes, {type:'array', cellStyles:true});
+      plAoa = XLSX.utils.sheet_to_json(XU.normalizarRef(plWb.Sheets[plWb.SheetNames[0]]), {header:1, defval:'', raw:false});
       if(plAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
       $('plFName').textContent = f.name;
       $('plFInfo').textContent =
@@ -500,7 +529,7 @@ function plCarregar(f){
   rd.readAsArrayBuffer(f);
 }
 function plReset(){
-  plWb = plAoa = plRes = null; plNome = '';
+  plWb = plAoa = plRes = plBytes = null; plNome = '';
   $('plFi').value = '';
   mostrar('plZoneWrap', true);
   mostrar('plFileInfo', false);
@@ -512,10 +541,10 @@ function plProcessar(){
   const m = plRes.mudancas;
 
   const cards = [
-    {n: plAoa.length - 1,   l:'Produtos',                                       c:'var(--ink)'},
-    {n: m.descricao.length, l:`Descrições ajustadas (${params.colDescricao})`,   c:'var(--blue-dk)'},
-    {n: m.curta.length,     l:`Blocos removidos (${params.colDescricaoCurta})`,  c:'var(--violet-dk)'},
-    {n: m.condicao,         l:`Condição corrigida (${params.colCondicao})`,      c:'var(--green-dk)'},
+    {n: plAoa.length - 1,   l:'Produtos',                                            c:'var(--ink)'},
+    {n: m.descricao.length, l:`Descrições ajustadas (${esc(params.colDescricao)})`,   c:'var(--blue-dk)'},
+    {n: m.curta.length,     l:`Blocos removidos (${esc(params.colDescricaoCurta)})`,  c:'var(--violet-dk)'},
+    {n: m.condicao,         l:`Condição corrigida (${esc(params.colCondicao)})`,      c:'var(--green-dk)'},
   ];
   $('plStats').innerHTML = cards.map((c,i) =>
     `<div class="stat" style="animation-delay:${i*.04}s"><div class="stat-n" style="color:${c.c}">${c.n}</div>
@@ -525,7 +554,7 @@ function plProcessar(){
   $('plChecks').innerHTML = v.checks.map(c => `
     <div class="chk ${c.ok ? 'ok' : 'bad'}">
       <div class="chk-i"><svg viewBox="0 0 24 24">${c.ok ? '<path d="M20 6 9 17l-5-5"/>' : '<path d="M18 6 6 18M6 6l12 12"/>'}</svg></div>
-      <div><div class="chk-t">${c.titulo}</div><div class="chk-d">${c.detalhe}</div></div>
+      <div><div class="chk-t">${esc(c.titulo)}</div><div class="chk-d">${esc(c.detalhe)}</div></div>
     </div>`).join('');
 
   const badge = $('plBadge');
@@ -567,6 +596,8 @@ function plAba(qual, btn){
   }
   else{
     const iAV = PE.colToIndex(params.colCondicao);
+    if(iAV < 0) return el.innerHTML =
+      `<div class="vazio">A coluna da condição ("${esc(params.colCondicao)}") não é válida. Ajuste em <b>Editar parâmetros</b>.</div>`;
     const linhas = [];
     for(let r = 1; r < plAoa.length; r++){
       const antes = String(plAoa[r][iAV] == null ? '' : plAoa[r][iAV]);
@@ -584,20 +615,50 @@ function plAba(qual, btn){
 
 function plBaixar(){
   if(!plRes) return;
-  const wb = plWb;
-  const atual = wb.SheetNames[0];
-  if(params.renomearAbaOriginal && atual !== params.abaOriginal){
-    wb.Sheets[params.abaOriginal] = wb.Sheets[atual];
-    delete wb.Sheets[atual];
-    wb.SheetNames[0] = params.abaOriginal;
-  }
-  const jaTem = wb.SheetNames.indexOf(params.abaModificado);
-  if(jaTem >= 0){ delete wb.Sheets[params.abaModificado]; wb.SheetNames.splice(jaTem, 1); }
+  try{
+    // relê do arquivo enviado: sem isso, baixar duas vezes acumularia as
+    // abas geradas antes no mesmo workbook em memória
+    const wb = XLSX.read(plBytes, {type:'array', cellStyles:true});
+    XU.normalizarRef(wb.Sheets[wb.SheetNames[0]]);
+    const atual = wb.SheetNames[0];
 
-  const ws = XLSX.utils.aoa_to_sheet(plRes.aoa);
-  ws['!cols'] = plRes.aoa[0].map(() => ({wch:20}));
-  XLSX.utils.book_append_sheet(wb, ws, params.abaModificado);
-  XLSX.writeFile(wb, plNome.replace(/\.[^.]+$/, '') + '_MODIFICADO.xlsx', {bookType:'xlsx'});
+    // renomear a aba enviada, sem atropelar outra que já tenha esse nome
+    if(params.renomearAbaOriginal){
+      const alvo = XU.nomeDeAbaValido(params.abaOriginal, 'Original');
+      if(atual !== alvo){
+        const livre = wb.SheetNames.includes(alvo) ? XU.nomeDeAbaLivre(wb, alvo, 'Original') : alvo;
+        wb.Sheets[livre] = wb.Sheets[atual];
+        delete wb.Sheets[atual];
+        wb.SheetNames[wb.SheetNames.indexOf(atual)] = livre;
+      }
+    }
+
+    // a aba modificada nunca pode cair em cima da aba de origem
+    const nomeOriginal = wb.SheetNames[0];
+    let nomeMod = XU.nomeDeAbaValido(params.abaModificado, 'Modificado');
+    if(nomeMod === nomeOriginal) nomeMod = XU.nomeDeAbaLivre(wb, nomeMod, 'Modificado');
+    const jaTem = wb.SheetNames.indexOf(nomeMod);
+    if(jaTem > 0){ delete wb.Sheets[nomeMod]; wb.SheetNames.splice(jaTem, 1); }
+
+    // clona a aba de origem e troca só C, AP e AV — o resto mantém tipo e formato
+    const ws = XU.clonarWs(wb.Sheets[nomeOriginal]);
+    const alvos = [params.colDescricao, params.colDescricaoCurta, params.colCondicao]
+      .map(c => PE.colToIndex(c)).filter(i => i >= 0);
+    for(let r = 1; r < plRes.aoa.length; r++){
+      alvos.forEach(c => {
+        const antes  = plAoa[r] ? plAoa[r][c] : undefined;
+        const depois = plRes.aoa[r][c];
+        if(String(antes == null ? '' : antes) !== String(depois == null ? '' : depois)){
+          XU.escrever(ws, r, c, depois);
+        }
+      });
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, nomeMod);
+    XLSX.writeFile(wb, plNome.replace(/\.[^.]+$/, '') + '_MODIFICADO.xlsx', {bookType:'xlsx'});
+  }catch(err){
+    alert('Não consegui gerar o arquivo: ' + err.message);
+  }
 }
 
 /* ══ início ═══════════════════════════════════════════════════════════════ */

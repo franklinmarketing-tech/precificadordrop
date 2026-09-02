@@ -24,21 +24,43 @@ const FAIXAS = [
   {mn:5000, mx:1e9,     mu:0.885, fx:26.25, cf:'—',            fr:'R$ 26,25',     co:'11,5%', lb:'Faixa 4 (R$ 5.000,00+)'},
 ];
 
-const faixaDe  = p => FAIXAS.find(r => p >= r.mn && p <= r.mx) || null;
-const faturam  = p => { const r = faixaDe(p); return r ? +(p * r.mu - r.fx).toFixed(2) : null; };
+/* Preço sempre em centavos: as faixas são contíguas em passos de R$ 0,01
+   (…12,99 | 13,00…), então um valor com mais casas cairia num vão. */
+const emCentavos = p => Math.round(p * 100) / 100;
+const faixaDe = p => {
+  const v = emCentavos(p);
+  return FAIXAS.find(r => v >= r.mn && v <= r.mx) || null;
+};
+const faturam = p => {
+  const v = emCentavos(p);
+  const r = faixaDe(v);
+  return r ? +(v * r.mu - r.fx).toFixed(2) : null;
+};
 
-/* Preço de venda que entrega a margem desejada sobre a receita líquida. */
+/* Preço de venda que entrega a margem desejada sobre a receita líquida.
+   O faturamento é arredondado para centavos, então conferimos a margem
+   real e subimos o preço em centavos até alcançá-la de fato. */
 function precoPara(custo, margemPct) {
+  const alcanca = p => {
+    const fat = faturam(p);
+    return fat != null && fat > custo && (fat - custo) / fat >= margemPct - 1e-9;
+  };
+  const ajustar = p => {
+    for (let i = 0; i < 20 && !alcanca(p); i++) p = emCentavos(p + 0.01);
+    return alcanca(p) ? p : null;
+  };
+
   for (const r of FAIXAS) {
     const fat = custo / (1 - margemPct);
-    const p   = (fat + r.fx) / r.mu;
-    if (p >= r.mn && p <= r.mx && p >= 5) return Math.ceil(p * 100) / 100;
+    const p   = emCentavos(Math.ceil(((fat + r.fx) / r.mu) * 100) / 100);
+    if (p >= r.mn && p <= r.mx && p >= 5) {
+      const ok = ajustar(p);
+      if (ok != null) return ok;
+    }
   }
   // borda: menor preço de faixa que ainda alcança a margem
   for (const r of FAIXAS) {
-    const p   = r.mn;
-    const fat = p * r.mu - r.fx;
-    if (fat > custo && (fat - custo) / fat >= margemPct && p >= 5) return p;
+    if (r.mn >= 5 && alcanca(r.mn)) return r.mn;
   }
   return null;
 }
@@ -51,6 +73,8 @@ function parseNumero(v) {
   let s = String(v == null ? '' : v).trim();
   if (!s) return NaN;
   s = s.replace(/[R$\s ]/gi, '');
+  // a string inteira precisa ser numerica — senao "12 unidades" viraria 12
+  if (!/^[+-]?[\d.,]+$/.test(s)) return NaN;
   const temVirgula = s.includes(','), temPonto = s.includes('.');
 
   if (temVirgula && temPonto) {

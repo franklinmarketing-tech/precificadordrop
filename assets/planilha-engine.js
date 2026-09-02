@@ -106,7 +106,13 @@ function resumirDescricao(texto, params) {
     if (s.length <= max) break;
     const [de, para] = Array.isArray(par) ? par : [par.de, par.para];
     if (!de) continue;
-    const re = new RegExp('\\b' + escapeRe(de) + '\\b', 'gi');
+    // \b só funciona ao lado de caractere de palavra; para termos como
+    // "(Novo)" ou "50%" a borda vira "início/fim ou não-palavra"
+    const ini = /^\w/.test(de) ? '\\b' : '(?<![\\w])';
+    const fim = /\w$/.test(de) ? '\\b' : '(?![\\w])';
+    let re;
+    try { re = new RegExp(ini + escapeRe(de) + fim, 'gi'); }
+    catch (e) { re = new RegExp(escapeRe(de), 'gi'); }   // navegador sem lookbehind
     if (re.test(s)) s = s.replace(re, para).replace(/\s+/g, ' ').trim();
   }
   if (s.length <= max) return p.limparPontuacaoFinal ? aparar(s) : s;
@@ -218,11 +224,9 @@ function processar(aoa, params) {
       }
     }
 
-    // AV — condição
-    if (iAV >= 0 && String(linha[iAV]) !== p.valorCondicao) {
-      linha[iAV] = p.valorCondicao;
-      mudancas.condicao++;
-    } else if (iAV >= 0) {
+    // AV — condição (só se a coluna existir; senão criaria colunas fantasma)
+    if (iAV >= 0 && iAV < largura) {
+      if (String(linha[iAV]) !== p.valorCondicao) mudancas.condicao++;
       linha[iAV] = p.valorCondicao;
     }
   }
@@ -245,7 +249,19 @@ function validar(origem, saida, params) {
 
   const largOrig = origem.reduce((m, r) => Math.max(m, r.length), 0);
   const largNova = saida.reduce((m, r) => Math.max(m, r.length), 0);
-  add(largNova >= largOrig, 'Nenhuma coluna foi removida', `${largOrig} → ${largNova} colunas`);
+  add(largNova === largOrig, 'Nenhuma coluna foi removida ou inventada', `${largOrig} → ${largNova} colunas`);
+
+  // as colunas configuradas precisam existir de verdade na planilha enviada
+  const ausentes = [
+    ['descrição',       p.colDescricao,      iC],
+    ['descrição curta', p.colDescricaoCurta, iAP],
+    ['condição',        p.colCondicao,       iAV],
+  ].filter(([, , i]) => i < 0 || i >= largOrig)
+   .map(([nome, col]) => `${nome} (${col || 'vazia'})`);
+  add(ausentes.length === 0,
+      'As colunas configuradas existem na planilha',
+      ausentes.length ? `Fora do arquivo: ${ausentes.join(', ')} — ajuste em Editar parâmetros`
+                      : `${p.colDescricao}, ${p.colDescricaoCurta} e ${p.colCondicao} encontradas`);
 
   if (iAV >= 0) {
     const fora = [];
