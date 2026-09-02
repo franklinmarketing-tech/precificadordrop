@@ -363,11 +363,12 @@ function setModo(m){
   if(m === 'a') calcA(); else calcB();
 }
 
-function blocoResultado(r, alvo){
+function blocoResultado(r, alvo, p){
+  p = p || pml;
   const pct = v => (v * 100).toFixed(1).replace('.', ',') + '%';
   const linhas = [
     ['Preço de venda',                     ML.brl(r.preco),          'var(--ink)',       ''],
-    ['Comissão ' + (pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico') + ' (' + pct(r.comissaoPct) + ')',
+    ['Comissão ' + (p.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico') + ' (' + pct(r.comissaoPct) + ')',
                                            ML.brl(-r.comissao),      'var(--red)',       ''],
     ['Custo fixo por unidade',             ML.brl(-r.taxaFixa),      'var(--red)',       r.taxaFixa ? '' : 'acima de R$ 79 não tem'],
     ['Custo de envio',                     ML.brl(-r.frete),         'var(--red)',       r.faixaPeso],
@@ -402,7 +403,7 @@ function blocoResultado(r, alvo){
       </div>
       <div class="ex-linha total">
         <span class="ex-l">Margem líquida${alvo != null ? ' <i>alvo ' + pct(alvo) + '</i>' : ''}</span>
-        <span class="ex-v" style="color:${bom ? 'var(--green-dk)' : 'var(--red)'}">${pct(r.margemLiquida)}</span>
+        <span class="ex-v" style="color:${bom ? 'var(--green-dk)' : 'var(--red)'}">${(r.margemLiquida*100).toFixed(2).replace('.', ',')}%</span>
       </div>
     </div>
     ${bom ? '' : '<div class="aviso" style="margin:0 22px 20px">Nesse preço a venda dá prejuízo.</div>'}
@@ -412,6 +413,46 @@ function copiar(txt, btn){
   navigator.clipboard.writeText(txt);
   btn.textContent = '✓ COPIADO';
   setTimeout(() => btn.textContent = 'COPIAR', 1500);
+}
+
+/* Os "campos amarelos" da planilha: quando preenchidos, valem só para este
+   cálculo e sobrepõem os parâmetros salvos. Vazio = usa o parâmetro.     */
+function paramsDoProduto(){
+  const p = Object.assign({}, pml);
+  const n = id => ML.parseNumero($(id).value);
+
+  const frete = n('ajFrete');
+  if(!isNaN(frete) && frete >= 0){ p.freteAutomatico = false; p.freteManual = frete; }
+
+  const rebate = n('ajRebate');
+  if(!isNaN(rebate)) p.rebate = rebate;
+
+  const imposto = n('ajImposto');
+  if(!isNaN(imposto)) p.aliquotaImposto = imposto / 100;
+
+  const devolucao = n('ajDevolucao');
+  if(!isNaN(devolucao)) p.taxaDevolucao = devolucao / 100;
+
+  const embalagem = n('ajEmbalagem');
+  if(!isNaN(embalagem)) p.embalagem = embalagem;
+
+  return p;
+}
+function limparAjustes(){
+  ['ajFrete','ajRebate','ajImposto','ajDevolucao','ajEmbalagem'].forEach(id => $(id).value = '');
+  recalc();
+}
+function recalc(){ if(modo === 'a') calcA(); else calcB(); }
+
+/* mostra de onde veio o frete quando o campo está vazio */
+function avisoFrete(peso, p){
+  const el = $('ajFreteInfo');
+  if(!el) return;
+  if($('ajFrete').value.trim() !== ''){ el.textContent = 'valor informado'; return; }
+  const kg = Number(peso) || Number(pml.pesoPadrao) || 0;
+  el.textContent = (pml.freteAutomatico && kg)
+    ? 'tabela oficial: ' + ML.brl(ML.freteDe(p || 100, kg, pml))
+    : 'sem peso: ' + ML.brl(pml.freteManual);
 }
 
 function calcA(){
@@ -425,12 +466,16 @@ function calcA(){
     return el.innerHTML = '<div class="aviso">A margem precisa ficar entre 1% e 99%.</div>';
   if(isNaN(custo) || custo <= 0 || isNaN(margem)){ el.innerHTML = ''; return; }
 
+  const p = paramsDoProduto();
+  const kg = isNaN(peso) ? 0 : peso;
+  avisoFrete(kg);
   const alvo = margem / 100;
-  const preco = ML.precoPara(custo, alvo, isNaN(peso) ? 0 : peso, pml);
+  const preco = ML.precoPara(custo, alvo, kg, p);
   if(preco == null){
     return el.innerHTML = '<div class="aviso">Com essas taxas, essa margem não é alcançável. Reduza a margem ou revise os parâmetros.</div>';
   }
-  el.innerHTML = blocoResultado(ML.analisar(preco, custo, isNaN(peso) ? 0 : peso, pml), alvo);
+  avisoFrete(kg, preco);
+  el.innerHTML = blocoResultado(ML.analisar(preco, custo, kg, p), alvo, p);
 }
 
 function calcB(){
@@ -440,8 +485,11 @@ function calcB(){
   const peso  = ML.parseNumero($('pesoB').value);
   if(custo < 0 || peso < 0) return el.innerHTML = '<div class="aviso">Custo e peso não podem ser negativos.</div>';
   if(isNaN(preco) || preco <= 0){ el.innerHTML = ''; return; }
+  const p = paramsDoProduto();
+  const kg = isNaN(peso) ? 0 : peso;
+  avisoFrete(kg, preco);
   el.innerHTML = blocoResultado(
-    ML.analisar(preco, isNaN(custo) ? 0 : custo, isNaN(peso) ? 0 : peso, pml), null);
+    ML.analisar(preco, isNaN(custo) ? 0 : custo, kg, p), null, p);
 }
 
 /* ── planilha em massa ── */

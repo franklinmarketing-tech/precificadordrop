@@ -219,6 +219,34 @@
             <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoB" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcB()"/></div>
           </div>
         </div>
+
+        <!-- campos que na planilha ficam em amarelo: valem só para este cálculo -->
+        <div class="amarelos">
+          <div class="am-cab">
+            <div class="am-t">
+              <span class="am-marca"></span>Ajustes deste produto
+              <i>vazio = usa o valor dos parâmetros</i>
+            </div>
+            <button class="am-limpar" onclick="limparAjustes()">Limpar</button>
+          </div>
+          <div class="am-grid">
+            <div><label>Frete (R$)</label>
+              <input type="number" id="ajFrete" min="0" step="0.01" placeholder="tabela" oninput="recalc()"/>
+              <small id="ajFreteInfo">pela tabela oficial</small></div>
+            <div><label>Rebate (+ R$)</label>
+              <input type="number" id="ajRebate" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
+              <small>subsídio do ML</small></div>
+            <div><label>Imposto (%)</label>
+              <input type="number" id="ajImposto" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
+              <small>alíquota sobre o preço</small></div>
+            <div><label>Devolução (%)</label>
+              <input type="number" id="ajDevolucao" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
+              <small>reserva para perdas</small></div>
+            <div><label>Embalagem (R$)</label>
+              <input type="number" id="ajEmbalagem" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
+              <small>por unidade</small></div>
+          </div>
+        </div>
       </div>
 
       <div id="resCalc"></div>
