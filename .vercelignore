@@ -1,0 +1,5 @@
+planilhas/
+*.xls
+*.xlsx
+*.csv
+.git/
