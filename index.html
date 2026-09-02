@@ -9,6 +9,14 @@
 <link rel="stylesheet" href="assets/hub.css"/>
 <link rel="stylesheet" href="assets/views.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Se o CDN principal falhar, tenta o segundo antes de desistir. Sem a
+   biblioteca, nenhuma planilha abre — melhor um aviso claro que um
+   "XLSX is not defined" no console, que o usuário nunca vê. */
+if (!window.XLSX) {
+  document.write('<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/scr' + 'ipt>');
+}
+</script>
 </head>
 <body class="view-hub">
 

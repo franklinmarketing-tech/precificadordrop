@@ -17,6 +17,17 @@ const esc = s => String(s == null ? '' : s)
   .replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const mostrar = (id, sim) => $(id).classList.toggle('hide', !sim);
 
+/* A biblioteca de planilhas vem de CDN. Se os dois endereços falharem (rede da
+   empresa bloqueando, CDN fora do ar), nada de planilha funciona — avisa em vez
+   de estourar um erro que só aparece no console. */
+function temXLSX(){
+  if(window.XLSX) return true;
+  alert('Não consegui carregar a biblioteca que lê planilhas.\n\n' +
+        'Isso costuma ser conexão ou bloqueio de rede. Recarregue a página ' +
+        '(Ctrl+F5); se continuar, tente de outra rede.');
+  return false;
+}
+
 /* ══ ROUTER ═══════════════════════════════════════════════════════════════ */
 const VIEWS = {
   hub:      {sub:'HUB DO ECOSSISTEMA',            titulo:'Precificador Drop — Hub do Ecossistema'},
@@ -611,7 +622,7 @@ function mlDrop(e){
   mlCarregar(e.dataTransfer.files[0]);
 }
 function mlCarregar(f){
-  if(!f) return;
+  if(!f || !temXLSX()) return;
   mlNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
@@ -1121,7 +1132,7 @@ function plDrop(e){
   plCarregar(e.dataTransfer.files[0]);
 }
 function plCarregar(f){
-  if(!f) return;
+  if(!f || !temXLSX()) return;
   plNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
