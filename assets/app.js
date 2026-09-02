@@ -753,6 +753,11 @@ function preencherForm(p){
   set('p_camposAncora', (p.camposAncora || []).join(', '));
   set('p_minCamposBloco', p.minCamposBloco);
   set('p_colCondicao', p.colCondicao);   set('p_valorCondicao', p.valorCondicao);
+  chk('p_preencherModelo', p.preencherModelo);
+  set('p_nomeColunaModelo', p.nomeColunaModelo);
+  set('p_origemModelo', p.origemModelo);
+  set('p_textoModelo', p.textoModelo);
+  mostrarTextoModelo();
 }
 function lerForm(){
   const v = id => ($(id).value || '').trim();
@@ -777,7 +782,15 @@ function lerForm(){
     minCamposBloco: Math.max(1, parseInt(v('p_minCamposBloco'), 10) || 2),
     colCondicao: v('p_colCondicao').toUpperCase(),
     valorCondicao: v('p_valorCondicao'),
+    preencherModelo: c('p_preencherModelo'),
+    nomeColunaModelo: v('p_nomeColunaModelo') || 'Modelo',
+    origemModelo: v('p_origemModelo'),
+    textoModelo: v('p_textoModelo'),
   };
+}
+function mostrarTextoModelo(){
+  const el = $('p_origemModelo');
+  if(el) mostrar('fTextoModelo', el.value === 'fixo');
 }
 function abrirParams(){ preencherForm(params); $('scrim').classList.add('open'); $('drawer').classList.add('open'); }
 function fecharParams(){ $('scrim').classList.remove('open'); $('drawer').classList.remove('open'); }
@@ -838,6 +851,7 @@ function plProcessar(){
     {n: m.descricao.length, l:`Descrições ajustadas (${esc(params.colDescricao)})`,   c:'var(--blue-dk)'},
     {n: m.curta.length,     l:`Blocos removidos (${esc(params.colDescricaoCurta)})`,  c:'var(--violet-dk)'},
     {n: m.condicao,         l:`Condição corrigida (${esc(params.colCondicao)})`,      c:'var(--green-dk)'},
+    {n: m.modelo || 0,      l:'Modelo preenchido',                                    c:'var(--amber)'},
   ];
   $('plStats').innerHTML = cards.map((c,i) =>
     `<div class="stat" style="animation-delay:${i*.04}s"><div class="stat-n" style="color:${c.c}">${c.n}</div>
@@ -907,6 +921,40 @@ function plAba(qual, btn){
   }
 }
 
+/* Arquivo enxuto com Código + Descrição + Modelo, para colar no
+   "Importador de campos customizados" do Bling (Produtos). */
+function plBaixarModelo(){
+  if(!plRes) return;
+  const iMod = plRes.mudancas.iModelo;
+  if(iMod == null || iMod < 0)
+    return alert('A coluna Modelo não está sendo gerada.\n\nLigue "Gerar a coluna Modelo" em Editar parâmetros.');
+
+  const cab = plAoa[0] || [];
+  const acha = re => cab.findIndex(h => re.test(String(h)));
+  const iCod  = acha(/^(c[óo]digo|sku)$/i);
+  const iDesc = PE.colToIndex(params.colDescricao);
+
+  const linhas = [['Código', 'Descrição', String(params.nomeColunaModelo || 'Modelo')]];
+  for(let r = 1; r < plRes.aoa.length; r++){
+    const modelo = String(plRes.aoa[r][iMod] == null ? '' : plRes.aoa[r][iMod]);
+    if(!modelo.trim()) continue;
+    linhas.push([
+      iCod  >= 0 ? plRes.aoa[r][iCod]  : '',
+      iDesc >= 0 ? plRes.aoa[r][iDesc] : '',
+      modelo,
+    ]);
+  }
+  if(linhas.length < 2) return alert('Nenhum modelo foi preenchido para exportar.');
+
+  try{
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(linhas);
+    ws['!cols'] = [{wch:18},{wch:52},{wch:52}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
+    XLSX.writeFile(wb, plNome.replace(/\.[^.]+$/, '') + '_MODELO.xlsx', {bookType:'xlsx'});
+  }catch(err){ alert('Não consegui gerar o arquivo: ' + err.message); }
+}
+
 function plBaixar(){
   if(!plRes) return;
   try{
@@ -938,6 +986,10 @@ function plBaixar(){
     const ws = XU.clonarWs(wb.Sheets[nomeOriginal]);
     const alvos = [params.colDescricao, params.colDescricaoCurta, params.colCondicao]
       .map(c => PE.colToIndex(c)).filter(i => i >= 0);
+    if(plRes.mudancas.iModelo != null && plRes.mudancas.iModelo >= 0){
+      alvos.push(plRes.mudancas.iModelo);
+      if(plRes.mudancas.modeloNovo) XU.escrever(ws, 0, plRes.mudancas.iModelo, plRes.aoa[0][plRes.mudancas.iModelo]);
+    }
     for(let r = 1; r < plRes.aoa.length; r++){
       alvos.forEach(c => {
         const antes  = plAoa[r] ? plAoa[r][c] : undefined;

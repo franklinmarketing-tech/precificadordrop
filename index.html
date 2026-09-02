@@ -377,7 +377,7 @@
     </div>
 
     <div id="plResultado" class="hide">
-      <div class="stats stats-4" id="plStats"></div>
+      <div class="stats stats-5" id="plStats"></div>
 
       <div class="panel">
         <div class="panel-h">
@@ -402,10 +402,16 @@
           <div class="panel-t" style="margin-bottom:5px">Arquivo final</div>
           <div style="font-size:11.5px;color:var(--faint);line-height:1.6" id="plDlInfo">—</div>
         </div>
-        <button class="btn btn-green btn-lg" onclick="plBaixar()">
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-          Baixar Excel (.xlsx)
-        </button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="plBaixarModelo()" title="Só Código e Modelo, para o importador de campos customizados do Bling">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Só a coluna Modelo
+          </button>
+          <button class="btn btn-green btn-lg" onclick="plBaixar()">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Baixar Excel (.xlsx)
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -489,6 +495,26 @@
       <div class="grid2">
         <div class="f"><label>Coluna da condição</label><input type="text" id="p_colCondicao"/></div>
         <div class="f"><label>Valor a preencher</label><input type="text" id="p_valorCondicao"/></div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">MODELO — ATRIBUTO DO MERCADO LIVRE</div>
+      <div class="grp-d">O Mercado Livre exige <b>Modelo</b> em muitas categorias, e a planilha de produtos do Bling não traz esse campo. Aqui a coluna é gerada preenchida — só onde estiver vazia, nunca por cima do que já existe.</div>
+      <label class="sw"><input type="checkbox" id="p_preencherModelo"/> Gerar a coluna Modelo</label>
+      <div class="grid2">
+        <div class="f"><label>Nome da coluna</label><input type="text" id="p_nomeColunaModelo"/></div>
+        <div class="f"><label>Preencher com</label>
+          <select id="p_origemModelo" onchange="mostrarTextoModelo()">
+            <option value="descricao">Descrição do produto (já resumida)</option>
+            <option value="codigo">Código / SKU</option>
+            <option value="marca">Marca</option>
+            <option value="fixo">Um texto fixo</option>
+          </select>
+        </div>
+      </div>
+      <div class="f hide" id="fTextoModelo">
+        <label>Texto fixo do modelo</label><input type="text" id="p_textoModelo" placeholder="Ex.: Único"/>
       </div>
     </div>
   </div>

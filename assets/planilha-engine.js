@@ -54,6 +54,15 @@ const DEFAULT_PARAMS = {
   // Coluna AV — Condição do Produto
   colCondicao: 'AV',
   valorCondicao: 'NOVO',
+
+  /* Modelo — atributo obrigatório em várias categorias do Mercado Livre.
+     Não existe na planilha de produtos do Bling (é campo customizado), então
+     geramos a coluna aqui para levar ao importador de campos customizados. */
+  preencherModelo: true,
+  nomeColunaModelo: 'Modelo',
+  origemModelo: 'descricao',   // descricao | codigo | marca | fixo
+  textoModelo: '',
+  maxModelo: 60,
 };
 
 /* ── Utilidades de coluna ────────────────────────────────────────────────── */
@@ -209,6 +218,29 @@ function limparBlocoCadastral(texto, params) {
   };
 }
 
+/* ── Valor do Modelo para uma linha ──────────────────────────────────────── */
+/* O Mercado Livre exige Modelo em muitas categorias. Quando o produto não tem
+   um modelo de fábrica, o usado na prática é o próprio nome do produto.    */
+function valorDoModelo(linha, iDescricao, p, cabecalho) {
+  const acha = re => (cabecalho || []).findIndex(h => re.test(String(h)));
+  const pegar = i => i >= 0 ? String(linha[i] == null ? '' : linha[i]).trim() : '';
+  let v = '';
+  switch (p.origemModelo) {
+    case 'codigo': v = pegar(acha(/^(c[óo]digo|sku)$/i)); break;
+    case 'marca':  v = pegar(acha(/^marca$/i));           break;
+    case 'fixo':   v = String(p.textoModelo || '').trim();break;
+    default:       v = iDescricao >= 0 ? String(linha[iDescricao] == null ? '' : linha[iDescricao]) : '';
+  }
+  v = normalizar(v);
+  const max = Number(p.maxModelo) || 60;
+  if (v.length > max) {
+    const corte = v.slice(0, max + 1);
+    const ult = corte.lastIndexOf(' ');
+    v = aparar(ult > max * 0.5 ? corte.slice(0, ult) : v.slice(0, max));
+  }
+  return v;
+}
+
 /* ── 3) Processamento da planilha inteira ────────────────────────────────── */
 /* aoa = array de arrays (linha 0 = cabeçalho). Retorna nova matriz + relatório. */
 function processar(aoa, params) {
@@ -217,14 +249,27 @@ function processar(aoa, params) {
   const iAP = colToIndex(p.colDescricaoCurta);
   const iAV = colToIndex(p.colCondicao);
 
-  const largura = aoa.reduce((m, r) => Math.max(m, r.length), 0);
+  const larguraOriginal = aoa.reduce((m, r) => Math.max(m, r.length), 0);
+
+  /* Coluna do Modelo: usa a que já existir com esse nome, senão acrescenta
+     uma no fim (o Bling não traz Modelo na planilha de produtos).       */
+  const cabecalho = (aoa[0] || []).map(v => String(v == null ? '' : v).trim().toLowerCase());
+  const nomeModelo = String(p.nomeColunaModelo || 'Modelo').trim();
+  let iModelo = -1, modeloNovo = false;
+  if (p.preencherModelo && nomeModelo) {
+    iModelo = cabecalho.indexOf(nomeModelo.toLowerCase());
+    if (iModelo < 0) { iModelo = larguraOriginal; modeloNovo = true; }
+  }
+  const largura = modeloNovo ? larguraOriginal + 1 : larguraOriginal;
+
   const saida = aoa.map(linha => {
     const nova = new Array(largura);
     for (let c = 0; c < largura; c++) nova[c] = linha[c] === undefined ? '' : linha[c];
     return nova;
   });
+  if (modeloNovo) saida[0][iModelo] = nomeModelo;
 
-  const mudancas = { descricao: [], curta: [], condicao: 0 };
+  const mudancas = { descricao: [], curta: [], condicao: 0, modelo: 0, iModelo, modeloNovo };
 
   for (let r = 1; r < saida.length; r++) {
     const linha = saida[r];
@@ -265,13 +310,19 @@ function processar(aoa, params) {
       if (String(linha[iAV]) !== p.valorCondicao) mudancas.condicao++;
       linha[iAV] = p.valorCondicao;
     }
+
+    // Modelo — preenchido só onde está vazio, para não sobrescrever o que já existe
+    if (iModelo >= 0 && !String(linha[iModelo] == null ? '' : linha[iModelo]).trim()) {
+      const v = valorDoModelo(linha, iC, p, aoa[0]);
+      if (v) { linha[iModelo] = v; mudancas.modelo++; }
+    }
   }
 
-  return { aoa: saida, mudancas, validacao: validar(aoa, saida, p) };
+  return { aoa: saida, mudancas, validacao: validar(aoa, saida, p, mudancas) };
 }
 
 /* ── 4) Validação obrigatória ────────────────────────────────────────────── */
-function validar(origem, saida, params) {
+function validar(origem, saida, params, mudancas) {
   const p = Object.assign({}, DEFAULT_PARAMS, params || {});
   const iC = colToIndex(p.colDescricao);
   const iAP = colToIndex(p.colDescricaoCurta);
@@ -285,7 +336,12 @@ function validar(origem, saida, params) {
 
   const largOrig = origem.reduce((m, r) => Math.max(m, r.length), 0);
   const largNova = saida.reduce((m, r) => Math.max(m, r.length), 0);
-  add(largNova === largOrig, 'Nenhuma coluna foi removida ou inventada', `${largOrig} → ${largNova} colunas`);
+  const modeloAdicionado = mudancas && mudancas.modeloNovo ? 1 : 0;
+  add(largNova === largOrig + modeloAdicionado,
+      'Nenhuma coluna foi removida ou inventada',
+      modeloAdicionado
+        ? `${largOrig} → ${largNova} colunas (coluna "${p.nomeColunaModelo}" acrescentada)`
+        : `${largOrig} → ${largNova} colunas`);
 
   // as colunas configuradas precisam existir de verdade na planilha enviada
   const ausentes = [
@@ -341,7 +397,8 @@ function validar(origem, saida, params) {
   }
 
   const outras = [];
-  const ignorar = new Set([iC, iAP, iAV].filter(i => i >= 0));
+  const iMod = mudancas && mudancas.iModelo != null ? mudancas.iModelo : -1;
+  const ignorar = new Set([iC, iAP, iAV, iMod].filter(i => i >= 0));
   for (let r = 1; r < saida.length && outras.length < 5; r++) {
     for (let c = 0; c < largOrig; c++) {
       if (ignorar.has(c)) continue;
