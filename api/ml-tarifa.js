@@ -20,6 +20,15 @@ const TIPOS = {gold_special: 'classico', gold_pro: 'premium'};
    e renovamos pelo refresh token quando falta pouco para expirar. */
 let cache = {token: null, expiraEm: 0};
 
+async function trocar(corpo) {
+  const r = await fetch('https://api.mercadolibre.com/oauth/token', {
+    method: 'POST',
+    headers: {accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(corpo),
+  });
+  return {ok: r.ok, status: r.status, dados: await r.json()};
+}
+
 async function pegarToken() {
   const agora = Date.now();
   if (cache.token && agora < cache.expiraEm - 60000) return cache.token;
@@ -27,31 +36,36 @@ async function pegarToken() {
   const clientId = process.env.ML_CLIENT_ID;
   const secret   = process.env.ML_CLIENT_SECRET;
   const refresh  = process.env.ML_REFRESH_TOKEN;
-  if (!clientId || !secret || !refresh) {
-    const faltando = [
-      !clientId && 'ML_CLIENT_ID',
-      !secret   && 'ML_CLIENT_SECRET',
-      !refresh  && 'ML_REFRESH_TOKEN',
-    ].filter(Boolean);
+  if (!clientId || !secret) {
+    const faltando = [!clientId && 'ML_CLIENT_ID', !secret && 'ML_CLIENT_SECRET'].filter(Boolean);
     const e = new Error('Faltam variáveis de ambiente: ' + faltando.join(', '));
     e.faltando = faltando;
     throw e;
   }
 
-  const r = await fetch('https://api.mercadolibre.com/oauth/token', {
-    method: 'POST',
-    headers: {accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded'},
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: clientId,
-      client_secret: secret,
-      refresh_token: refresh,
-    }),
-  });
-  const dados = await r.json();
-  if (!r.ok) throw new Error('Não consegui renovar o token: ' + (dados.message || r.status));
+  /* 1) Client Credentials: a aplicação se autentica sozinha, sem precisar de
+        autorização de usuário. É o caminho mais simples quando disponível. */
+  let r = await trocar({grant_type: 'client_credentials', client_id: clientId, client_secret: secret});
+  if (r.ok && r.dados.access_token) {
+    cache = {token: r.dados.access_token, expiraEm: agora + (r.dados.expires_in || 21600) * 1000, via: 'client_credentials'};
+    return cache.token;
+  }
+  const erroCC = r.dados && (r.dados.message || r.dados.error);
 
-  cache = {token: dados.access_token, expiraEm: agora + (dados.expires_in || 21600) * 1000};
+  /* 2) Sem Client Credentials, usa o refresh token obtido em /api/ml-auth. */
+  if (!refresh) {
+    const e = new Error('Client Credentials não liberado para esta aplicação'
+      + (erroCC ? ' (' + erroCC + ')' : '')
+      + '. Autorize em /api/ml-auth e configure ML_REFRESH_TOKEN.');
+    e.faltando = ['ML_REFRESH_TOKEN'];
+    throw e;
+  }
+
+  r = await trocar({grant_type: 'refresh_token', client_id: clientId, client_secret: secret, refresh_token: refresh});
+  if (!r.ok || !r.dados.access_token)
+    throw new Error('Não consegui renovar o token: ' + (r.dados.message || r.status));
+
+  cache = {token: r.dados.access_token, expiraEm: agora + (r.dados.expires_in || 21600) * 1000, via: 'refresh_token'};
   return cache.token;
 }
 
@@ -93,7 +107,8 @@ export default async function handler(req, res) {
     if (!Object.keys(tarifas).length)
       return res.status(404).json({erro: 'A API não retornou Clássico nem Premium para esse preço.', detalhe: lista});
 
-    res.json({preco, categoria: req.query.categoria || null, tarifas, fonte: 'api.mercadolibre.com/sites/MLB/listing_prices'});
+    res.json({preco, categoria: req.query.categoria || null, tarifas, autenticacao: cache.via,
+      fonte: 'api.mercadolibre.com/sites/MLB/listing_prices'});
   } catch (e) {
     res.status(500).json({erro: e.message, faltando: e.faltando || null});
   }
