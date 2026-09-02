@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Precificador Drop</title>
+<link rel="icon" type="image/png" href="assets/logo-transparent.png"/>
+<meta name="description" content="Calcule o preço de venda ideal no Mercado Livre a partir do custo do fornecedor + frete, individualmente ou em massa via planilha."/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#43a047;--green-lt:#69f0ae;--green-dk:#1b5e20;--bg:#0b0d12}
+body{
+  background:
+    radial-gradient(700px 420px at 8% -10%, rgba(105,240,174,.09), transparent 60%),
+    radial-gradient(600px 380px at 105% 10%, rgba(67,160,71,.08), transparent 60%),
+    var(--bg);
+  color:#e0e0e0;font-family:'DM Mono',monospace;min-height:100vh;
+  animation:bodyIn .4s ease both;
+}
+@keyframes bodyIn{from{opacity:0}to{opacity:1}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#2e7d32;border-radius:3px}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+
+.ic{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;margin-right:6px}
+.ic-lg{width:24px;height:24px;flex:none;fill:none;stroke:var(--green-lt);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab .ic{opacity:.85}
+
+header{padding:16px 32px;border-bottom:1px solid #151820;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;background:rgba(11,13,18,.85);backdrop-filter:blur(10px);z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#123018,#0c1b10);border:1px solid #1e3a22;box-shadow:0 0 18px rgba(105,240,174,.15) inset,0 2px 8px rgba(0,0,0,.3);animation:markIn .5s ease}
+.logo-mark svg{width:21px;height:21px;fill:none;stroke:var(--green-lt);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(105,240,174,.5))}
+@keyframes markIn{from{transform:scale(.6) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.logo-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff;letter-spacing:-.5px}
+.logo-title span{background:linear-gradient(90deg,var(--green-lt),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent;margin-left:5px}
+.logo-sub{font-size:9px;color:#2e2e2e;letter-spacing:2px;margin-top:2px}
+
+.steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.step-item{display:flex;align-items:center;gap:6px}
+.step-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;transition:all .2s;border:1px solid #222;background:#111;color:#333}
+.step-dot.active{background:#1b5e20;color:#a5d6a7;border-color:#2e7d32}
+.step-dot.done{background:#2e7d32;color:#fff;border-color:#2e7d32}
+.step-lbl{font-size:10px;letter-spacing:.5px;color:#333;transition:color .2s}
+.step-lbl.active{color:#69f0ae}
+.step-sep{width:18px;height:1px;background:#1a1d26}
+
+.tabs{display:flex;gap:2px;padding:0 32px;border-bottom:1px solid #151820;background:#0b0d12}
+.tab{padding:11px 18px;font-size:11px;letter-spacing:.5px;color:#444;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;background:transparent;border-top:none;border-left:none;border-right:none;font-family:inherit;display:inline-flex;align-items:center}
+.tab.active{color:#69f0ae;border-bottom-color:#43a047}
+.tab:hover:not(.active){color:#888;background:rgba(255,255,255,.02)}
+
+main{max-width:960px;margin:0 auto;padding:32px}
+.panel{animation:fadeUp .35s cubic-bezier(.16,1,.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+.zone{border:2px dashed #1e2130;border-radius:16px;padding:64px 32px;text-align:center;cursor:pointer;transition:all .25s cubic-bezier(.16,1,.3,1);background:#0f1118}
+.zone:hover,.zone.drag{border-color:#43a047;background:rgba(67,160,71,.07);transform:translateY(-2px)}
+.zone:hover .zone-icon svg,.zone.drag .zone-icon svg{transform:translateY(-4px);stroke:var(--green-lt)}
+.zone-icon{margin-bottom:14px;display:flex;justify-content:center}
+.zone-icon svg{width:44px;height:44px;fill:none;stroke:#3a4a3c;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:all .25s ease;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.zone-title{font-family:'Syne',sans-serif;font-size:18px;color:#bbb;margin-bottom:6px}
+.zone-sub{font-size:12px;color:#333}
+
+.file-banner{background:#0f1118;border:1px solid #1a2a1a;border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:24px;animation:fadeUp .3s ease}
+.file-name{color:#69f0ae;font-size:13px;font-weight:500}
+.file-info{color:#444;font-size:11px;margin-top:3px}
+
+.lbl{font-size:10px;color:#43a047;letter-spacing:1.5px;margin-bottom:8px}
+.note{font-size:10px;color:#555;margin-top:5px}
+select,input{background:#1a1d26;border:1px solid #2a2d3a;border-radius:8px;color:#e0e0e0;padding:10px 14px;font-size:13px;font-family:inherit;outline:none;width:100%;transition:border-color .2s,box-shadow .2s}
+select:focus,input:focus{border-color:#43a047;box-shadow:0 0 0 3px rgba(67,160,71,.15)}
+select option{background:#1a1d26}
+
+.btn{border:none;border-radius:10px;cursor:pointer;font-family:inherit;letter-spacing:.8px;transition:all .15s cubic-bezier(.16,1,.3,1);display:inline-flex;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden}
+.btn-primary{background:#1b5e20;color:#a5d6a7;font-size:13px;padding:15px 24px;width:100%}
+.btn-primary:hover:not(:disabled){background:#2e7d32;transform:translateY(-1px);box-shadow:0 6px 20px rgba(67,160,71,.25)}
+.btn-primary:active:not(:disabled){transform:translateY(0)}
+.btn-primary:disabled{background:#111;color:#333;cursor:not-allowed;transform:none}
+.btn-ghost{background:#0f1118;color:#666;font-size:12px;padding:13px 20px;border:1px solid #1a1d26}
+.btn-ghost:hover{background:#151820;border-color:#2a2d3a}
+.btn-dl{background:#1b5e20;color:#a5d6a7;font-size:13px;padding:15px 24px;flex:1}
+.btn-dl:hover{background:#2e7d32;transform:translateY(-1px);box-shadow:0 6px 20px rgba(67,160,71,.25)}
+.btn-row{display:flex;gap:12px}
+
+/* Margem selector */
+.margem-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+.margem-btn{padding:12px 6px;border-radius:8px;border:1px solid #1e2130;background:#0f1118;color:#555;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all .15s;text-align:center}
+.margem-btn:hover{border-color:#2e7d32;color:#888}
+.margem-btn.active{background:#1b5e20;border-color:#2e7d32;color:#69f0ae}
+.margem-custom-wrap{position:relative;margin-top:0}
+.margem-custom-wrap input{padding-right:36px}
+.margem-custom-wrap span{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#43a047;font-size:14px;pointer-events:none}
+
+/* Summary */
+.sum-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+@media(max-width:700px){.sum-grid{grid-template-columns:1fr 1fr}}
+.sum-card{background:#0f1118;border:1px solid #1a1d26;border-radius:10px;padding:14px 16px;transition:border-color .2s,transform .2s;animation:fadeUp .35s cubic-bezier(.16,1,.3,1) both}
+.sum-card:hover{border-color:#2a2d3a;transform:translateY(-2px)}
+.sum-card:nth-child(1){animation-delay:.02s}.sum-card:nth-child(2){animation-delay:.06s}.sum-card:nth-child(3){animation-delay:.1s}.sum-card:nth-child(4){animation-delay:.14s}.sum-card:nth-child(5){animation-delay:.18s}
+.sum-label{font-size:9px;color:#444;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.sum-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+
+/* Table */
+.tbl-wrap{background:#0f1118;border-radius:10px;overflow:auto;border:1px solid #1a1d26;max-height:360px;margin-bottom:24px}
+table{border-collapse:collapse;font-size:12px;width:100%}
+thead{position:sticky;top:0;background:#0b0d12;z-index:2}
+th{padding:10px 14px;border-bottom:1px solid #1a1d26;text-align:left;font-size:10px;letter-spacing:1px;font-weight:500;white-space:nowrap}
+td{padding:8px 14px;border-bottom:1px solid #0f0f0f;font-size:11px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+.fee-table-wrap td{max-width:none;overflow:visible;white-space:nowrap}
+
+.done-screen{text-align:center;padding:60px 0}
+.done-icon{margin-bottom:18px;display:flex;justify-content:center}
+.done-icon svg{width:76px;height:76px}
+.chk-circle{fill:none;stroke:var(--green-lt);stroke-width:1.5;stroke-dasharray:63;stroke-dashoffset:63;animation:drawCircle .5s ease forwards}
+.chk-mark{fill:none;stroke:var(--green-lt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;stroke-dashoffset:14;animation:drawCheck .35s ease .45s forwards}
+@keyframes drawCircle{to{stroke-dashoffset:0}}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+.done-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:#69f0ae;margin-bottom:10px;animation:fadeUp .4s ease .5s both}
+.done-sub{color:#555;font-size:13px;margin-bottom:32px;line-height:1.8}
+
+/* Calc */
+@media(max-width:640px){#formA>div,#formB>div{grid-template-columns:1fr !important}}
+.mode-toggle{display:flex;gap:8px;margin-bottom:22px}
+.mode-btn{flex:1;padding:12px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;transition:all .15s;border:1px solid #1e2130;background:#0f1118;color:#555;text-align:center}
+.mode-btn.active{background:#1b5e20;color:#a5d6a7;border-color:#2e7d32}
+.result-box{background:#0f1118;border:1px solid #2e7d32;border-radius:12px;overflow:hidden;box-shadow:0 0 24px rgba(76,175,80,.12)}
+.result-top{padding:20px 22px 16px;border-bottom:1px solid #151820}
+.result-price{font-family:'Syne',sans-serif;font-size:38px;font-weight:700;color:#fff;letter-spacing:-1px}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 22px}
+@media(max-width:480px){.rg{grid-template-columns:1fr}}
+.rt{background:#0b0d12;border-radius:8px;padding:11px 13px}
+.rt-lbl{font-size:10px;color:#444;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.rt-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:600}
+.result-fees{padding:10px 22px 14px;border-top:1px solid #151820;display:flex;gap:18px;flex-wrap:wrap}
+.rf{font-size:11px;color:#555}
+.copy-btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:.5px;transition:all .2s;background:#1a2a1a;color:#43a047}
+.copy-btn:hover{background:#2e7d32;color:#fff}
+
+.hint{font-size:10px;color:#252525;letter-spacing:.5px;margin-bottom:20px}
+.section-title{font-size:10px;color:#555;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+.fee-table-wrap{background:#0f1118;border-radius:12px;overflow-x:auto;border:1px solid #1a1d26}
+.fee-table-wrap table{min-width:700px}
+.fee-note{font-size:11px;color:#3a3a3a;margin-top:14px;line-height:1.8}
+
+/* col selector */
+.col-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:600px){.col-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 2 4 8v8l8 6 8-6V8z"/><path d="M9 12l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <div class="logo-title">PRECIFICADOR<span>DROP</span></div>
+      <div class="logo-sub">TAXAS ML · CUSTO FORNECEDOR + FRETE · ALTERAÇÃO EM MASSA</div>
+    </div>
+  </a>
+  <div class="steps" id="stepsEl">
+    <div class="step-item"><div class="step-dot active" id="sd1">1</div><span class="step-lbl active" id="sl1">UPLOAD</span></div>
+    <div class="step-sep"></div>
+    <div class="step-item"><div class="step-dot" id="sd2">2</div><span class="step-lbl" id="sl2">MARGEM</span></div>
+    <div class="step-sep"></div>
+    <div class="step-item"><div class="step-dot" id="sd3">3</div><span class="step-lbl" id="sl3">REVISAR</span></div>
+    <div class="step-sep"></div>
+    <div class="step-item"><div class="step-dot" id="sd4">4</div><span class="step-lbl" id="sl4">BAIXAR</span></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('planilha')"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>PLANILHA EXCEL</button>
+  <button class="tab" onclick="showTab('calc')"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h1M8 15h1M12 11h1M12 15h1M16 11h1M16 15h1"/></svg>CALCULADORA</button>
+  <button class="tab" onclick="showTab('taxas')"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>TABELA DE TAXAS</button>
+</div>
+
+<main>
+
+<!-- ══ PLANILHA ══════════════════════════════════════════════════════════════ -->
+<div id="tab-planilha">
+
+  <!-- STEP 1 -->
+  <div id="step1" class="panel">
+    <div class="hint">PASSO 1 — FAÇA UPLOAD DA SUA PLANILHA DE PRODUTOS</div>
+    <div class="zone" id="dropzone"
+         onclick="document.getElementById('fi').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="onDrop(event)">
+      <input id="fi" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadFile(event.target.files[0])">
+      <div class="zone-icon"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+      <div class="zone-title">Arraste sua planilha aqui</div>
+      <div class="zone-sub">ou clique para selecionar &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .xls &nbsp;·&nbsp; .csv</div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="panel" style="display:none">
+    <div class="hint">PASSO 2 — CONFIGURE AS COLUNAS E ESCOLHA A MARGEM</div>
+
+    <div class="file-banner">
+      <svg class="ic-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <div>
+        <div class="file-name" id="bannerName">—</div>
+        <div class="file-info" id="bannerInfo">—</div>
+      </div>
+      <button class="btn btn-ghost" style="margin-left:auto;padding:8px 14px;font-size:11px" onclick="reset1()">Trocar arquivo</button>
+    </div>
+
+    <!-- Column selectors -->
+    <div class="col-grid">
+      <div>
+        <div class="lbl">COLUNA DE CUSTO DO FORNECEDOR *</div>
+        <select id="costSel" onchange="onCostChange()">
+          <option value="-1">— Selecione —</option>
+        </select>
+        <div class="note" id="costNote"></div>
+      </div>
+      <div>
+        <div class="lbl">COLUNA DE FRETE (FORNECEDOR → CLIENTE)</div>
+        <select id="freteSel" onchange="onFreteChange()">
+          <option value="-1">Sem frete de fornecedor (custo = 0)</option>
+        </select>
+        <div class="note" id="freteNote"></div>
+      </div>
+    </div>
+    <div class="col-grid">
+      <div>
+        <div class="lbl">COLUNA DE PREÇO (onde gravar o novo preço)</div>
+        <select id="priceSel">
+          <option value="-1">Nova coluna no final</option>
+        </select>
+        <div class="note" id="priceNote" style="color:#ffa726"></div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Margem selector -->
+    <div style="margin-bottom:24px">
+      <div class="lbl">MARGEM DESEJADA SOBRE A RECEITA LÍQUIDA</div>
+      <div class="margem-grid">
+        <div class="margem-btn active" id="mb10" onclick="setMargem(10,this)">10%</div>
+        <div class="margem-btn" id="mb15" onclick="setMargem(15,this)">15%</div>
+        <div class="margem-btn" id="mb20" onclick="setMargem(20,this)">20%</div>
+        <div class="margem-btn" id="mb25" onclick="setMargem(25,this)">25%</div>
+        <div class="margem-btn" id="mb30" onclick="setMargem(30,this)">30%</div>
+        <div class="margem-btn" id="mb35" onclick="setMargem(35,this)">35%</div>
+        <div class="margem-btn" id="mb40" onclick="setMargem(40,this)">40%</div>
+        <div class="margem-btn" id="mb50" onclick="setMargem(50,this)">50%</div>
+        <div class="margem-btn" id="mb60" onclick="setMargem(60,this)">60%</div>
+        <div class="margem-btn" id="mbCustom" onclick="focusCustom()">Outra</div>
+      </div>
+      <div class="margem-custom-wrap">
+        <input type="number" id="margemCustom" min="1" max="90" placeholder="Digite a margem % desejada" oninput="onCustomMargem()">
+        <span>%</span>
+      </div>
+      <div class="note" style="margin-top:8px">
+        Margem = (Receita Líquida − Custo) ÷ Receita Líquida &nbsp;·&nbsp; 
+        Margem atual selecionada: <span id="margemDisplay" style="color:#69f0ae;font-weight:500">10%</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btnCalc" onclick="processRows()" disabled>
+      CALCULAR PREÇOS PARA TODOS OS PRODUTOS
+      <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" class="panel" style="display:none">
+    <div class="hint">PASSO 3 — CONFIRA OS PREÇOS CALCULADOS</div>
+    <div class="sum-grid" id="sumCards"></div>
+    <div class="section-title">PRÉVIA (primeiros 100 produtos)</div>
+    <div class="tbl-wrap">
+      <table id="tblResult"></table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
+      <button class="btn btn-dl" id="btnDl" onclick="downloadXLSX()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>BAIXAR EXCEL ATUALIZADO</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="step4" class="panel" style="display:none">
+    <div class="done-screen">
+      <div class="done-icon"><svg viewBox="0 0 24 24"><circle class="chk-circle" cx="12" cy="12" r="10"/><path class="chk-mark" d="M8 12.5l2.5 2.5L16 9.5"/></svg></div>
+      <div class="done-title">Planilha pronta!</div>
+      <div class="done-sub" id="doneMsg"></div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="padding:13px 28px" onclick="goStep(3)"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Ver prévia</button>
+        <button class="btn btn-primary" style="max-width:280px" onclick="resetAll()">PROCESSAR OUTRA PLANILHA</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /planilha -->
+
+<!-- ══ CALCULADORA ══════════════════════════════════════════════════════════ -->
+<div id="tab-calc" style="display:none">
+  <div style="max-width:640px">
+    <div class="mode-toggle">
+      <div class="mode-btn active" id="mA" onclick="setMode('a')">Tenho o custo → calcular preço de venda</div>
+      <div class="mode-btn" id="mB" onclick="setMode('b')">Tenho o preço → ver taxas e lucro</div>
+    </div>
+
+    <div id="formA">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+        <div><div class="lbl">CUSTO DO FORNECEDOR (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 8.50" oninput="calcA()"></div>
+        <div><div class="lbl">FRETE FORNECEDOR→CLIENTE (R$)</div><input type="number" id="frA" min="0" step="0.01" placeholder="Ex: 12.00" oninput="calcA()"></div>
+        <div>
+          <div class="lbl">MARGEM DESEJADA (%)</div>
+          <div style="position:relative">
+            <input type="number" id="mA_in" value="20" min="1" max="90" oninput="calcA()">
+            <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#43a047">%</span>
+          </div>
+        </div>
+      </div>
+      <div id="resA"></div>
+    </div>
+
+    <div id="formB" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+        <div><div class="lbl">PREÇO DE VENDA (R$)</div><input type="number" id="pB" min="5" step="0.01" placeholder="Ex: 19.90" oninput="calcB()"></div>
+        <div><div class="lbl">CUSTO FORNECEDOR (R$) – OPCIONAL</div><input type="number" id="cB" min="0" step="0.01" placeholder="Ex: 5.00" oninput="calcB()"></div>
+        <div><div class="lbl">FRETE (R$) – OPCIONAL</div><input type="number" id="frB" min="0" step="0.01" placeholder="Ex: 10.00" oninput="calcB()"></div>
+      </div>
+      <div id="resB"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TABELA DE TAXAS ═══════════════════════════════════════════════════════ -->
+<div id="tab-taxas" style="display:none">
+  <div style="font-size:11px;color:#555;margin-bottom:16px;line-height:1.8">
+    Fórmula: <span style="color:#43a047">FATURAM = PREÇO × Multiplicador − Taxa Fixa</span>
+    &nbsp;·&nbsp; Comissão Clássico = 11,5% (10,5% entre R$150–R$699)
+  </div>
+  <div class="fee-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="color:#43a047">FAIXA</th>
+          <th style="color:#ffa726">CUSTO FIXO</th>
+          <th style="color:#42a5f5">FRETE</th>
+          <th style="color:#ab47bc">COMISSÃO</th>
+          <th style="color:#66bb6a">MULTIPLICADOR</th>
+          <th style="color:#ef5350">TAXA FIXA (R$)</th>
+          <th style="color:#e0e0e0">EXEMPLO FATURAM</th>
+        </tr>
+      </thead>
+      <tbody id="feeTbody"></tbody>
+    </table>
+  </div>
+  <div class="fee-note">
+    * <b>Multiplicador</b> = porcentagem do preço que fica com o vendedor antes de subtrair a taxa fixa.<br>
+    * Para preços entre R$150–R$699, a comissão Clássico é 10,5% (multiplicador 89,5%).<br>
+    * <b>FATURAM</b> = valor que você recebe após todas as deduções da plataforma.
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══ FEE ENGINE ════════════════════════════════════════════════════════════════
+const FR = [
+  {mn:5,    mx:12.99,   mu:0.385, fx:0,     cf:'50% do preço',   fr:'R$ 0 / 5,65', co:'11,5%', lb:'Faixa 1  (R$ 5,00 – R$ 12,99)'},
+  {mn:13,   mx:18.99,   mu:0.885, fx:5.65,  cf:'R$ 5,65',        fr:'R$ 6,35',     co:'11,5%', lb:'Faixa 2  (R$ 13,00 – R$ 18,99)'},
+  {mn:19,   mx:48.99,   mu:0.885, fx:6.55,  cf:'R$ 6,55',        fr:'R$ 6,50/6,65',co:'11,5%', lb:'Faixa 3  (R$ 19,00 – R$ 48,99)'},
+  {mn:49,   mx:78.99,   mu:0.885, fx:7.75,  cf:'—',              fr:'R$ 7,75',     co:'11,5%', lb:'Faixa 3  (R$ 49,00 – R$ 78,99)'},
+  {mn:79,   mx:118.99,  mu:0.885, fx:12.35, cf:'—',              fr:'R$ 12,35',    co:'11,5%', lb:'Faixa 4  (R$ 79,00 – R$ 118,99)'},
+  {mn:119,  mx:119.99,  mu:0.885, fx:14.35, cf:'—',              fr:'R$ 14,35',    co:'11,5%', lb:'Faixa 4  (R$ 119,00)'},
+  {mn:120,  mx:149.99,  mu:0.885, fx:16.45, cf:'—',              fr:'R$ 16,45',    co:'11,5%', lb:'Faixa 4  (R$ 120,00 – R$ 149,99)'},
+  {mn:150,  mx:199.99,  mu:0.895, fx:18.45, cf:'—',              fr:'R$ 18,45',    co:'10,5%', lb:'Faixa 4  (R$ 150,00 – R$ 199,99)'},
+  {mn:200,  mx:699.99,  mu:0.895, fx:20.95, cf:'—',              fr:'R$ 20,95',    co:'10,5%', lb:'Faixa 4  (R$ 200,00 – R$ 699,99)'},
+  {mn:700,  mx:4999.99, mu:0.885, fx:20.95, cf:'—',              fr:'R$ 20,95',    co:'11,5%', lb:'Faixa 4  (R$ 700,00 – R$ 4.999,99)'},
+  {mn:5000, mx:1e9,     mu:0.885, fx:26.25, cf:'—',              fr:'R$ 26,25',    co:'11,5%', lb:'Faixa 4  (R$ 5.000,00+)'},
+];
+
+function getR(p){ return FR.find(r=>p>=r.mn&&p<=r.mx)||null }
+function faturam(p){ const r=getR(p); return r ? +(p*r.mu-r.fx).toFixed(2) : null }
+
+function calcPreco(custo, mPct) {
+  // Exact match across ranges
+  for(const r of FR){
+    const fat = custo/(1-mPct);
+    const p   = (fat+r.fx)/r.mu;
+    if(p>=r.mn && p<=r.mx && p>=5) return Math.ceil(p*100)/100;
+  }
+  // Edge case: find the first range minimum where margin is still achieved
+  for(const r of FR){
+    const p   = r.mn;
+    const fat = p*r.mu - r.fx;
+    if(fat>custo && (fat-custo)/fat>=mPct && p>=5) return p;
+  }
+  return null;
+}
+
+const brl = v => v==null ? '—' : 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const n2  = v => v==null ? '' : +v.toFixed(2);
+
+// ══ STATE ════════════════════════════════════════════════════════════════════
+let wb=null, wsName='', rawData=[], headers=[], results=[], fileName='';
+let margemPct = 0.10;
+
+// ══ TABS ═════════════════════════════════════════════════════════════════════
+function showTab(t){
+  ['planilha','calc','taxas'].forEach(id=>{
+    document.getElementById('tab-'+id).style.display = id===t?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',['planilha','calc','taxas'][i]===t);
+  });
+  if(t==='taxas') buildFeeTable();
+}
+
+// ══ STEPS ════════════════════════════════════════════════════════════════════
+function goStep(n){
+  for(let i=1;i<=4;i++){
+    document.getElementById('step'+i).style.display = i===n?'block':'none';
+    const d=document.getElementById('sd'+i), l=document.getElementById('sl'+i);
+    if(i<n){  d.className='step-dot done'; d.textContent='✓'; l.className='step-lbl'; }
+    else if(i===n){ d.className='step-dot active'; l.className='step-lbl active'; }
+    else{     d.className='step-dot'; d.textContent=i; l.className='step-lbl'; }
+  }
+}
+
+// ══ FILE ═════════════════════════════════════════════════════════════════════
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  loadFile(e.dataTransfer.files[0]);
+}
+
+function loadFile(f){
+  if(!f) return;
+  fileName = f.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    wb      = XLSX.read(e.target.result,{type:'array'});
+    wsName  = wb.SheetNames[0];
+    const ws = wb.Sheets[wsName];
+    rawData = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    headers = rawData[0].map(String);
+
+    // Populate selects
+    const cs = document.getElementById('costSel');
+    const fs = document.getElementById('freteSel');
+    const ps = document.getElementById('priceSel');
+    cs.innerHTML = '<option value="-1">— Selecione —</option>';
+    fs.innerHTML = '<option value="-1">Sem frete de fornecedor (custo = 0)</option>';
+    ps.innerHTML = '<option value="-1">Nova coluna no final</option>';
+    headers.forEach((h,i)=>{
+      const col = i<26 ? String.fromCharCode(65+i) : 'Col '+(i+1);
+      const opt = `<option value="${i}">${h||'Coluna '+col}  (${col})</option>`;
+      cs.innerHTML += opt;
+      fs.innerHTML += opt;
+      ps.innerHTML += opt;
+    });
+
+    // Auto-detect
+    const ci = headers.findIndex(h=>/^preço$|^preco$/i.test(h.trim()));
+    const pi = headers.findIndex(h=>/^preço$|^preco$/i.test(h.trim()));
+    if(ci>=0){ cs.value=ci; onCostChange(); }
+    // auto-select same col for price output
+    if(pi>=0) { ps.value=pi; updatePriceNote(); }
+
+    document.getElementById('bannerName').textContent = f.name;
+    document.getElementById('bannerInfo').textContent =
+      `${rawData.length-1} produtos  ·  ${headers.length} colunas  ·  Aba: "${wsName}"`;
+
+    goStep(2);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function onCostChange(){
+  const i = parseInt(document.getElementById('costSel').value);
+  document.getElementById('costNote').textContent =
+    i>=0 ? `✓ "${headers[i]}" — custo do fornecedor por produto` : '';
+  document.getElementById('btnCalc').disabled = i<0;
+}
+
+function onFreteChange(){
+  const i = parseInt(document.getElementById('freteSel').value);
+  document.getElementById('freteNote').textContent =
+    i>=0 ? `✓ "${headers[i]}" — frete somado ao custo do produto` : '';
+}
+
+function updatePriceNote(){
+  const i = parseInt(document.getElementById('priceSel').value);
+  document.getElementById('priceNote').textContent =
+    i>=0 ? `⚠ O preço calculado vai sobrescrever a coluna "${headers[i]}"` : '';
+}
+
+// ══ MARGEM ═══════════════════════════════════════════════════════════════════
+let activeMBtn = document.getElementById('mb10');
+function setMargem(val, btn){
+  margemPct = val/100;
+  document.querySelectorAll('.margem-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeMBtn = btn;
+  document.getElementById('margemCustom').value = '';
+  document.getElementById('margemDisplay').textContent = val+'%';
+}
+function focusCustom(){
+  document.querySelectorAll('.margem-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mbCustom').classList.add('active');
+  document.getElementById('margemCustom').focus();
+}
+function onCustomMargem(){
+  const v = parseFloat(document.getElementById('margemCustom').value);
+  if(!isNaN(v)&&v>0&&v<100){
+    margemPct = v/100;
+    document.getElementById('margemDisplay').textContent = v+'%';
+  }
+}
+
+// ══ PROCESS ══════════════════════════════════════════════════════════════════
+function processRows(){
+  const ci = parseInt(document.getElementById('costSel').value);
+  const fi = parseInt(document.getElementById('freteSel').value);
+  if(ci<0) return;
+
+  results = rawData.slice(1).map(row=>{
+    const rawCusto = String(row[ci]||'').replace(',','.');
+    const custoForn = parseFloat(rawCusto);
+    const rawFrete = fi>=0 ? String(row[fi]||'').replace(',','.') : '0';
+    const frete = parseFloat(rawFrete)||0;
+    const custo = (!custoForn||isNaN(custoForn)||custoForn<=0) ? null : +(custoForn+frete).toFixed(2);
+    if(custo==null)
+      return {custo:null,preco:null,fat:null,lucro:null,range:null,row:[...row]};
+    const preco = calcPreco(custo, margemPct);
+    const fat   = preco ? faturam(preco) : null;
+    const lucro = fat!=null ? +(fat-custo).toFixed(2) : null;
+    const r     = preco ? getR(preco) : null;
+    return {custo, preco, fat, lucro, range:r, row:[...row]};
+  });
+
+  buildSummary();
+  buildResultTable(ci);
+  document.getElementById('btnDl').innerHTML =
+    `<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>BAIXAR EXCEL ATUALIZADO (${results.filter(r=>r.preco!=null).length} produtos)`;
+  goStep(3);
+}
+
+function buildSummary(){
+  const ok     = results.filter(r=>r.preco!=null);
+  const lucros = ok.map(r=>r.lucro);
+  const avg    = l => l.length ? (l.reduce((a,b)=>a+b,0)/l.length).toFixed(2) : 0;
+  const total  = l => l.reduce((a,b)=>a+b,0).toFixed(2);
+  const mp     = (margemPct*100).toFixed(0);
+
+  const cards = [
+    {label:'Produtos',            value: results.length,            color:'#e0e0e0'},
+    {label:'Preços Calculados',   value: ok.length,                 color:'#69f0ae'},
+    {label:'Margem Aplicada',     value: mp+'%',                    color:'#ffcc02'},
+    {label:'Lucro Médio',         value: brl(+avg(lucros)),         color:'#66bb6a'},
+    {label:'Lucro Total Estimado',value: brl(+total(lucros)),       color:'#69f0ae'},
+  ];
+  document.getElementById('sumCards').innerHTML = cards.map(c=>`
+    <div class="sum-card">
+      <div class="sum-label">${c.label}</div>
+      <div class="sum-value" style="color:${c.color}">${c.value}</div>
+    </div>`).join('');
+}
+
+function buildResultTable(ci){
+  const preview = results.slice(0,100);
+  let html = `<thead><tr>
+    <th style="color:#444">#</th>
+    <th style="color:#e0e0e0">DESCRIÇÃO</th>
+    <th style="color:#ffa726">CUSTO</th>
+    <th style="color:#fff">NOVO PREÇO</th>
+    <th style="color:#66bb6a">FATURAM</th>
+    <th style="color:#69f0ae">LUCRO</th>
+    <th style="color:#888">FAIXA</th>
+  </tr></thead><tbody>`;
+  preview.forEach((r,i)=>{
+    const desc = String(rawData[i+1][headers.findIndex(h=>/descri/i.test(h))]||'').substring(0,40);
+    const lc   = r.lucro>0?'#69f0ae':'#ef5350';
+    html += `<tr>
+      <td style="color:#333">${i+1}</td>
+      <td style="color:#666" title="${desc}">${desc||'—'}</td>
+      <td style="color:#ffa726">${brl(r.custo)}</td>
+      <td style="color:${r.preco?'#fff':'#444'};font-weight:${r.preco?600:400};font-size:${r.preco?13:11}px">${r.preco?brl(r.preco):'— sem custo'}</td>
+      <td style="color:#66bb6a">${brl(r.fat)}</td>
+      <td style="color:${lc}">${brl(r.lucro)}</td>
+      <td style="color:#444;font-size:10px">${r.range?r.range.lb.split(' ')[0]+' '+r.range.lb.split(' ')[1]:'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('tblResult').innerHTML = html;
+}
+
+// ══ DOWNLOAD ═════════════════════════════════════════════════════════════════
+function downloadXLSX(){
+  const pi = parseInt(document.getElementById('priceSel').value);
+
+  // Rebuild sheet from rawData + computed values
+  const outData = rawData.map((row,i)=>{
+    const nr = [...row];
+    if(i===0){
+      // New column headers
+      nr.push('Custo Total (Fornecedor+Frete)','Preço de Venda ML','FATURAM (Receita Líquida)','Lucro Líquido (R$)','Faixa ML');
+      return nr;
+    }
+    const r = results[i-1];
+    // Overwrite price column if selected
+    if(pi>=0 && r && r.preco!=null) nr[pi] = r.preco;
+    // Append new columns
+    nr.push(
+      r ? n2(r.custo)  : '',
+      r && r.preco!=null ? n2(r.preco) : '',
+      r ? n2(r.fat)    : '',
+      r ? n2(r.lucro)  : '',
+      r && r.range ? r.range.lb : '—'
+    );
+    return nr;
+  });
+
+  const newWb = XLSX.utils.book_new();
+  const newWs = XLSX.utils.aoa_to_sheet(outData);
+
+  // Style header row
+  const range = XLSX.utils.decode_range(newWs['!ref']||'A1');
+  for(let c=range.s.c; c<=range.e.c; c++){
+    const addr = XLSX.utils.encode_cell({r:0,c});
+    if(!newWs[addr]) continue;
+    newWs[addr].s = {
+      font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:10},
+      fill:{patternType:'solid',fgColor:{rgb:'1B5E20'}},
+      alignment:{horizontal:'center',wrapText:true}
+    };
+  }
+
+  // Column widths
+  newWs['!cols'] = outData[0].map((_,i)=>({wch: i>=headers.length ? 24 : 18}));
+
+  XLSX.utils.book_append_sheet(newWb, newWs, wsName);
+  const outName = fileName.replace(/\.[^.]+$/,'') + '_PRECOS_ML.xlsx';
+  XLSX.writeFile(newWb, outName);
+
+  const ok = results.filter(r=>r.preco!=null).length;
+  const mp = (margemPct*100).toFixed(0);
+  document.getElementById('doneMsg').innerHTML =
+    `<b style="color:#fff">${ok} produtos</b> com preços calculados a <b style="color:#69f0ae">${mp}% de margem</b><br>
+     Arquivo salvo como <span style="color:#43a047">${outName}</span><br><br>
+     <span style="font-size:11px;color:#333">✔ Coluna original preservada como "Custo (Preço Original)"<br>
+     ✔ Novo preço gravado${pi>=0?' na coluna "'+headers[pi]+'"':' em nova coluna'}<br>
+     ✔ FATURAM, Lucro e Faixa ML adicionados</span>`;
+  goStep(4);
+}
+
+function reset1(){ wb=null; rawData=[]; headers=[]; results=[]; fileName=''; goStep(1); }
+function resetAll(){ reset1(); }
+
+// ══ CALCULATOR ═══════════════════════════════════════════════════════════════
+let calcMode='a';
+function setMode(m){
+  calcMode=m;
+  document.getElementById('formA').style.display = m==='a'?'block':'none';
+  document.getElementById('formB').style.display = m==='b'?'block':'none';
+  document.getElementById('mA').classList.toggle('active',m==='a');
+  document.getElementById('mB').classList.toggle('active',m==='b');
+}
+
+function resultHTML(preco,fat,taxas,lucro,marg,range,custo){
+  if(!range) return '';
+  const tiles=[
+    {l:'Preço de Venda',           v:brl(preco),             c:'#e0e0e0'},
+    {l:'Total de Taxas',           v:brl(-taxas),            c:'#ef5350'},
+    {l:'Receita Líquida (FATURAM)',v:brl(fat),               c:'#66bb6a'},
+    ...(custo?[
+      {l:'Custo do Produto',       v:brl(-custo),            c:'#ffa726'},
+      {l:'Lucro Líquido',          v:brl(lucro),             c:lucro>0?'#69f0ae':'#ef5350'},
+      {l:'Margem sobre Receita',   v:marg!=null?(marg*100).toFixed(1)+'%':'—', c:marg>0?'#69f0ae':'#ef5350'},
+    ]:[]),
+  ];
+  const escaped = preco.toFixed(2).replace('.',',');
+  return `<div class="result-box">
+    <div class="result-top">
+      <div style="font-size:10px;color:#43a047;letter-spacing:1.5px;margin-bottom:8px">PREÇO SUGERIDO DE VENDA</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div class="result-price">${brl(preco)}</div>
+        <button class="copy-btn" onclick="navigator.clipboard.writeText('${escaped}');this.textContent='✓ COPIADO';setTimeout(()=>this.textContent='COPIAR',1500)">COPIAR</button>
+      </div>
+      <div style="font-size:11px;color:#444;margin-top:4px">${range.lb}</div>
+    </div>
+    <div class="rg">${tiles.map(t=>`<div class="rt"><div class="rt-lbl">${t.l}</div><div class="rt-val" style="color:${t.c}">${t.v}</div></div>`).join('')}</div>
+    <div class="result-fees">
+      <span class="rf"><span style="color:#333">Custo Fixo:</span> ${range.cf}</span>
+      <span class="rf"><span style="color:#333">Frete:</span> ${range.fr}</span>
+      <span class="rf"><span style="color:#333">Comissão:</span> ${range.co}</span>
+    </div>
+  </div>`;
+}
+
+function calcA(){
+  const custoForn = parseFloat(document.getElementById('cA').value);
+  const frete = parseFloat(document.getElementById('frA').value)||0;
+  const mPct  = parseFloat(document.getElementById('mA_in').value)/100;
+  const el    = document.getElementById('resA');
+  if(!custoForn||custoForn<=0||!mPct){ el.innerHTML=''; return; }
+  const custo = +(custoForn+frete).toFixed(2);
+  const preco = calcPreco(custo,mPct);
+  if(!preco){ el.innerHTML=`<div style="color:#ef5350;font-size:12px;margin-top:8px">Não foi possível calcular. Verifique os valores.</div>`; return; }
+  const fat   = faturam(preco);
+  const lucro = fat - custo;
+  el.innerHTML = resultHTML(preco,fat,preco-fat,lucro,fat?(lucro/fat):0,getR(preco),custo);
+}
+
+function calcB(){
+  const preco = parseFloat(document.getElementById('pB').value);
+  const custoForn = parseFloat(document.getElementById('cB').value)||0;
+  const frete = parseFloat(document.getElementById('frB').value)||0;
+  const custo = (custoForn||frete) ? +(custoForn+frete).toFixed(2) : null;
+  const el    = document.getElementById('resB');
+  if(!preco||preco<5){ el.innerHTML=preco&&preco<5?`<div style="color:#ef5350;font-size:12px;margin-top:8px">⚠ Preço mínimo é R$ 5,00</div>`:''; return; }
+  const fat   = faturam(preco);
+  const range = getR(preco);
+  if(!fat||!range){ el.innerHTML=''; return; }
+  const lucro = custo!=null ? fat-custo : null;
+  const marg  = custo!=null&&fat ? lucro/fat : null;
+  el.innerHTML = resultHTML(preco,fat,preco-fat,lucro,marg,range,custo);
+}
+
+// ══ FEE TABLE ════════════════════════════════════════════════════════════════
+function buildFeeTable(){
+  const tb = document.getElementById('feeTbody');
+  if(tb.innerHTML) return;
+  tb.innerHTML = FR.map((r,i)=>{
+    const ex  = Math.min(r.mn+10, (r.mn+Math.min(r.mx,r.mn+50))/2);
+    const fat = +(ex*r.mu-r.fx).toFixed(2);
+    return `<tr style="background:${i%2?'rgba(255,255,255,.012)':'transparent'}">
+      <td style="color:#e0e0e0">${r.lb}</td>
+      <td style="color:#ffa726">${r.cf}</td>
+      <td style="color:#42a5f5">${r.fr}</td>
+      <td style="color:#ab47bc">${r.co}</td>
+      <td style="color:#66bb6a">${(r.mu*100).toFixed(1)}%</td>
+      <td style="color:#ef5350">R$ ${r.fx.toFixed(2)}</td>
+      <td style="color:#888">p/ R$ ${ex.toFixed(2)} → ${brl(fat)}</td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
