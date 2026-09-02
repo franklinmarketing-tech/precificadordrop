@@ -111,8 +111,54 @@ document.querySelector('.tool-1').addEventListener('mouseenter', contarPreco);
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: PRECIFICADOR MERCADO LIVRE
    ══════════════════════════════════════════════════════════════════════════ */
+const CHAVE_ML = 'precificador-drop:params-ml';
 let mlAba = 'calc', modo = 'a';
-let mlWb = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.10;
+let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
+let pml = carregarParamsML();
+
+function carregarParamsML(){
+  try{
+    const s = localStorage.getItem(CHAVE_ML);
+    if(s) return Object.assign({}, ML.PADRAO, JSON.parse(s));
+  }catch(e){}
+  return Object.assign({}, ML.PADRAO);
+}
+function guardarParamsML(){
+  try{ localStorage.setItem(CHAVE_ML, JSON.stringify(pml)); }catch(e){}
+}
+
+/* ── barra de contexto: reputação e tipo de anúncio ── */
+function montarContexto(){
+  $('ctxReputacao').innerHTML = MLFretes.REPUTACOES.map(r => `
+    <button class="ctx-opt rep-${r.id}${pml.reputacao === r.id ? ' active' : ''}" data-rep="${r.id}"
+            onclick="setReputacao('${r.id}',this)" title="${esc(r.desc)}">
+      <i class="bolinha"></i>${esc(r.nome)}
+    </button>`).join('');
+  $('pctClassico').textContent = (pml.comissaoClassico * 100).toFixed(1).replace('.0','').replace('.', ',') + '%';
+  $('pctPremium').textContent  = (pml.comissaoPremium  * 100).toFixed(1).replace('.0','').replace('.', ',') + '%';
+  document.querySelectorAll('[data-anuncio]').forEach(b =>
+    b.classList.toggle('active', b.dataset.anuncio === pml.tipoAnuncio));
+  const rep = MLFretes.REPUTACOES.find(r => r.id === pml.reputacao);
+  if($('mlRepAtual')) $('mlRepAtual').textContent = rep ? rep.nome.toLowerCase() : pml.reputacao;
+}
+function setReputacao(id, btn){
+  pml.reputacao = id;
+  guardarParamsML();
+  document.querySelectorAll('[data-rep]').forEach(b => b.classList.toggle('active', b === btn));
+  montarContexto();
+  recalcularTudo();
+}
+function setAnuncio(tipo, btn){
+  pml.tipoAnuncio = tipo;
+  guardarParamsML();
+  document.querySelectorAll('[data-anuncio]').forEach(b => b.classList.toggle('active', b === btn));
+  recalcularTudo();
+}
+function recalcularTudo(){
+  if(modo === 'a') calcA(); else calcB();
+  if(mlAba === 'taxas'){ taxasProntas = false; montarTaxas(); }
+  if(mlLinhas.length && !$('mlStep3').classList.contains('hide')) mlProcessar();
+}
 
 function abaML(qual, btn){
   mlAba = qual;
@@ -120,6 +166,62 @@ function abaML(qual, btn){
   document.querySelectorAll('[data-mltab]').forEach(t => t.classList.toggle('active', t.dataset.mltab === qual));
   mostrar('passos', qual === 'massa');
   if(qual === 'taxas') montarTaxas();
+}
+
+/* ── drawer de parâmetros do ML ── */
+function abrirParamsML(){
+  const set = (id, v) => { const el = $(id); if(el) el.value = v; };
+  set('m_comissaoClassico', (pml.comissaoClassico * 100).toFixed(2).replace(/\.?0+$/, ''));
+  set('m_comissaoPremium',  (pml.comissaoPremium  * 100).toFixed(2).replace(/\.?0+$/, ''));
+  set('m_taxaFixa', (pml.taxaFixa || []).map(f =>
+    (f.ate >= 1e9 ? '999999' : String(f.ate).replace('.', ',')) + ' = ' + String(f.valor).replace('.', ',')).join('\n'));
+  $('m_freteAutomatico').checked = !!pml.freteAutomatico;
+  set('m_freteManual', pml.freteManual);
+  set('m_pesoPadrao', pml.pesoPadrao);
+  set('m_rebate', pml.rebate);
+  set('m_aliquotaImposto', (pml.aliquotaImposto * 100).toFixed(2).replace(/\.?0+$/, ''));
+  set('m_taxaDevolucao',   (pml.taxaDevolucao   * 100).toFixed(2).replace(/\.?0+$/, ''));
+  set('m_embalagem', pml.embalagem);
+  $('scrimML').classList.add('open');
+  $('drawerML').classList.add('open');
+}
+function fecharParamsML(){
+  $('scrimML').classList.remove('open');
+  $('drawerML').classList.remove('open');
+}
+function salvarParamsML(){
+  const n = id => { const v = ML.parseNumero($(id).value); return isNaN(v) ? 0 : v; };
+  const faixas = ($('m_taxaFixa').value || '').split('\n')
+    .map(l => l.split('=').map(s => s.trim()))
+    .filter(a => a.length >= 2 && a[0])
+    .map(a => ({ate: ML.parseNumero(a[0]), valor: ML.parseNumero(a[1])}))
+    .filter(f => !isNaN(f.ate) && !isNaN(f.valor))
+    .sort((a, b) => a.ate - b.ate);
+
+  Object.assign(pml, {
+    comissaoClassico: n('m_comissaoClassico') / 100,
+    comissaoPremium:  n('m_comissaoPremium')  / 100,
+    taxaFixa: faixas.length ? faixas : ML.PADRAO.taxaFixa,
+    freteAutomatico: $('m_freteAutomatico').checked,
+    freteManual: n('m_freteManual'),
+    pesoPadrao:  n('m_pesoPadrao'),
+    rebate:      n('m_rebate'),
+    aliquotaImposto: n('m_aliquotaImposto') / 100,
+    taxaDevolucao:   n('m_taxaDevolucao')   / 100,
+    embalagem:   n('m_embalagem'),
+  });
+  guardarParamsML();
+  fecharParamsML();
+  montarContexto();
+  recalcularTudo();
+}
+function restaurarPadraoML(){
+  pml = Object.assign({}, ML.PADRAO);
+  try{ localStorage.removeItem(CHAVE_ML); }catch(e){}
+  guardarParamsML();
+  abrirParamsML();
+  montarContexto();
+  recalcularTudo();
 }
 
 /* ── calculadora individual ── */
@@ -133,40 +235,49 @@ function setModo(m){
   if(m === 'a') calcA(); else calcB();
 }
 
-function blocoResultado(preco, fat, taxas, lucro, margem, faixa, custo){
-  if(!faixa) return '';
-  const tiles = [
-    {l:'Preço de venda',           v:brl(preco),  c:'var(--ink)'},
-    {l:'Total de taxas ML',        v:brl(-taxas), c:'var(--red)'},
-    {l:'Receita líquida (FATURAM)',v:brl(fat),    c:'var(--green-dk)'},
+function blocoResultado(r, alvo){
+  const pct = v => (v * 100).toFixed(1).replace('.', ',') + '%';
+  const linhas = [
+    ['Preço de venda',                     ML.brl(r.preco),          'var(--ink)',       ''],
+    ['Comissão ' + (pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico') + ' (' + pct(r.comissaoPct) + ')',
+                                           ML.brl(-r.comissao),      'var(--red)',       ''],
+    ['Custo fixo por unidade',             ML.brl(-r.taxaFixa),      'var(--red)',       r.taxaFixa ? '' : 'acima de R$ 79 não tem'],
+    ['Custo de envio',                     ML.brl(-r.frete),         'var(--red)',       r.faixaPeso],
+    ['Rebate do ML',                       ML.brl(r.rebate),         'var(--green-dk)',  ''],
+    ['Receita líquida',                    ML.brl(r.receitaLiquida), 'var(--green-dk)',  'o que entra na conta'],
+    ['Custo do produto',                   ML.brl(-r.custo),         'var(--amber)',     ''],
+    ['Margem de contribuição',             ML.brl(r.margemContrib),  'var(--blue-dk)',   pct(r.margemBruta) + ' do preço'],
+    ['Imposto',                            ML.brl(-r.imposto),       'var(--red)',       ''],
+    ['Perdas com devolução',               ML.brl(-r.perdas),        'var(--red)',       ''],
+    ['Embalagem',                          ML.brl(-r.embalagem),     'var(--red)',       ''],
   ];
-  if(custo){
-    tiles.push(
-      {l:'Custo + frete',    v:brl(-custo), c:'var(--amber)'},
-      {l:'Lucro líquido',    v:brl(lucro),  c: lucro > 0 ? 'var(--green-dk)' : 'var(--red)'},
-      {l:'Margem sobre receita', v: margem != null ? (margem*100).toFixed(1).replace('.', ',') + '%' : '—',
-       c: margem > 0 ? 'var(--green-dk)' : 'var(--red)'},
-    );
-  }
-  const copia = preco.toFixed(2).replace('.', ',');
-  return `<div class="resultado">
+  const copia = r.preco.toFixed(2).replace('.', ',');
+  const bom = r.lucroLiquido > 0;
+  return `<div class="resultado${bom ? '' : ' ruim'}">
     <div class="res-top">
-      <div class="res-lbl">Preço sugerido de venda</div>
+      <div class="res-lbl">${modo === 'a' ? 'Preço sugerido de venda' : 'Preço informado'}</div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <div class="res-preco">${brl(preco)}</div>
+        <div class="res-preco">${ML.brl(r.preco)}</div>
         <button class="copiar" onclick="copiar('${copia}',this)">COPIAR</button>
       </div>
-      <div class="res-faixa">${faixa.lb}</div>
+      <div class="res-faixa">${esc(r.faixaPreco)}${r.markup ? ' · markup ' + r.markup.toFixed(2).replace('.', ',') + 'x' : ''}</div>
     </div>
-    <div class="res-grid">
-      ${tiles.map(t => `<div class="res-tile"><div class="res-tile-l">${t.l}</div>
-        <div class="res-tile-v" style="color:${t.c}">${t.v}</div></div>`).join('')}
+
+    <div class="extrato">
+      ${linhas.map(([l, v, c, obs]) => `<div class="ex-linha">
+        <span class="ex-l">${esc(l)}${obs ? ' <i>' + esc(obs) + '</i>' : ''}</span>
+        <span class="ex-v" style="color:${c}">${v}</span>
+      </div>`).join('')}
+      <div class="ex-linha total">
+        <span class="ex-l">Lucro líquido</span>
+        <span class="ex-v" style="color:${bom ? 'var(--green-dk)' : 'var(--red)'}">${ML.brl(r.lucroLiquido)}</span>
+      </div>
+      <div class="ex-linha total">
+        <span class="ex-l">Margem líquida${alvo != null ? ' <i>alvo ' + pct(alvo) + '</i>' : ''}</span>
+        <span class="ex-v" style="color:${bom ? 'var(--green-dk)' : 'var(--red)'}">${pct(r.margemLiquida)}</span>
+      </div>
     </div>
-    <div class="res-taxas">
-      <span><b>Custo fixo:</b> ${faixa.cf}</span>
-      <span><b>Frete:</b> ${faixa.fr}</span>
-      <span><b>Comissão:</b> ${faixa.co}</span>
-    </div>
+    ${bom ? '' : '<div class="aviso" style="margin:0 22px 20px">Nesse preço a venda dá prejuízo.</div>'}
   </div>`;
 }
 function copiar(txt, btn){
@@ -176,46 +287,39 @@ function copiar(txt, btn){
 }
 
 function calcA(){
-  const el    = $('resCalc');
-  const bruto = ML.parseNumero($('cA').value);
-  const frete = ML.parseNumero($('frA').value);
+  const el = $('resCalc');
+  const custo  = ML.parseNumero($('cA').value);
+  const peso   = ML.parseNumero($('pesoA').value);
   const margem = ML.parseNumero($('mgA').value);
 
-  if(bruto < 0 || frete < 0) return el.innerHTML = '<div class="aviso">Custo e frete não podem ser negativos.</div>';
+  if(custo < 0 || peso < 0) return el.innerHTML = '<div class="aviso">Custo e peso não podem ser negativos.</div>';
   if(!isNaN(margem) && (margem <= 0 || margem >= 100))
     return el.innerHTML = '<div class="aviso">A margem precisa ficar entre 1% e 99%.</div>';
+  if(isNaN(custo) || custo <= 0 || isNaN(margem)){ el.innerHTML = ''; return; }
 
-  const custo = ML.custoTotal($('cA').value, $('frA').value);
-  const pct   = margem / 100;
-  if(custo == null || !pct || isNaN(pct)){ el.innerHTML = ''; return; }
-  const preco = ML.precoPara(custo, pct);
-  if(!preco){ el.innerHTML = '<div class="aviso">Não foi possível calcular com esses valores. Revise custo e margem.</div>'; return; }
-  const fat   = ML.faturam(preco);
-  const lucro = +(fat - custo).toFixed(2);
-  el.innerHTML = blocoResultado(preco, fat, +(preco - fat).toFixed(2), lucro, fat ? lucro/fat : 0, ML.faixaDe(preco), custo);
+  const alvo = margem / 100;
+  const preco = ML.precoPara(custo, alvo, isNaN(peso) ? 0 : peso, pml);
+  if(preco == null){
+    return el.innerHTML = '<div class="aviso">Com essas taxas, essa margem não é alcançável. Reduza a margem ou revise os parâmetros.</div>';
+  }
+  el.innerHTML = blocoResultado(ML.analisar(preco, custo, isNaN(peso) ? 0 : peso, pml), alvo);
 }
 
 function calcB(){
+  const el = $('resCalc');
   const preco = ML.parseNumero($('pB').value);
-  const cf    = ML.parseNumero($('cB').value)  || 0;
-  const fr    = ML.parseNumero($('frB').value) || 0;
-  const custo = (cf || fr) ? +(cf + fr).toFixed(2) : null;
-  const el    = $('resCalc');
-  if(cf < 0 || fr < 0) return el.innerHTML = '<div class="aviso">Custo e frete não podem ser negativos.</div>';
-  if(isNaN(preco) || !preco){ el.innerHTML = ''; return; }
-  if(preco < 5){ el.innerHTML = '<div class="aviso">O preço mínimo no Mercado Livre é R$ 5,00.</div>'; return; }
-  const fat   = ML.faturam(preco);
-  const faixa = ML.faixaDe(preco);
-  if(!fat || !faixa){ el.innerHTML = ''; return; }
-  const lucro  = custo != null ? +(fat - custo).toFixed(2) : null;
-  const margem = custo != null && fat ? lucro / fat : null;
-  el.innerHTML = blocoResultado(preco, fat, +(preco - fat).toFixed(2), lucro, margem, faixa, custo);
+  const custo = ML.parseNumero($('cB').value);
+  const peso  = ML.parseNumero($('pesoB').value);
+  if(custo < 0 || peso < 0) return el.innerHTML = '<div class="aviso">Custo e peso não podem ser negativos.</div>';
+  if(isNaN(preco) || preco <= 0){ el.innerHTML = ''; return; }
+  el.innerHTML = blocoResultado(
+    ML.analisar(preco, isNaN(custo) ? 0 : custo, isNaN(peso) ? 0 : peso, pml), null);
 }
 
 /* ── planilha em massa ── */
 const MARGENS = [10,15,20,25,30,35,40,50,60];
 $('mlMargens').innerHTML = MARGENS.map((m,i) =>
-  `<button class="margem${i===0?' active':''}" onclick="mlSetMargem(${m},this)">${m}%</button>`).join('');
+  `<button class="margem${m === 20 ? ' active' : ''}" onclick="mlSetMargem(${m},this)">${m}%</button>`).join('');
 
 function mlSetMargem(v, btn){
   mlMargem = v / 100;
@@ -225,11 +329,11 @@ function mlSetMargem(v, btn){
   $('mlMargemAtual').textContent = v + '%';
 }
 function mlMargemLivre(){
-  const v = parseFloat($('mlMargemCustom').value);
+  const v = ML.parseNumero($('mlMargemCustom').value);
   if(!isNaN(v) && v > 0 && v < 100){
     mlMargem = v / 100;
     document.querySelectorAll('.margem').forEach(b => b.classList.remove('active'));
-    $('mlMargemAtual').textContent = v + '%';
+    $('mlMargemAtual').textContent = String(v).replace('.', ',') + '%';
   }
 }
 
@@ -258,7 +362,8 @@ function mlCarregar(f){
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
   rd.onload = ev => {
     try{
-      mlWb = XLSX.read(ev.target.result, {type:'array'});
+      mlBytes = ev.target.result;
+      mlWb = XLSX.read(mlBytes, {type:'array'});
       const ws = XU.normalizarRef(mlWb.Sheets[mlWb.SheetNames[0]]);
       mlAoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
       if(mlAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
@@ -267,21 +372,20 @@ function mlCarregar(f){
       const opcoes = mlCabecalho.map((h,i) =>
         `<option value="${i}">${esc(h || 'Coluna ' + PE.indexToCol(i))} (${PE.indexToCol(i)})</option>`).join('');
       $('mlCusto').innerHTML = '<option value="-1">— Selecione —</option>' + opcoes;
-      $('mlFrete').innerHTML = '<option value="-1">Sem frete (custo = 0)</option>' + opcoes;
+      $('mlPeso').innerHTML  = '<option value="-1">Sem peso — usar frete manual</option>' + opcoes;
       $('mlPreco').innerHTML = '<option value="-1">Nova coluna no final</option>' + opcoes;
 
-      // auto-seleção: a coluna de custo precisa ter valores de verdade —
-      // exports costumam trazer "Preço de custo" zerada
+      // auto-seleção: só serve coluna que realmente tenha número > 0
       const temValores = i => i >= 0 && mlAoa.slice(1).some(l => {
         const n = ML.parseNumero(l[i]);
         return !isNaN(n) && n > 0;
       });
-      const iCusto = mlCabecalho.findIndex(h => /custo/i.test(String(h)));
-      const iPreco = mlCabecalho.findIndex(h => /^pre[çc]o$/i.test(String(h).trim()));
-      const iFrete = mlCabecalho.findIndex(h => /frete/i.test(String(h)));
-      const escolha = [iCusto, iPreco].find(temValores);
-      if(escolha !== undefined) $('mlCusto').value = escolha;
-      if(temValores(iFrete)) $('mlFrete').value = iFrete;
+      const acha = re => mlCabecalho.findIndex(h => re.test(String(h)));
+      const iCusto = [acha(/custo/i), acha(/^pre[çc]o$/i)].find(temValores);
+      const iPeso  = [acha(/peso\s*bruto/i), acha(/peso\s*l[íi]quido/i), acha(/peso/i)].find(temValores);
+      const iPreco = acha(/^pre[çc]o$/i);
+      if(iCusto !== undefined) $('mlCusto').value = iCusto;
+      if(iPeso  !== undefined) $('mlPeso').value  = iPeso;
       if(iPreco >= 0) $('mlPreco').value = iPreco;
 
       $('mlFName').textContent = f.name;
@@ -294,146 +398,184 @@ function mlCarregar(f){
 }
 
 function mlValidaCol(){
-  const ic = parseInt($('mlCusto').value), iF = parseInt($('mlFrete').value), ip = parseInt($('mlPreco').value);
-  $('mlCustoNota').textContent = ic >= 0 ? `✓ "${mlCabecalho[ic]}" — custo do fornecedor` : '';
-  $('mlFreteNota').textContent = iF >= 0 ? `✓ "${mlCabecalho[iF]}" — somado ao custo` : '';
-  $('mlPrecoNota').textContent = ip >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[ip]}"` : '';
+  const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value), id = parseInt($('mlPreco').value);
+  $('mlCustoNota').textContent = ic >= 0 ? `✓ "${mlCabecalho[ic]}" — custo do produto` : '';
+  $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
+                                         : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
+  $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
   $('mlBtnCalc').disabled = ic < 0;
 }
 
 function mlProcessar(){
   const ic = parseInt($('mlCusto').value);
-  const iF = parseInt($('mlFrete').value);
+  const ip = parseInt($('mlPeso').value);
   if(ic < 0) return;
 
   mlLinhas = mlAoa.slice(1).map(linha => {
-    const custo = ML.custoTotal(linha[ic], iF >= 0 ? linha[iF] : 0);
-    if(custo == null) return {custo:null, preco:null, fat:null, lucro:null, faixa:null};
-    const preco = ML.precoPara(custo, mlMargem);
-    const fat   = preco ? ML.faturam(preco) : null;
-    return {
-      custo, preco, fat,
-      lucro: fat != null ? +(fat - custo).toFixed(2) : null,
-      faixa: preco ? ML.faixaDe(preco) : null,
-    };
+    const custo = ML.parseNumero(linha[ic]);
+    const peso  = ip >= 0 ? ML.parseNumero(linha[ip]) : NaN;
+    if(isNaN(custo) || custo <= 0) return {custo:null};
+    const kg = isNaN(peso) ? 0 : peso;
+    const preco = ML.precoPara(custo, mlMargem, kg, pml);
+    if(preco == null) return {custo, preco:null, peso:kg};
+    return Object.assign({peso:kg}, ML.analisar(preco, custo, kg, pml));
   });
 
-  const ok     = mlLinhas.filter(r => r.preco != null);
+  const ok = mlLinhas.filter(r => r.preco != null);
   if(!ok.length){
     alert(`Nenhum preço foi calculado.\n\nA coluna "${mlCabecalho[ic]}" não tem valores numéricos maiores que zero — `
         + 'escolha a coluna que guarda o custo do produto.');
     return;
   }
-  const lucros = ok.map(r => r.lucro);
-  const soma   = lucros.reduce((a,b) => a + b, 0);
-  const cards  = [
-    {n: mlLinhas.length,                        l:'Produtos',              c:'var(--ink)'},
-    {n: ok.length,                              l:'Preços calculados',     c:'var(--green-dk)'},
-    {n: (mlMargem*100).toFixed(0) + '%',        l:'Margem aplicada',       c:'var(--blue-dk)'},
-    {n: brl(lucros.length ? soma/lucros.length : 0), l:'Lucro médio',      c:'var(--violet-dk)'},
-    {n: brl(soma),                              l:'Lucro total estimado',  c:'var(--green-dk)'},
+  const lucros = ok.map(r => r.lucroLiquido);
+  const soma = lucros.reduce((a,b) => a + b, 0);
+  const semPeso = mlLinhas.filter(r => r.custo != null && !r.peso).length;
+
+  const cards = [
+    {n: mlLinhas.length,                 l:'Produtos',             c:'var(--ink)'},
+    {n: ok.length,                       l:'Preços calculados',    c:'var(--green-dk)'},
+    {n: (mlMargem*100).toFixed(0) + '%', l:'Margem líquida',       c:'var(--blue-dk)'},
+    {n: ML.brl(soma / lucros.length),    l:'Lucro médio',          c:'var(--violet-dk)'},
+    {n: ML.brl(soma),                    l:'Lucro total estimado', c:'var(--green-dk)'},
   ];
   $('mlStats').innerHTML = cards.map((c,i) =>
     `<div class="stat" style="animation-delay:${i*.04}s"><div class="stat-n" style="color:${c.c}">${c.n}</div>
      <div class="stat-l">${c.l}</div></div>`).join('');
 
   const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
-  const prev  = mlLinhas.slice(0, 100);
+  const prev = mlLinhas.slice(0, 100);
   $('mlTabela').innerHTML =
-    `<thead><tr><th>#</th><th>Descrição</th><th>Custo + frete</th><th>Novo preço</th>
-      <th>FATURAM</th><th>Lucro</th><th>Faixa</th></tr></thead><tbody>` +
+    `<thead><tr><th>#</th><th>Descrição</th><th>Custo</th><th>Peso</th><th>Preço de venda</th>
+      <th>Comissão</th><th>Envio</th><th>Receita líq.</th><th>Lucro</th></tr></thead><tbody>` +
     prev.map((r,i) => {
-      const desc = iDesc >= 0 ? String(mlAoa[i+1][iDesc] || '').slice(0, 46) : '';
+      const desc = iDesc >= 0 ? String(mlAoa[i+1][iDesc] || '').slice(0, 42) : '';
+      if(r.preco == null) return `<tr>
+        <td style="color:var(--faint)">${i+1}</td>
+        <td title="${esc(desc)}">${esc(desc) || '—'}</td>
+        <td colspan="7" style="color:var(--faint)">${r.custo == null ? 'sem custo na planilha' : 'margem não alcançável'}</td></tr>`;
       return `<tr>
         <td style="color:var(--faint)">${i+1}</td>
         <td title="${esc(desc)}">${esc(desc) || '—'}</td>
-        <td style="color:var(--amber)">${brl(r.custo)}</td>
-        <td style="font-weight:700;color:${r.preco ? 'var(--ink)' : 'var(--faint)'}">${r.preco ? brl(r.preco) : '— sem custo'}</td>
-        <td style="color:var(--green-dk)">${brl(r.fat)}</td>
-        <td style="color:${r.lucro > 0 ? 'var(--green-dk)' : 'var(--red)'}">${brl(r.lucro)}</td>
-        <td style="color:var(--faint);font-size:10.5px">${r.faixa ? r.faixa.lb.split('(')[0].trim() : '—'}</td>
+        <td style="color:var(--amber)">${ML.brl(r.custo)}</td>
+        <td style="color:var(--faint)">${r.peso ? String(r.peso).replace('.', ',') + ' kg' : '—'}</td>
+        <td style="font-weight:700">${ML.brl(r.preco)}</td>
+        <td style="color:var(--red)">${ML.brl(-r.comissao)}</td>
+        <td style="color:var(--red)">${ML.brl(-r.frete)}</td>
+        <td style="color:var(--blue-dk)">${ML.brl(r.receitaLiquida)}</td>
+        <td style="color:${r.lucroLiquido > 0 ? 'var(--green-dk)' : 'var(--red)'}">${ML.brl(r.lucroLiquido)}</td>
       </tr>`;
     }).join('') + '</tbody>';
 
-  $('mlPrevInfo').textContent = `PRÉVIA DOS ${Math.min(100, prev.length)} PRIMEIROS`;
-  $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar Excel atualizado (${ok.length} produtos)`;
+  $('mlPrevInfo').textContent = `PRÉVIA DOS ${Math.min(100, prev.length)} PRIMEIROS`
+    + (semPeso ? ` · ${semPeso} SEM PESO` : '');
+  $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar planilha pronta para o Bling (${ok.length} produtos)`;
   mlPasso(3);
 }
 
 function mlBaixar(){
-  const ip = parseInt($('mlPreco').value);
+  const id = parseInt($('mlPreco').value);
+  const comAnalise = $('mlColunasAnalise').checked;
   let nome;
   try{
-    // parte da aba original e troca só o que muda: assim custo, EAN e datas
-    // continuam com o tipo certo (nada de "número armazenado como texto")
-    const ws = XU.clonarWs(mlWb.Sheets[mlWb.SheetNames[0]]);
+    // relê o arquivo enviado e troca só o que muda, preservando tipos e formato
+    const wb = XLSX.read(mlBytes, {type:'array'});
+    const nomeAba = wb.SheetNames[0];
+    XU.normalizarRef(wb.Sheets[nomeAba]);
+    const ws = XU.clonarWs(wb.Sheets[nomeAba]);
     const base = mlCabecalho.length;
-    const NOVAS = ['Custo Total (Fornecedor+Frete)','Preço de Venda ML','FATURAM (Receita Líquida)','Lucro Líquido (R$)','Faixa ML'];
-    NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
+
+    const NOVAS = ['Custo do produto','Peso (kg)','Preço de venda ML','Comissão','Custo fixo',
+                   'Custo de envio','Receita líquida','Lucro líquido','Margem líquida'];
+    if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
 
     mlLinhas.forEach((r, i) => {
       const linha = i + 1;
-      if(ip >= 0 && r && r.preco != null) XU.escrever(ws, linha, ip, r.preco);
-      XU.escrever(ws, linha, base + 0, r ? r.custo : '');
-      XU.escrever(ws, linha, base + 1, r ? r.preco : '');
-      XU.escrever(ws, linha, base + 2, r ? r.fat   : '');
-      XU.escrever(ws, linha, base + 3, r ? r.lucro : '');
-      XU.escrever(ws, linha, base + 4, r && r.faixa ? r.faixa.lb : '');
+      if(id >= 0 && r.preco != null) XU.escrever(ws, linha, id, r.preco);
+      if(comAnalise){
+        const vals = r.preco == null
+          ? [r.custo, r.peso, '', '', '', '', '', '', '']
+          : [r.custo, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
+             r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4)];
+        vals.forEach((v, k) => XU.escrever(ws, linha, base + k, v === undefined ? '' : v));
+      }
     });
 
-    const cols = ws['!cols'] ? ws['!cols'].slice() : [];
-    NOVAS.forEach((_, k) => cols[base + k] = {wch:24});
-    ws['!cols'] = cols;
+    if(comAnalise){
+      const cols = ws['!cols'] ? ws['!cols'].slice() : [];
+      NOVAS.forEach((_, k) => cols[base + k] = {wch:18});
+      ws['!cols'] = cols;
+    }
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, XU.nomeDeAbaValido(mlWb.SheetNames[0], 'Planilha'));
-    nome = mlNome.replace(/\.[^.]+$/, '') + '_PRECOS_ML.xlsx';
-    XLSX.writeFile(wb, nome);
+    const saida = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(saida, ws, XU.nomeDeAbaValido(nomeAba, 'Produtos'));
+    nome = mlNome.replace(/\.[^.]+$/, '') + (comAnalise ? '_PRECOS_ML.xlsx' : '_BLING.xlsx');
+    XLSX.writeFile(saida, nome);
   }catch(err){
     alert('Não consegui gerar o arquivo: ' + err.message);
     return;
   }
 
   const ok = mlLinhas.filter(r => r.preco != null).length;
+  const rep = MLFretes.REPUTACOES.find(r => r.id === pml.reputacao);
   $('mlDoneMsg').innerHTML =
-    `<b style="color:var(--ink)">${ok} produtos</b> com preço calculado a <b style="color:var(--green-dk)">${(mlMargem*100).toFixed(0)}% de margem</b><br/>
+    `<b style="color:var(--ink)">${ok} produtos</b> precificados a <b style="color:var(--green-dk)">${(mlMargem*100).toFixed(0)}% de margem líquida</b><br/>
      Arquivo salvo como <b>${esc(nome)}</b><br/><br/>
      <span style="font-size:12px;color:var(--faint)">
-     ✔ Custo original preservado em "Custo Total (Fornecedor+Frete)"<br/>
-     ✔ Novo preço gravado ${ip >= 0 ? 'na coluna "' + esc(mlCabecalho[ip]) + '"' : 'em nova coluna'}<br/>
-     ✔ FATURAM, lucro e faixa do ML adicionados</span>`;
+     ✔ Anúncio ${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'} · reputação ${esc(rep ? rep.nome.toLowerCase() : pml.reputacao)}<br/>
+     ✔ Preço gravado ${id >= 0 ? 'na coluna "' + esc(mlCabecalho[id]) + '"' : 'em nova coluna'}<br/>
+     ${comAnalise ? '✔ Colunas de análise incluídas — remova antes de subir no Bling'
+                  : '✔ Mesmas colunas do arquivo enviado, pronto para importar no Bling'}</span>`;
   mlPasso(4);
 }
 
 function mlReset(){
-  mlWb = null; mlAoa = []; mlCabecalho = []; mlLinhas = []; mlNome = '';
+  mlWb = mlBytes = null; mlAoa = []; mlCabecalho = []; mlLinhas = []; mlNome = '';
   $('mlFi').value = '';
   mlPasso(1);
 }
 
-/* ── tabela de taxas ── */
+/* ── custos oficiais ── */
 let taxasProntas = false;
 function montarTaxas(){
   if(taxasProntas) return;
   taxasProntas = true;
-  $('mlTaxas').innerHTML =
-    `<thead><tr><th>Faixa</th><th>Custo fixo</th><th>Frete</th><th>Comissão</th>
-      <th>Multiplicador</th><th>Taxa fixa</th><th>Exemplo FATURAM</th></tr></thead><tbody>` +
-    ML.FAIXAS.map(r => {
-      const ex  = Math.min(r.mn + 10, (r.mn + Math.min(r.mx, r.mn + 50)) / 2);
-      const fat = +(ex * r.mu - r.fx).toFixed(2);
-      return `<tr>
-        <td style="font-weight:600">${r.lb}</td>
-        <td style="color:var(--amber)">${r.cf}</td>
-        <td style="color:var(--blue-dk)">${r.fr}</td>
-        <td style="color:var(--violet-dk)">${r.co}</td>
-        <td style="color:var(--green-dk)">${(r.mu*100).toFixed(1)}%</td>
-        <td style="color:var(--red)">R$ ${r.fx.toFixed(2)}</td>
-        <td style="color:var(--faint)">R$ ${ex.toFixed(2)} → ${brl(fat)}</td>
-      </tr>`;
-    }).join('') + '</tbody>';
-}
+  const rep = MLFretes.REPUTACOES.find(r => r.id === pml.reputacao) || MLFretes.REPUTACOES[0];
+  const pct = v => (v * 100).toFixed(1).replace('.0','').replace('.', ',') + '%';
 
+  $('taxasRep').textContent = 'ANÚNCIO ' + (pml.tipoAnuncio === 'premium' ? 'PREMIUM' : 'CLÁSSICO');
+  $('taxasRepFrete').textContent = 'REPUTAÇÃO ' + rep.nome.toUpperCase();
+
+  $('formulaML').innerHTML = [
+    ['Preço de venda',        'o que o comprador paga',                       ''],
+    ['− Comissão',            'percentual do tipo de anúncio',                pct(ML.comissaoPct(pml))],
+    ['− Custo fixo',          'por unidade, em produtos abaixo de R$ 79',     'até R$ 6,75'],
+    ['− Custo de envio',      'tabela oficial por peso e faixa de preço',     rep.desc],
+    ['+ Rebate',              'subsídio do Mercado Livre',                    ML.brl(pml.rebate)],
+    ['= Receita líquida',     'o que entra na sua conta',                     ''],
+    ['− Custo do produto',    'o que você paga ao fornecedor',                ''],
+    ['− Imposto',             'alíquota sobre o preço',                       pct(pml.aliquotaImposto)],
+    ['− Devoluções',          'reserva para perdas',                          pct(pml.taxaDevolucao)],
+    ['− Embalagem',           'por unidade',                                  ML.brl(pml.embalagem)],
+    ['= Lucro líquido',       'o que sobra de verdade',                       ''],
+  ].map(([t, d, v]) => `<div class="f-linha${t.startsWith('=') ? ' destaque' : ''}">
+      <span class="f-t">${esc(t)}</span><span class="f-d">${esc(d)}</span><span class="f-v">${esc(v)}</span>
+    </div>`).join('');
+
+  $('mlTabFixa').innerHTML = '<thead><tr><th>Faixa de preço do anúncio</th><th>Custo fixo por unidade</th></tr></thead><tbody>'
+    + (pml.taxaFixa || []).slice().sort((a,b) => a.ate - b.ate).map((f, i, arr) => {
+        const de = i === 0 ? 0 : arr[i-1].ate + 0.01;
+        const ate = f.ate >= 1e9 ? null : f.ate;
+        return `<tr><td>${ate == null ? 'a partir de ' + ML.brl(de) : ML.brl(de) + ' a ' + ML.brl(ate)}</td>
+          <td style="color:${f.valor ? 'var(--red)' : 'var(--green-dk)'}">${f.valor ? ML.brl(f.valor) : 'sem custo fixo'}</td></tr>`;
+      }).join('') + '</tbody>';
+
+  const T = MLFretes.TABELAS[rep.id];
+  $('mlTabFrete').innerHTML =
+    '<thead><tr><th>Peso da embalagem</th>' + MLFretes.ROTULO_FAIXA.map(f => `<th>${esc(f)}</th>`).join('') + '</tr></thead><tbody>'
+    + T.map((linha, i) => `<tr><td style="font-weight:600">${esc(MLFretes.ROTULO_PESO[i])}</td>`
+        + linha.map(v => `<td>${ML.brl(v)}</td>`).join('') + '</tr>').join('')
+    + '</tbody>';
+}
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: EDITOR DE PLANILHA DE PRODUTOS
    ══════════════════════════════════════════════════════════════════════════ */
@@ -681,4 +823,5 @@ function plBaixar(){
 }
 
 /* ══ início ═══════════════════════════════════════════════════════════════ */
+montarContexto();
 daHash();

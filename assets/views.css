@@ -264,3 +264,58 @@ body.view-hub .wrap{min-height:0}
 .done-t{font-family:var(--display);font-weight:800;font-size:26px;color:var(--green-dk);margin-bottom:10px;
   animation:fadeUp .4s ease .5s both}
 .done-d{color:var(--sub);font-size:13px;line-height:1.85;margin-bottom:28px;animation:fadeUp .4s ease .58s both}
+
+/* ═══ IDENTIDADE E CONTEXTO DO MERCADO LIVRE ══════════════ */
+.ml-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.ml-selo{display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border-radius:14px;flex:none;
+  background:linear-gradient(165deg,#ffe600,#ffd400);color:#2d3277;font-weight:700;font-size:13px;letter-spacing:-.2px;
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 22px -10px rgba(255,214,0,.9),0 2px 6px rgba(20,30,60,.12)}
+.ml-selo svg{width:30px;height:21px;flex:none}
+@media(max-width:620px){.ml-selo{font-size:12px;padding:8px 13px}.ml-selo svg{width:24px;height:17px}}
+
+.ctx{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:18px;padding:16px 18px;border-radius:18px;
+  background:linear-gradient(165deg,rgba(255,255,255,.95),rgba(246,249,255,.9));backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.9);box-shadow:var(--sombra-card)}
+.ctx-bloco{display:flex;flex-direction:column;gap:8px}
+.ctx-lbl{font-size:10px;font-weight:600;letter-spacing:1.2px;color:var(--blue-dk);text-transform:uppercase}
+.ctx-opts{display:flex;gap:7px;flex-wrap:wrap}
+.ctx-opt{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:100px;cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:rgba(255,255,255,.8);
+  color:var(--sub);transition:all .2s cubic-bezier(.16,1,.3,1)}
+.ctx-opt:hover{border-color:#c3cde4;color:var(--ink);transform:translateY(-1px)}
+.ctx-opt b{font-weight:700;opacity:.75}
+.ctx-opt .bolinha{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+.ctx-opt.rep-verde    .bolinha{background:linear-gradient(135deg,#28dd8a,#079254)}
+.ctx-opt.rep-amarela  .bolinha{background:linear-gradient(135deg,#ffe600,#f0b400)}
+.ctx-opt.rep-vermelha .bolinha{background:linear-gradient(135deg,#ff8a5c,#e5484d)}
+.ctx-opt.active{color:#fff;border-color:transparent}
+.ctx-opt.rep-verde.active{background:linear-gradient(180deg,#1ed67f,#0d9455);box-shadow:0 8px 18px -6px rgba(18,183,106,.7)}
+.ctx-opt.rep-amarela.active{background:linear-gradient(180deg,#ffd83d,#e0a800);color:#4a3600;box-shadow:0 8px 18px -6px rgba(240,180,0,.7)}
+.ctx-opt.rep-vermelha.active{background:linear-gradient(180deg,#ff7a5c,#d93a3f);box-shadow:0 8px 18px -6px rgba(229,72,77,.7)}
+.ctx-opt[data-anuncio].active{background:linear-gradient(180deg,#5f89ff,#2f5ae0);box-shadow:0 8px 18px -6px rgba(79,124,255,.7)}
+.ctx .btn{margin-left:auto}
+@media(max-width:760px){.ctx .btn{margin-left:0;width:100%}}
+
+/* extrato de custos da calculadora */
+.resultado.ruim{border-color:rgba(229,72,77,.3);background:linear-gradient(165deg,#fff,#fff5f5);
+  box-shadow:0 1px 0 #fff inset,0 20px 44px -26px rgba(229,72,77,.4)}
+.extrato{padding:6px 22px 18px}
+.ex-linha{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:9px 0;
+  border-bottom:1px dashed rgba(20,30,60,.08)}
+.ex-linha:last-child{border-bottom:none}
+.ex-l{font-size:12.5px;color:var(--sub)}
+.ex-l i{font-style:normal;font-size:10.5px;color:var(--faint);margin-left:6px}
+.ex-v{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:600;font-size:14px;white-space:nowrap}
+.ex-linha.total{border-top:1.5px solid rgba(20,30,60,.12);border-bottom:none;margin-top:6px;padding-top:12px}
+.ex-linha.total .ex-l{font-weight:700;color:var(--ink);font-size:13.5px}
+.ex-linha.total .ex-v{font-size:19px;font-weight:800}
+
+/* como o preço é formado */
+.formula{display:flex;flex-direction:column;gap:2px}
+.f-linha{display:grid;grid-template-columns:190px 1fr auto;gap:14px;align-items:baseline;padding:10px 14px;border-radius:10px}
+.f-linha:nth-child(odd){background:rgba(20,30,60,.025)}
+.f-linha.destaque{background:rgba(18,183,106,.09);font-weight:600}
+.f-t{font-size:12.5px;font-weight:600;color:var(--ink)}
+.f-d{font-size:11.5px;color:var(--faint)}
+.f-v{font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;color:var(--blue-dk);white-space:nowrap}
+@media(max-width:640px){.f-linha{grid-template-columns:1fr auto}.f-d{display:none}}

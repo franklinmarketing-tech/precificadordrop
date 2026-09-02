@@ -139,9 +139,42 @@
 
   <!-- ═══════════════ VIEW: PRECIFICADOR ML ═══════════════ -->
   <div id="view-ml" class="view hide">
-    <div style="margin-bottom:20px">
-      <h1>Precificar <span class="grad">Mercado Livre.</span></h1>
-      <div class="h-sub">Some custo do fornecedor + frete, escolha a margem e receba o preço de venda com as taxas oficiais do ML já descontadas.</div>
+
+    <div class="ml-head">
+      <div class="ml-selo">
+        <svg viewBox="0 0 44 30" aria-hidden="true">
+          <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
+                fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Mercado&nbsp;Livre</span>
+      </div>
+      <div>
+        <h1>Precificar <span class="grad">Mercado Livre.</span></h1>
+        <div class="h-sub">Custo do fornecedor, peso e margem — com comissão, custo fixo e frete oficiais do ML já descontados. Escolha a reputação da sua conta antes de gerar o preço.</div>
+      </div>
+    </div>
+
+    <!-- barra de contexto: reputação e tipo de anúncio -->
+    <div class="ctx">
+      <div class="ctx-bloco">
+        <div class="ctx-lbl">Reputação da conta</div>
+        <div class="ctx-opts" id="ctxReputacao"></div>
+      </div>
+      <div class="ctx-bloco">
+        <div class="ctx-lbl">Tipo de anúncio</div>
+        <div class="ctx-opts">
+          <button class="ctx-opt active" data-anuncio="classico" onclick="setAnuncio('classico',this)">
+            Clássico <b id="pctClassico">13%</b>
+          </button>
+          <button class="ctx-opt" data-anuncio="premium" onclick="setAnuncio('premium',this)">
+            Premium <b id="pctPremium">18%</b>
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="abrirParamsML()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Editar parâmetros
+      </button>
     </div>
 
     <div class="tabs">
@@ -152,7 +185,7 @@
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>Planilha em massa
       </button>
       <button class="tab" data-mltab="taxas" onclick="abaML('taxas',this)">
-        <svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>Tabela de taxas
+        <svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>Custos oficiais
       </button>
     </div>
 
@@ -166,23 +199,24 @@
           </button>
           <button class="modo" id="modoB" onclick="setModo('b')">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg>
-            Tenho o preço → ver taxas e lucro
+            Tenho o preço → ver custos e lucro
           </button>
         </div>
 
         <div id="formA">
           <div class="grid3">
-            <div><div class="lbl verde">Custo do fornecedor (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 42,00" oninput="calcA()"/></div>
-            <div><div class="lbl verde">Frete até o cliente (R$)</div><input type="number" id="frA" min="0" step="0.01" placeholder="Ex: 18,00" oninput="calcA()"/></div>
-            <div><div class="lbl verde">Margem desejada (%)</div><input type="number" id="mgA" value="20" min="1" max="90" oninput="calcA()"/></div>
+            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcA()"/></div>
+            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoA" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcA()"/></div>
+            <div><div class="lbl verde">Margem líquida desejada (%)</div><input type="number" id="mgA" value="20" min="1" max="90" oninput="calcA()"/></div>
           </div>
+          <div class="nota">O peso define o custo de envio pela tabela oficial. Sem peso, é usado o frete manual dos parâmetros.</div>
         </div>
 
         <div id="formB" class="hide">
           <div class="grid3">
-            <div><div class="lbl verde">Preço de venda (R$)</div><input type="number" id="pB" min="5" step="0.01" placeholder="Ex: 79,90" oninput="calcB()"/></div>
-            <div><div class="lbl verde">Custo do fornecedor (R$)</div><input type="number" id="cB" min="0" step="0.01" placeholder="opcional" oninput="calcB()"/></div>
-            <div><div class="lbl verde">Frete (R$)</div><input type="number" id="frB" min="0" step="0.01" placeholder="opcional" oninput="calcB()"/></div>
+            <div><div class="lbl verde">Preço de venda (R$)</div><input type="number" id="pB" min="0" step="0.01" placeholder="Ex: 188,19" oninput="calcB()"/></div>
+            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cB" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcB()"/></div>
+            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoB" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcB()"/></div>
           </div>
         </div>
       </div>
@@ -192,7 +226,6 @@
 
     <!-- ── planilha em massa ── -->
     <div id="ml-massa" class="hide">
-      <!-- passo 1: upload -->
       <div class="panel" id="mlStep1">
         <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar planilha de produtos</div></div>
         <div class="zone" id="mlZone" onclick="document.getElementById('mlFi').click()"
@@ -200,12 +233,11 @@
              ondragleave="this.classList.remove('drag')" ondrop="mlDrop(event)">
           <input id="mlFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mlCarregar(event.target.files[0])"/>
           <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-          <div class="zone-t">Arraste sua planilha aqui</div>
+          <div class="zone-t">Arraste a planilha do Bling aqui</div>
           <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
         </div>
       </div>
 
-      <!-- passo 2: colunas + margem -->
       <div id="mlStep2" class="hide">
         <div class="panel">
           <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Configurar colunas e margem</div></div>
@@ -217,14 +249,14 @@
 
           <div class="grid3" style="margin-bottom:18px">
             <div>
-              <div class="lbl verde">Coluna do custo do fornecedor *</div>
+              <div class="lbl verde">Coluna do custo do produto *</div>
               <select id="mlCusto" onchange="mlValidaCol()"><option value="-1">— Selecione —</option></select>
               <div class="nota" id="mlCustoNota"></div>
             </div>
             <div>
-              <div class="lbl verde">Coluna do frete</div>
-              <select id="mlFrete" onchange="mlValidaCol()"><option value="-1">Sem frete (custo = 0)</option></select>
-              <div class="nota" id="mlFreteNota"></div>
+              <div class="lbl verde">Coluna do peso (kg)</div>
+              <select id="mlPeso" onchange="mlValidaCol()"><option value="-1">Sem peso — usar frete manual</option></select>
+              <div class="nota" id="mlPesoNota"></div>
             </div>
             <div>
               <div class="lbl verde">Coluna do preço (onde gravar)</div>
@@ -233,13 +265,13 @@
             </div>
           </div>
 
-          <div class="lbl verde">Margem desejada sobre a receita líquida</div>
+          <div class="lbl verde">Margem líquida desejada</div>
           <div class="margens" id="mlMargens"></div>
           <div class="margem-custom">
             <input type="number" id="mlMargemCustom" min="1" max="90" placeholder="Outra margem (%)" oninput="mlMargemLivre()"/>
             <span>%</span>
           </div>
-          <div class="nota">Margem = (Receita líquida − Custo) ÷ Receita líquida · Selecionada: <b id="mlMargemAtual" style="color:var(--green-dk)">10%</b></div>
+          <div class="nota">Margem líquida = lucro depois de comissão, custo fixo, frete, imposto, devoluções e embalagem · Selecionada: <b id="mlMargemAtual" style="color:var(--green-dk)">20%</b> · Reputação: <b id="mlRepAtual" style="color:var(--green-dk)">verde</b></div>
 
           <button class="btn btn-green btn-lg btn-block" id="mlBtnCalc" style="margin-top:20px" onclick="mlProcessar()" disabled>
             Calcular preços para todos os produtos
@@ -248,7 +280,6 @@
         </div>
       </div>
 
-      <!-- passo 3: revisão -->
       <div id="mlStep3" class="hide">
         <div class="stats stats-5" id="mlStats"></div>
         <div class="panel">
@@ -259,13 +290,13 @@
             <button class="btn btn-ghost" onclick="mlPasso(2)"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
             <button class="btn btn-green" style="flex:1" id="mlBtnDl" onclick="mlBaixar()">
               <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-              Baixar Excel atualizado
+              Baixar planilha pronta para o Bling
             </button>
           </div>
+          <label class="sw" style="margin-top:10px"><input type="checkbox" id="mlColunasAnalise"/> Incluir colunas de análise (custo, frete, lucro, margem) — desligue para subir no Bling</label>
         </div>
       </div>
 
-      <!-- passo 4: pronto -->
       <div id="mlStep4" class="hide">
         <div class="panel">
           <div class="conclusao">
@@ -281,20 +312,29 @@
       </div>
     </div>
 
-    <!-- ── tabela de taxas ── -->
+    <!-- ── custos oficiais ── -->
     <div id="ml-taxas" class="hide">
       <div class="panel">
         <div class="panel-h">
-          <div class="panel-t verde"><svg style="width:18px;height:18px;fill:none;stroke:var(--green-dk);stroke-width:1.9" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/></svg> Taxas oficiais por faixa de preço</div>
+          <div class="panel-t verde">Como o preço é formado</div>
+          <span class="pill pill-ok" id="taxasRep"></span>
         </div>
-        <div class="nota" style="margin-bottom:14px;font-size:12px">
-          <b style="color:var(--green-dk)">FATURAM = PREÇO × multiplicador − taxa fixa</b> · Comissão Clássico 11,5% (10,5% entre R$ 150 e R$ 699)
+        <div class="formula" id="formulaML"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t verde">Custo fixo por faixa de preço</div></div>
+        <div class="tbl-wrap" style="max-height:none"><table id="mlTabFixa"></table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Custo de envio — tabela oficial</div>
+          <span class="pill pill-ok" id="taxasRepFrete"></span>
         </div>
-        <div class="tbl-wrap" style="max-height:none"><table id="mlTaxas"></table></div>
-        <div class="nota" style="margin-top:14px">
-          <b>Multiplicador</b>: porcentagem do preço que fica com o vendedor antes da taxa fixa.<br/>
-          <b>FATURAM</b>: o que você recebe depois de todas as deduções da plataforma.
-        </div>
+        <div class="nota" style="margin-bottom:12px">Valores por peso da embalagem e faixa de preço do anúncio, já com o desconto da reputação selecionada. Produtos abaixo de R$ 19 pagam no máximo metade do preço.</div>
+        <div class="tbl-wrap"><table id="mlTabFrete"></table></div>
+        <div class="nota" style="margin-top:12px">Fonte: Mercado Livre — Central de vendedores.</div>
       </div>
     </div>
   </div>
@@ -442,7 +482,80 @@
   </div>
 </aside>
 
+<!-- ═══ DRAWER DE PARÂMETROS (Mercado Livre) ═══ -->
+<div class="scrim" id="scrimML" onclick="fecharParamsML()"></div>
+<aside class="drawer" id="drawerML">
+  <div class="drawer-h">
+    <div>
+      <div class="drawer-t">Parâmetros do Mercado Livre</div>
+      <div class="drawer-s">O QUE ENTRA NA CONTA DO PREÇO</div>
+    </div>
+    <button class="x" onclick="fecharParamsML()"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+
+  <div class="drawer-b">
+    <div class="grp">
+      <div class="grp-t">COMO O PREÇO É FORMADO</div>
+      <div class="grp-d">
+        Receita líquida = Preço − comissão − custo fixo − frete + rebate<br/>
+        Lucro líquido = Receita líquida − custo do produto − imposto − devoluções − embalagem<br/>
+        Margem líquida = Lucro líquido ÷ Preço
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">COMISSÃO POR TIPO DE ANÚNCIO</div>
+      <div class="grp-d">Percentual do preço cobrado pelo Mercado Livre em cada venda.</div>
+      <div class="grid2">
+        <div class="f"><label>Clássico (%)</label><input type="number" id="m_comissaoClassico" min="0" max="50" step="0.1"/></div>
+        <div class="f"><label>Premium (%)</label><input type="number" id="m_comissaoPremium" min="0" max="50" step="0.1"/></div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">CUSTO FIXO POR UNIDADE</div>
+      <div class="grp-d">Cobrado em produtos abaixo de R$ 79. Uma faixa por linha, no formato <b>até preço = valor</b>.</div>
+      <div class="f">
+        <textarea id="m_taxaFixa" spellcheck="false"></textarea>
+        <div class="hint">Ex.: <b>29 = 6,25</b> · <b>78,99 = 6,75</b> · <b>999999 = 0</b></div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">CUSTO DE ENVIO</div>
+      <div class="grp-d">Com o peso informado, o frete sai da tabela oficial do ML conforme a reputação. Sem peso, é usado o valor manual.</div>
+      <label class="sw"><input type="checkbox" id="m_freteAutomatico"/> Calcular o frete pela tabela oficial (usa o peso)</label>
+      <div class="grid2">
+        <div class="f"><label>Frete manual (R$)</label><input type="number" id="m_freteManual" min="0" step="0.01"/>
+          <div class="hint">Usado quando não há peso.</div></div>
+        <div class="f"><label>Peso padrão (kg)</label><input type="number" id="m_pesoPadrao" min="0" step="0.01"/>
+          <div class="hint">Aplicado a produtos sem peso na planilha.</div></div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">OUTROS CUSTOS E RECEITAS</div>
+      <div class="grid2">
+        <div class="f"><label>Rebate do ML (+ R$)</label><input type="number" id="m_rebate" min="0" step="0.01"/>
+          <div class="hint">Subsídio somado à receita.</div></div>
+        <div class="f"><label>Alíquota de imposto (%)</label><input type="number" id="m_aliquotaImposto" min="0" max="100" step="0.1"/></div>
+        <div class="f"><label>Taxa de devolução (%)</label><input type="number" id="m_taxaDevolucao" min="0" max="100" step="0.1"/>
+          <div class="hint">Reserva para perdas com devolução.</div></div>
+        <div class="f"><label>Embalagem (R$)</label><input type="number" id="m_embalagem" min="0" step="0.01"/></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-f">
+    <button class="btn btn-ghost" onclick="restaurarPadraoML()">Restaurar padrão</button>
+    <button class="btn btn-primary" onclick="salvarParamsML()">
+      <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Salvar e recalcular
+    </button>
+  </div>
+</aside>
+
 <script src="assets/xlsx-utils.js"></script>
+<script src="assets/ml-fretes.js"></script>
 <script src="assets/ml-engine.js"></script>
 <script src="assets/planilha-engine.js"></script>
 <script src="assets/app.js"></script>
