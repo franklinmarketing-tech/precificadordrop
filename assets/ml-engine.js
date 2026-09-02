@@ -20,17 +20,17 @@
 
 /* ── parâmetros (todos editáveis na interface) ───────────────────────────── */
 const PADRAO = {
-  versao: 2,                     // sobe quando os padrões mudam, para migrar o que está salvo
+  versao: 3,                     // sobe quando os padrões mudam, para migrar o que está salvo
   reputacao: 'verde',            // verde | amarela | vermelha
   tipoAnuncio: 'classico',       // classico | premium
   // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
   comissaoClassico: 0.13,
   comissaoPremium: 0.18,
-  /* Custo fixo por unidade, conforme a tabela oficial do Mercado Livre:
-     abaixo de R$ 12,50 é isento; R$ 6,25 até R$ 29; R$ 6,50 até R$ 50;
-     R$ 6,75 até R$ 79; a partir de R$ 79 não há custo fixo.            */
+  /* Custo fixo por unidade, conforme a tabela oficial do Mercado Livre.
+     Abaixo de R$ 12,50 a cobrança é proporcional (metade do preço do
+     produto), por isso a faixa usa `percentual` em vez de `valor`.     */
   taxaFixa: [
-    {ate: 12.49, valor: 0},
+    {ate: 12.49, percentual: 0.5},
     {ate: 29,    valor: 6.25},
     {ate: 50,    valor: 6.50},
     {ate: 78.99, valor: 6.75},
@@ -81,10 +81,20 @@ const comissaoPct = p => {
   return (p.tipoAnuncio === 'premium' ? p.comissaoPremium : p.comissaoClassico) || 0;
 };
 
-function taxaFixaDe(preco, p) {
+/* Devolve a faixa de custo fixo que vale para esse preço. */
+function faixaTaxaFixa(preco, p) {
   const faixas = (p.taxaFixa || []).slice().sort((a, b) => a.ate - b.ate);
-  for (const f of faixas) if (preco <= f.ate) return Number(f.valor) || 0;
-  return 0;
+  for (const f of faixas) if (preco <= f.ate) return f;
+  return null;
+}
+
+/* Custo fixo em reais. Uma faixa pode cobrar valor fixo (R$ 6,25) ou uma
+   proporção do preço (abaixo de R$ 12,50 é metade do produto).        */
+function taxaFixaDe(preco, p) {
+  const f = faixaTaxaFixa(preco, p);
+  if (!f) return 0;
+  if (f.percentual) return centavos(Number(preco) * Number(f.percentual));
+  return Number(f.valor) || 0;
 }
 
 function freteDe(preco, peso, p) {
@@ -141,24 +151,36 @@ function precoPara(custo, margemAlvo, peso, params) {
   const alvo = Number(margemAlvo);
   if (!isFinite(cu) || cu <= 0 || !isFinite(alvo) || alvo >= 1) return null;
 
-  const fixo = 1 - comissaoPct(p) - (Number(p.aliquotaImposto) || 0)
+  const base = 1 - comissaoPct(p) - (Number(p.aliquotaImposto) || 0)
                  - (Number(p.taxaDevolucao) || 0) - alvo;
-  if (fixo <= 0) return null;   // taxas somadas à margem passam de 100%
+  if (base <= 0) return null;   // taxas somadas à margem passam de 100%
 
   const entrega = pr => {
     const a = analisar(pr, cu, peso, p);
     return a && a.margemLiquida >= alvo - 1e-9;
   };
 
-  const limites = MLFretes ? MLFretes.FAIXAS_PRECO : [1e9];
-  let anterior = 0;
+  /* Os degraus de frete e de custo fixo ficam em preços diferentes, então
+     percorremos a união dos dois conjuntos de limites.                  */
+  const limites = Array.from(new Set(
+    (MLFretes ? MLFretes.FAIXAS_PRECO : [1e9])
+      .concat((p.taxaFixa || []).map(f => Number(f.ate)))
+      .filter(v => isFinite(v) && v > 0)
+  )).sort((a, b) => a - b);
 
+  let anterior = 0;
   for (const limite of limites) {
-    const referencia = Math.min(limite, Math.max(anterior + 0.01, 1));
-    const tf    = taxaFixaDe(referencia, p);
-    const frete = freteDe(referencia, peso, p);
+    const referencia = Math.min(limite, Math.max(anterior + 0.01, 0.01));
+    const faixa = faixaTaxaFixa(referencia, p);
+    // faixa proporcional (metade do preço) entra no divisor, não no numerador
+    const pctFixo = faixa && faixa.percentual ? Number(faixa.percentual) : 0;
+    const tf      = faixa && !faixa.percentual ? (Number(faixa.valor) || 0) : 0;
+    const frete   = freteDe(referencia, peso, p);
+    const divisor = base - pctFixo;
+    if (divisor <= 0) { anterior = limite; continue; }
+
     const numerador = cu + tf + frete - (Number(p.rebate) || 0) + (Number(p.embalagem) || 0);
-    let pr = centavos(Math.ceil((numerador / fixo) * 100) / 100);
+    let pr = centavos(Math.ceil((numerador / divisor) * 100) / 100);
 
     if (pr > anterior && pr <= limite) {
       for (let i = 0; i < 30 && !entrega(pr); i++) pr = centavos(pr + 0.01);
@@ -168,7 +190,7 @@ function precoPara(custo, margemAlvo, peso, params) {
   }
 
   // não coube em nenhuma faixa: procura o menor preço que entregue a margem
-  let pr = centavos(cu / fixo);
+  let pr = centavos(cu / base);
   for (let i = 0; i < 5000 && !entrega(pr); i++) pr = centavos(pr + 0.05);
   return entrega(pr) ? pr : null;
 }
@@ -181,6 +203,6 @@ const custoTotal = (fornecedor, extra) => {
   return centavos(c + (isNaN(e) ? 0 : e));
 };
 
-return {PADRAO, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, freteDe,
+return {PADRAO, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         analisar, precoPara, custoTotal};
 });

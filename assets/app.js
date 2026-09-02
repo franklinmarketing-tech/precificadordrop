@@ -179,8 +179,13 @@ function abrirParamsML(){
   const set = (id, v) => { const el = $(id); if(el) el.value = v; };
   set('m_comissaoClassico', (pml.comissaoClassico * 100).toFixed(2).replace(/\.?0+$/, ''));
   set('m_comissaoPremium',  (pml.comissaoPremium  * 100).toFixed(2).replace(/\.?0+$/, ''));
-  set('m_taxaFixa', (pml.taxaFixa || []).map(f =>
-    (f.ate >= 1e9 ? '999999' : String(f.ate).replace('.', ',')) + ' = ' + String(f.valor).replace('.', ',')).join('\n'));
+  set('m_taxaFixa', (pml.taxaFixa || []).map(f => {
+    const ate = f.ate >= 1e9 ? '999999' : String(f.ate).replace('.', ',');
+    const val = f.percentual
+      ? String(+(f.percentual * 100).toFixed(4)).replace('.', ',') + '%'
+      : String(f.valor).replace('.', ',');
+    return ate + ' = ' + val;
+  }).join('\n'));
   $('m_freteAutomatico').checked = !!pml.freteAutomatico;
   set('m_freteManual', pml.freteManual);
   set('m_pesoPadrao', pml.pesoPadrao);
@@ -197,11 +202,21 @@ function fecharParamsML(){
 }
 function salvarParamsML(){
   const n = id => { const v = ML.parseNumero($(id).value); return isNaN(v) ? 0 : v; };
+  // "12,49 = 50%" vira faixa proporcional; "29 = 6,25" vira valor fixo
   const faixas = ($('m_taxaFixa').value || '').split('\n')
     .map(l => l.split('=').map(s => s.trim()))
     .filter(a => a.length >= 2 && a[0])
-    .map(a => ({ate: ML.parseNumero(a[0]), valor: ML.parseNumero(a[1])}))
-    .filter(f => !isNaN(f.ate) && !isNaN(f.valor))
+    .map(a => {
+      const ate = ML.parseNumero(a[0]);
+      const bruto = a[1];
+      if(/%\s*$/.test(bruto)){
+        const pc = ML.parseNumero(bruto.replace(/%/g, ''));
+        return isNaN(pc) ? null : {ate, percentual: pc / 100};
+      }
+      const v = ML.parseNumero(bruto);
+      return isNaN(v) ? null : {ate, valor: v};
+    })
+    .filter(f => f && !isNaN(f.ate))
     .sort((a, b) => a.ate - b.ate);
 
   Object.assign(pml, {
@@ -587,8 +602,11 @@ function montarTaxas(){
     + (pml.taxaFixa || []).slice().sort((a,b) => a.ate - b.ate).map((f, i, arr) => {
         const de = i === 0 ? 0 : arr[i-1].ate + 0.01;
         const ate = f.ate >= 1e9 ? null : f.ate;
+        const cobra = f.percentual
+          ? {txt: (+(f.percentual*100).toFixed(2)).toString().replace('.', ',') + '% do preço do produto', cor:'var(--red)'}
+          : (f.valor ? {txt: ML.brl(f.valor), cor:'var(--red)'} : {txt:'sem custo fixo', cor:'var(--green-dk)'});
         return `<tr><td>${ate == null ? 'a partir de ' + ML.brl(de) : ML.brl(de) + ' a ' + ML.brl(ate)}</td>
-          <td style="color:${f.valor ? 'var(--red)' : 'var(--green-dk)'}">${f.valor ? ML.brl(f.valor) : 'sem custo fixo'}</td></tr>`;
+          <td style="color:${cobra.cor}">${cobra.txt}</td></tr>`;
       }).join('') + '</tbody>';
 
   const T = MLFretes.TABELAS[rep.id];
