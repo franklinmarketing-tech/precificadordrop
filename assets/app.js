@@ -620,6 +620,8 @@ function preencherForm(p){
   chk('p_renomearAbaOriginal', p.renomearAbaOriginal);
   chk('p_incluirAbaOriginal', p.incluirAbaOriginal);
   set('p_colDescricao', p.colDescricao); set('p_maxDescricao', p.maxDescricao);
+  set('p_palavrasRemover', (p.palavrasRemover || []).join('\n'));
+  chk('p_removerNaCurta', p.removerNaCurta);
   set('p_abreviacoes', (p.abreviacoes || []).map(a => a[0] + ' = ' + a[1]).join('\n'));
   set('p_stopwords', (p.stopwords || []).join(', '));
   chk('p_limparPontuacaoFinal', p.limparPontuacaoFinal);
@@ -640,6 +642,8 @@ function lerForm(){
     incluirAbaOriginal: c('p_incluirAbaOriginal'),
     colDescricao: v('p_colDescricao').toUpperCase(),
     maxDescricao: Math.max(10, parseInt(v('p_maxDescricao'), 10) || 60),
+    palavrasRemover: linhas('p_palavrasRemover'),
+    removerNaCurta: c('p_removerNaCurta'),
     abreviacoes: linhas('p_abreviacoes').map(l => l.split('=').map(s => s.trim()))
       .filter(a => a.length >= 2 && a[0]).map(a => [a[0], a.slice(1).join('=')]),
     stopwords: v('p_stopwords').split(',').map(s => s.trim()).filter(Boolean),

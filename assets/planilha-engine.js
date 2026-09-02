@@ -19,6 +19,9 @@ const DEFAULT_PARAMS = {
   colDescricao: 'C',
   maxDescricao: 60,
   limparPontuacaoFinal: true,
+  // termos apagados da descrição antes de qualquer resumo (marca, prefixo etc.)
+  palavrasRemover: ['WE DROP'],
+  removerNaCurta: false,   // aplicar a remoção também na descrição curta
   abreviacoes: [
     ['Infantil', 'Inf.'],
     ['Eletrônico', 'Eletr.'],
@@ -90,6 +93,31 @@ function aparar(txt) {
   return String(txt).replace(/[\s\-–—,;:/|]+$/u, '').trim();
 }
 
+/* Apaga termos indesejados (marca, prefixo de fornecedor…) e limpa o
+   separador que sobra: "WE DROP - Conjunto 5 Potes" → "Conjunto 5 Potes".
+   O espaço dentro do termo é flexível, então "WE DROP" também casa
+   "WEDROP" e "WE  DROP".                                              */
+function removerPalavras(texto, params) {
+  const p = params || DEFAULT_PARAMS;
+  let s = String(texto == null ? '' : texto);
+  const lista = (p.palavrasRemover || []).map(t => String(t).trim()).filter(Boolean);
+  if (!lista.length) return s;
+
+  for (const termo of lista) {
+    const corpo = termo.split(/\s+/).map(escapeRe).join('\\s*');
+    const ini = /^\w/.test(termo) ? '(?<!\\w)' : '';
+    const fim = /\w$/.test(termo) ? '(?!\\w)'  : '';
+    let re;
+    try { re = new RegExp(ini + corpo + fim, 'gi'); }
+    catch (e) { re = new RegExp(corpo, 'gi'); }   // navegador sem lookbehind
+    s = s.replace(re, ' ');
+  }
+  return s.replace(/[ \t]+/g, ' ')
+          .replace(/^[\s\-–—,;:/|]+/u, '')   // separador órfão no começo
+          .replace(/\s+([,;:.!?])/g, '$1')
+          .trim();
+}
+
 /* ── 1) Resumo da descrição (coluna C) ───────────────────────────────────── */
 /* Estratégia incremental: aplica só o mínimo necessário pra caber no limite.
    1. normaliza  2. abreviações (uma a uma)  3. stopwords (da direita p/ a
@@ -98,7 +126,7 @@ function resumirDescricao(texto, params) {
   const p = params || DEFAULT_PARAMS;
   const max = p.maxDescricao;
 
-  let s = normalizar(texto);
+  let s = removerPalavras(normalizar(texto), p);
   if (p.limparPontuacaoFinal) s = aparar(s);
   if (!s || s.length <= max) return s;
 
@@ -213,14 +241,21 @@ function processar(aoa, params) {
       }
     }
 
-    // AP — bloco cadastral
+    // AP — bloco cadastral (e, se pedido, também os termos removidos)
     if (iAP >= 0) {
       const antes = String(linha[iAP] == null ? '' : linha[iAP]);
       if (antes.trim()) {
         const res = limparBlocoCadastral(antes, p);
-        if (res.encontrou) {
-          linha[iAP] = res.texto;
-          mudancas.curta.push({ linha: r + 1, removido: res.removido, campos: res.campos });
+        let texto = res.encontrou ? res.texto : antes;
+        const comTermos = p.removerNaCurta ? removerPalavras(texto, p) : texto;
+        if (res.encontrou || comTermos !== antes) {
+          linha[iAP] = comTermos;
+          mudancas.curta.push({
+            linha: r + 1,
+            removido: res.removido,
+            campos: res.campos || 0,
+            termos: comTermos !== texto,
+          });
         }
       }
     }
@@ -291,7 +326,10 @@ function validar(origem, saida, params) {
       const antes = String(origem[r][iAP] == null ? '' : origem[r][iAP]);
       const depois = String(saida[r][iAP] == null ? '' : saida[r][iAP]);
       if (!antes.trim()) continue;
-      if (!antes.startsWith(depois)) quebradas.push(r + 1);
+      // com a remoção de termos ligada, o texto novo não é prefixo literal:
+      // comparamos contra o original já sem os termos
+      const base = p.removerNaCurta ? removerPalavras(antes, p) : antes;
+      if (!base.startsWith(depois) && !antes.startsWith(depois)) quebradas.push(r + 1);
       if (antes.trim() && !depois.trim()) vazias++;
     }
     add(quebradas.length === 0,

@@ -438,8 +438,18 @@
     </div>
 
     <div class="grp">
+      <div class="grp-t">DESCRIÇÃO — TERMOS A REMOVER</div>
+      <div class="grp-d">Apagados da descrição antes de qualquer resumo, junto com o hífen que sobra. Um termo por linha — o espaço é flexível, então <b>WE DROP</b> também pega <b>WEDROP</b>.</div>
+      <div class="f">
+        <textarea id="p_palavrasRemover" spellcheck="false" rows="4" placeholder="WE DROP"></textarea>
+        <div class="hint">Acrescente quantos quiser: marca, prefixo do fornecedor, "Original", "Promoção"…</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="p_removerNaCurta"/> Remover esses termos também na descrição curta</label>
+    </div>
+
+    <div class="grp">
       <div class="grp-t">DESCRIÇÃO — RESUMO</div>
-      <div class="grp-d">Reduz cada descrição ao limite aplicando só o mínimo necessário: primeiro abreviações, depois palavras de ligação e, por último, corte em palavra inteira.</div>
+      <div class="grp-d">Depois de remover os termos, reduz ao limite aplicando só o mínimo necessário: primeiro abreviações, depois palavras de ligação e, por último, corte em palavra inteira.</div>
       <div class="grid2">
         <div class="f"><label>Coluna da descrição</label><input type="text" id="p_colDescricao"/></div>
         <div class="f"><label>Máximo de caracteres</label><input type="number" id="p_maxDescricao" min="10" max="500"/></div>
