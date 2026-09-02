@@ -454,6 +454,7 @@ function preencherForm(p){
   const chk = (id,v) => { const el = $(id); if(el) el.checked = !!v; };
   set('p_abaOriginal', p.abaOriginal);   set('p_abaModificado', p.abaModificado);
   chk('p_renomearAbaOriginal', p.renomearAbaOriginal);
+  chk('p_incluirAbaOriginal', p.incluirAbaOriginal);
   set('p_colDescricao', p.colDescricao); set('p_maxDescricao', p.maxDescricao);
   set('p_abreviacoes', (p.abreviacoes || []).map(a => a[0] + ' = ' + a[1]).join('\n'));
   set('p_stopwords', (p.stopwords || []).join(', '));
@@ -472,6 +473,7 @@ function lerForm(){
     abaOriginal: v('p_abaOriginal') || 'Original',
     abaModificado: v('p_abaModificado') || 'Modificado',
     renomearAbaOriginal: c('p_renomearAbaOriginal'),
+    incluirAbaOriginal: c('p_incluirAbaOriginal'),
     colDescricao: v('p_colDescricao').toUpperCase(),
     maxDescricao: Math.max(10, parseInt(v('p_maxDescricao'), 10) || 60),
     abreviacoes: linhas('p_abreviacoes').map(l => l.split('=').map(s => s.trim()))
@@ -561,8 +563,9 @@ function plProcessar(){
   badge.textContent = v.ok ? 'TUDO CERTO' : 'REVISAR';
   badge.className = 'pill ' + (v.ok ? 'pill-ok' : 'pill-bad');
 
-  $('plDlInfo').innerHTML =
-    `Aba <b>${esc(params.abaOriginal)}</b> intacta + aba <b>${esc(params.abaModificado)}</b> com as alterações · ${plAoa.length - 1} linhas`;
+  $('plDlInfo').innerHTML = params.incluirAbaOriginal
+    ? `Abre na aba <b style="color:var(--green-dk)">${esc(params.abaModificado)}</b>, já corrigida · a aba <b>${esc(params.abaOriginal)}</b> vem junto, intacta, para conferência · ${plAoa.length - 1} linhas`
+    : `Arquivo só com a aba <b style="color:var(--green-dk)">${esc(params.abaModificado)}</b>, já corrigida · ${plAoa.length - 1} linhas`;
 
   mostrar('plResultado', true);
   plAba(plAbaAtual, null);
@@ -655,6 +658,22 @@ function plBaixar(){
     }
 
     XLSX.utils.book_append_sheet(wb, ws, nomeMod);
+
+    if(params.incluirAbaOriginal){
+      // aba corrigida primeiro, a original ao lado para conferência
+      const pos = wb.SheetNames.indexOf(nomeMod);
+      if(pos > 0){
+        wb.SheetNames.splice(pos, 1);
+        wb.SheetNames.unshift(nomeMod);
+      }
+    }else{
+      // arquivo sai só com a aba corrigida
+      wb.SheetNames.filter(n => n !== nomeMod).forEach(n => delete wb.Sheets[n]);
+      wb.SheetNames = [nomeMod];
+    }
+    wb.Workbook = wb.Workbook || {};
+    wb.Workbook.Views = [{activeTab: 0}];
+
     XLSX.writeFile(wb, plNome.replace(/\.[^.]+$/, '') + '_MODIFICADO.xlsx', {bookType:'xlsx'});
   }catch(err){
     alert('Não consegui gerar o arquivo: ' + err.message);

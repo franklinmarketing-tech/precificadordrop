@@ -13,6 +13,7 @@ const DEFAULT_PARAMS = {
   abaOriginal: 'Original',
   abaModificado: 'Modificado',
   renomearAbaOriginal: true,
+  incluirAbaOriginal: false,   // por padrão o arquivo sai só com a aba corrigida
 
   // Coluna C — Descrição
   colDescricao: 'C',

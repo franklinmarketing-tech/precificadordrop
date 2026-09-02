@@ -379,12 +379,13 @@
   <div class="drawer-b">
     <div class="grp">
       <div class="grp-t">ABAS DO ARQUIVO</div>
-      <div class="grp-d">A aba enviada é preservada como está; as alterações vão para uma aba nova.</div>
+      <div class="grp-d">Por padrão o arquivo sai só com a aba corrigida. Ligue a opção abaixo para levar junto a planilha original, intacta, para conferência.</div>
       <div class="grid2">
+        <div class="f"><label>Nome da aba corrigida</label><input type="text" id="p_abaModificado"/></div>
         <div class="f"><label>Nome da aba original</label><input type="text" id="p_abaOriginal"/></div>
-        <div class="f"><label>Nome da aba modificada</label><input type="text" id="p_abaModificado"/></div>
       </div>
-      <label class="sw"><input type="checkbox" id="p_renomearAbaOriginal"/> Renomear a aba enviada para o nome acima</label>
+      <label class="sw"><input type="checkbox" id="p_incluirAbaOriginal"/> Incluir também a aba original no arquivo</label>
+      <label class="sw"><input type="checkbox" id="p_renomearAbaOriginal"/> Renomear a aba original para o nome acima</label>
     </div>
 
     <div class="grp">
