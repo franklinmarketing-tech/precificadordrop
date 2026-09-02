@@ -174,18 +174,133 @@ function abaML(qual, btn){
   if(qual === 'taxas') montarTaxas();
 }
 
+/* ── editor visual das faixas de custo fixo ─────────────────────────────── */
+let faixasEditor = [];
+
+const OFICIAIS = () => ([
+  {ate: 12.49, percentual: 0.5},
+  {ate: 29,    valor: 6.25},
+  {ate: 50,    valor: 6.50},
+  {ate: 78.99, valor: 6.75},
+  {ate: 1e9,   valor: 0},
+]);
+
+const numBR = v => {
+  if(v == null || v === '') return '';
+  const n = Number(v);
+  return (Number.isInteger(n) ? String(n) : n.toFixed(2)).replace('.', ',');
+};
+
+function renderFaixas(){
+  const corpo = $('faixasCorpo');
+  corpo.innerHTML = faixasEditor.map((f, i) => {
+    const de = i === 0 ? 0 : (Number(faixasEditor[i-1].ate) || 0) + 0.01;
+    const ultima = i === faixasEditor.length - 1;
+    const ehPct = f.percentual != null;
+    const valor = ehPct ? numBR(+(f.percentual * 100).toFixed(4)) : numBR(f.valor);
+    return `<div class="fx-linha">
+      <span class="fx-de" data-de="${i}">${ML.brl(de)}</span>
+      ${ultima
+        ? '<span class="fx-inf">em diante</span>'
+        : `<div class="fx-campo"><span class="fx-pre">R$</span>
+             <input type="text" inputmode="decimal" value="${valor === '' ? '' : numBR(f.ate)}"
+                    data-ate="${i}" oninput="mudouAte(${i}, this.value)" onblur="normalizarFaixas()"/></div>`}
+      <div class="fx-campo">
+        <span class="fx-pre">${ehPct ? '%' : 'R$'}</span>
+        <input type="text" inputmode="decimal" value="${valor}"
+               oninput="mudouValor(${i}, this.value)" onblur="normalizarFaixas()"/>
+        <div class="fx-tipo">
+          <button type="button" class="${ehPct ? '' : 'on'}" onclick="mudouTipo(${i}, false)" title="valor em reais">R$</button>
+          <button type="button" class="${ehPct ? 'on' : ''}" onclick="mudouTipo(${i}, true)" title="porcentagem do preço">%</button>
+        </div>
+      </div>
+      <button type="button" class="fx-del" onclick="delFaixa(${i})"
+              ${faixasEditor.length <= 1 ? 'disabled' : ''} title="remover faixa">
+        <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+  atualizarExemplo();
+}
+
+/* Atualiza só os rótulos "Preço de" — sem redesenhar, para não perder o foco */
+function atualizarDes(){
+  faixasEditor.forEach((f, i) => {
+    const el = document.querySelector(`[data-de="${i}"]`);
+    if(!el) return;
+    const de = i === 0 ? 0 : (Number(faixasEditor[i-1].ate) || 0) + 0.01;
+    el.textContent = ML.brl(de);
+  });
+}
+
+function mudouAte(i, txt){
+  const v = ML.parseNumero(txt);
+  faixasEditor[i].ate = isNaN(v) ? 0 : v;
+  atualizarDes();
+  atualizarExemplo();
+}
+function mudouValor(i, txt){
+  const v = ML.parseNumero(txt);
+  const f = faixasEditor[i];
+  if(f.percentual != null) f.percentual = isNaN(v) ? 0 : v / 100;
+  else f.valor = isNaN(v) ? 0 : v;
+  atualizarExemplo();
+}
+function mudouTipo(i, pct){
+  const f = faixasEditor[i];
+  if(pct && f.percentual == null){
+    f.percentual = 0.5; delete f.valor;
+  }else if(!pct && f.percentual != null){
+    f.valor = 6.25; delete f.percentual;
+  }
+  renderFaixas();
+}
+function addFaixa(){
+  const ultima = faixasEditor[faixasEditor.length - 1];
+  const anterior = faixasEditor.length > 1 ? faixasEditor[faixasEditor.length - 2].ate : 0;
+  faixasEditor.splice(faixasEditor.length - 1, 0,
+    {ate: +(Number(anterior) + 10).toFixed(2), valor: 0});
+  if(ultima) ultima.ate = 1e9;
+  renderFaixas();
+}
+function delFaixa(i){
+  if(faixasEditor.length <= 1) return;
+  faixasEditor.splice(i, 1);
+  faixasEditor[faixasEditor.length - 1].ate = 1e9;
+  renderFaixas();
+}
+function faixasOficiais(){
+  faixasEditor = OFICIAIS();
+  renderFaixas();
+}
+function normalizarFaixas(){
+  faixasEditor.sort((a, b) => (Number(a.ate) || 0) - (Number(b.ate) || 0));
+  faixasEditor[faixasEditor.length - 1].ate = 1e9;
+  renderFaixas();
+}
+
+/* Mostra na hora quanto seria cobrado em preços de exemplo */
+function atualizarExemplo(){
+  const el = $('fxExemplo');
+  if(!el) return;
+  const p = {taxaFixa: faixasEditor};
+  const exemplos = [9.90, 19.90, 39.90, 69.90, 149.90];
+  el.innerHTML = '<div class="fx-ex-t">Como fica na prática</div>' +
+    '<div class="fx-ex-linhas">' + exemplos.map(v => {
+      const c = ML.taxaFixaDe(v, p);
+      return `<div class="fx-ex"><span>${ML.brl(v)}</span>
+        <b style="color:${c ? 'var(--red)' : 'var(--green-dk)'}">${c ? '− ' + ML.brl(c) : 'sem custo'}</b></div>`;
+    }).join('') + '</div>';
+}
+
 /* ── drawer de parâmetros do ML ── */
 function abrirParamsML(){
   const set = (id, v) => { const el = $(id); if(el) el.value = v; };
   set('m_comissaoClassico', (pml.comissaoClassico * 100).toFixed(2).replace(/\.?0+$/, ''));
   set('m_comissaoPremium',  (pml.comissaoPremium  * 100).toFixed(2).replace(/\.?0+$/, ''));
-  set('m_taxaFixa', (pml.taxaFixa || []).map(f => {
-    const ate = f.ate >= 1e9 ? '999999' : String(f.ate).replace('.', ',');
-    const val = f.percentual
-      ? String(+(f.percentual * 100).toFixed(4)).replace('.', ',') + '%'
-      : String(f.valor).replace('.', ',');
-    return ate + ' = ' + val;
-  }).join('\n'));
+  faixasEditor = (pml.taxaFixa || []).map(f => Object.assign({}, f));
+  if(!faixasEditor.length) faixasEditor = OFICIAIS();
+  renderFaixas();
   $('m_freteAutomatico').checked = !!pml.freteAutomatico;
   set('m_freteManual', pml.freteManual);
   set('m_pesoPadrao', pml.pesoPadrao);
@@ -202,21 +317,11 @@ function fecharParamsML(){
 }
 function salvarParamsML(){
   const n = id => { const v = ML.parseNumero($(id).value); return isNaN(v) ? 0 : v; };
-  // "12,49 = 50%" vira faixa proporcional; "29 = 6,25" vira valor fixo
-  const faixas = ($('m_taxaFixa').value || '').split('\n')
-    .map(l => l.split('=').map(s => s.trim()))
-    .filter(a => a.length >= 2 && a[0])
-    .map(a => {
-      const ate = ML.parseNumero(a[0]);
-      const bruto = a[1];
-      if(/%\s*$/.test(bruto)){
-        const pc = ML.parseNumero(bruto.replace(/%/g, ''));
-        return isNaN(pc) ? null : {ate, percentual: pc / 100};
-      }
-      const v = ML.parseNumero(bruto);
-      return isNaN(v) ? null : {ate, valor: v};
-    })
-    .filter(f => f && !isNaN(f.ate))
+  // faixas vindas do editor visual
+  const faixas = faixasEditor
+    .map(f => f.percentual != null
+      ? {ate: Number(f.ate) || 0, percentual: Number(f.percentual) || 0}
+      : {ate: Number(f.ate) || 0, valor: Number(f.valor) || 0})
     .sort((a, b) => a.ate - b.ate);
 
   Object.assign(pml, {

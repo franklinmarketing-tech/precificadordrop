@@ -20,7 +20,7 @@
 
 /* ── parâmetros (todos editáveis na interface) ───────────────────────────── */
 const PADRAO = {
-  versao: 3,                     // sobe quando os padrões mudam, para migrar o que está salvo
+  versao: 4,                     // sobe quando os padrões mudam, para migrar o que está salvo
   reputacao: 'verde',            // verde | amarela | vermelha
   tipoAnuncio: 'classico',       // classico | premium
   // tarifa de venda por categoria: Clássico entre 10% e 14%, Premium entre 15% e 19%
@@ -41,7 +41,7 @@ const PADRAO = {
   pesoPadrao: 0,                 // kg, quando a planilha não traz peso
   rebate: 0,                     // subsídio do ML somado à receita (+)
   aliquotaImposto: 0,            // % sobre o preço
-  taxaDevolucao: 0.03,           // % do preço reservado para devoluções
+  taxaDevolucao: 0,              // % do preço reservado para devoluções
   embalagem: 0,                  // R$ por unidade
   margemDesejada: 0.20,          // margem líquida alvo
 };
