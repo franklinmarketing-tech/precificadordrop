@@ -857,6 +857,42 @@ function montarTaxas(){
       <span class="f-t">${esc(t)}</span><span class="f-d">${esc(d)}</span><span class="f-v">${esc(v)}</span>
     </div>`).join('');
 
+  /* Estado de cada regra do frete, para conferência a qualquer momento */
+  const regra = (ativa, titulo, detalhe, valor) => `
+    <div class="regra ${ativa ? 'on' : 'off'}">
+      <span class="regra-ic">${ativa
+        ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'}</span>
+      <div><div class="regra-t">${esc(titulo)}</div><div class="regra-d">${detalhe}</div></div>
+      <span class="regra-v">${esc(valor || '')}</span>
+    </div>`;
+
+  const div = pml.divisorVolumetrico || 6000;
+  $('regrasFrete').innerHTML = [
+    regra(true, 'Reputação da conta',
+      'define qual das três tabelas oficiais é usada', rep.nome),
+    regra(!!pml.freteAutomatico, 'Frete pela tabela oficial',
+      pml.freteAutomatico ? 'calculado pelo peso e pela faixa de preço do anúncio'
+                          : 'desligado — usa o valor manual em todos os produtos',
+      pml.freteAutomatico ? 'ligado' : ML.brl(pml.freteManual) + ' fixo'),
+    regra(!!pml.usarPesoVolumetrico, 'Peso volumétrico',
+      pml.usarPesoVolumetrico
+        ? `(altura × largura × comprimento) ÷ ${div} — o frete usa o <b>maior</b> entre ele e o peso da balança`
+        : 'desligado — o frete usa só o peso da balança, o que pode <b>subestimar</b> produtos grandes e leves',
+      pml.usarPesoVolumetrico ? '÷ ' + div : 'desligado'),
+    regra(!!pml.freteRapidoAbaixo79, 'Frete grátis rápido abaixo de R$ 79',
+      pml.freteRapidoAbaixo79
+        ? 'você oferece — paga a tabela da faixa R$ 79 a 99,99'
+        : 'você não oferece — de R$ 19 a R$ 78,99 o frete grátis padrão é do Mercado Livre',
+      pml.freteRapidoAbaixo79 ? 'ofereço' : 'padrão do ML'),
+    regra(true, 'Teto para produtos abaixo de R$ 19',
+      'regra do Mercado Livre, sempre aplicada', 'metade do preço'),
+    regra(!!pml.pesoPadrao, 'Peso padrão',
+      pml.pesoPadrao ? 'usado nos produtos que não trazem peso na planilha'
+                     : 'nenhum — produtos sem peso caem no frete manual',
+      pml.pesoPadrao ? String(pml.pesoPadrao).replace('.', ',') + ' kg' : ML.brl(pml.freteManual)),
+  ].join('');
+
   $('mlTabFixa').innerHTML = '<thead><tr><th>Faixa de preço do anúncio</th><th>Custo fixo por unidade</th></tr></thead><tbody>'
     + (pml.taxaFixa || []).slice().sort((a,b) => a.ate - b.ate).map((f, i, arr) => {
         const de = i === 0 ? 0 : arr[i-1].ate + 0.01;
