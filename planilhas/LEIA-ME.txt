@@ -1,0 +1,5 @@
+Coloque aqui a planilha Excel (.xlsx / .xls / .csv) que sera tratada pelo
+card "Carregar planilha Excel" do hub.
+
+Caminho completo desta pasta:
+C:\tmp\PRECIFICADOR_DROP\planilhas
