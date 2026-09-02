@@ -349,6 +349,48 @@ function salvarParamsML(){
   montarContexto();
   recalcularTudo();
 }
+/* Consulta a tarifa real na API do Mercado Livre e preenche os campos.
+   Funciona assim que a aplicação estiver conectada (credenciais na Vercel). */
+async function buscarTarifaAPI(){
+  const el = $('apiResposta');
+  const preco = ML.parseNumero($('apiPreco').value);
+  if(isNaN(preco) || preco <= 0)
+    return el.innerHTML = '<div class="api-msg ruim">Informe um preço de referência.</div>';
+
+  el.innerHTML = '<div class="api-msg">Consultando o Mercado Livre…</div>';
+  try{
+    const q = new URLSearchParams({preco: String(preco)});
+    const cat = ($('apiCategoria').value || '').trim();
+    if(cat) q.set('categoria', cat);
+
+    const r = await fetch('/api/ml-tarifa?' + q);
+    const d = await r.json();
+
+    if(!r.ok || d.erro){
+      const faltaSecret = (d.faltando || []).includes('ML_CLIENT_SECRET');
+      return el.innerHTML = `<div class="api-msg ruim">
+        ${esc(d.erro || 'Não consegui consultar.')}
+        ${faltaSecret ? '<br/><b>Como ligar:</b> adicione ML_CLIENT_SECRET nas variáveis de ambiente do projeto na Vercel e refaça o deploy.' : ''}
+      </div>`;
+    }
+
+    const c = d.tarifas.classico, p = d.tarifas.premium;
+    if(c && c.percentual != null) $('m_comissaoClassico').value = c.percentual;
+    if(p && p.percentual != null) $('m_comissaoPremium').value  = p.percentual;
+
+    const linha = (nome, t) => t ? `<div class="api-linha"><span>${nome}</span>
+      <b>${String(t.percentual).replace('.', ',')}%</b>
+      <i>${ML.brl(t.valor)}${t.custoFixo ? ' + fixo ' + ML.brl(t.custoFixo) : ''}</i></div>` : '';
+    el.innerHTML = `<div class="api-msg bom">
+      Tarifas para ${ML.brl(d.preco)}${d.categoria ? ' · ' + esc(d.categoria) : ''}:
+      ${linha('Clássico', c)}${linha('Premium', p)}
+      <small>Campos acima preenchidos — clique em Salvar e recalcular.</small>
+    </div>`;
+  }catch(e){
+    el.innerHTML = '<div class="api-msg ruim">Falha na consulta: ' + esc(e.message) + '</div>';
+  }
+}
+
 function restaurarPadraoML(){
   pml = Object.assign({}, ML.PADRAO);
   try{ localStorage.removeItem(CHAVE_ML); }catch(e){}
