@@ -4,3 +4,10 @@ planilhas/*.csv
 
 .vercel
 .vercel/
+
+# segredos do ambiente local (o vercel dev usa este arquivo)
+.env
+.env.*
+!.env.example
+
+.env*

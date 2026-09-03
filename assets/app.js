@@ -57,6 +57,7 @@ function ir(v, semHash){
   window.scrollTo({top:0, behavior:'instant'});
   if(v === 'hub') contarPreco();
   if(v === 'mercado') mercadoAbrir();
+  if(v === 'ml') ctxDestaque();
 }
 function daHash(){
   const v = (location.hash || '').replace(/^#\/?/, '') || 'hub';
@@ -283,6 +284,35 @@ function montarContexto(){
   ctxResumo();
 }
 
+/* ══ CONFERÊNCIA DA REPUTAÇÃO E DO TIPO DE ANÚNCIO ═════════════════════════
+   As duas já vêm preenchidas, então o destaque não pede para "selecionar" —
+   pede para conferir. A diferença importa: a tabela de frete da reputação
+   vermelha custa o dobro da verde, e trocar Clássico por Premium move 5 pontos
+   de comissão. Quem não repara nisso precifica errado sem saber.
+
+   O destaque some no primeiro toque e não volta: passa a ser ruído depois que
+   a pessoa já sabe que aquilo está ali. */
+const CHAVE_CONFERIU = 'pdrop.ml.conferiu';
+
+function ctxDestaque(){
+  let ok = false;
+  try{ ok = localStorage.getItem(CHAVE_CONFERIU) === '1'; }catch(e){}
+  document.querySelectorAll('.ctx-bloco').forEach(b => b.classList.toggle('pedeconfere', !ok));
+  const al = $('ctxAlerta');
+  if(al) al.classList.toggle('some', ok);
+}
+
+function ctxConferido(){
+  try{ localStorage.setItem(CHAVE_CONFERIU, '1'); }catch(e){}
+  document.querySelectorAll('.ctx-bloco.pedeconfere').forEach(b => b.classList.remove('pedeconfere'));
+  const al = $('ctxAlerta');
+  if(al && !al.classList.contains('some')){
+    al.classList.add('feito');
+    al.querySelector('.ctx-al-tx').innerHTML = '<b>Conferido</b><i>o preço vai usar estas duas escolhas</i>';
+    setTimeout(() => al.classList.add('some'), 2200);
+  }
+}
+
 /* O que as escolhas acima estão produzindo agora. Fica ao lado delas porque é
    a consequência do que foi marcado — antes só dava para saber abrindo os
    parâmetros. */
@@ -304,6 +334,7 @@ function ctxResumo(){
       `<span><i>${esc(t)}</i><b>${esc(v)}</b></span>`).join('')}</div>`;
 }
 function setReputacao(id, btn){
+  ctxConferido();
   pml.reputacao = id;
   guardarParamsML();
   document.querySelectorAll('[data-rep]').forEach(b => b.classList.toggle('active', b === btn));
@@ -311,6 +342,7 @@ function setReputacao(id, btn){
   recalcularTudo();
 }
 function setAnuncio(tipo, btn){
+  ctxConferido();
   pml.tipoAnuncio = tipo;
   guardarParamsML();
   document.querySelectorAll('[data-anuncio]').forEach(b => b.classList.toggle('active', b === btn));

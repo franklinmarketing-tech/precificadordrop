@@ -175,7 +175,7 @@ if (!window.XLSX) {
 
     <div id="topoTool" class="hide" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div class="steps hide" id="passos"></div>
-      <button class="btn btn-primary hide" id="btnParams" onclick="abrirParams()">
+      <button class="btn btn-led hide" id="btnParams" onclick="abrirParams()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Editar parâmetros
       </button>
@@ -212,9 +212,35 @@ if (!window.XLSX) {
         </div>
 
         <div class="bento bento-2">
-        <button class="tool tool-1 live" data-tilt onclick="ir('ml')">
+        <button class="tool tool-1 live" data-tilt onclick="ir('planilha')">
           <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
           <span class="tool-num">01</span>
+          <span class="tool-status st-live">ATIVO</span>
+          <span class="dica" tabindex="0" role="button" aria-expanded="false"
+                aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
+          <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha" width="76" height="76" loading="lazy"/></div>
+          <div class="tool-body lift-1">
+            <div class="tool-title">Planilha de produtos</div>
+            <div class="tool-desc">O catálogo do fornecedor pronto para o marketplace.</div>
+          </div>
+          <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+          <div class="saibamais" aria-hidden="true">
+            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
+            <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha.</p>
+            <ul>
+            <li>Encurta a descrição para os 60 caracteres do anúncio</li>
+            <li>Tira o bloco cadastral colado no fim da descrição</li>
+            <li>Preenche a condição do produto como NOVO</li>
+            <li>Gera a coluna <b>Modelo</b>, que o ML exige</li>
+            <li>Remove termos que não podem ir para o marketplace</li>
+            <li>Confere 8 pontos antes de gerar</li>
+            </ul>
+          </div>
+        </button>
+
+        <button class="tool tool-2 live" data-tilt onclick="ir('ml')">
+          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+          <span class="tool-num">02</span>
           <span class="tool-status st-live">ATIVO</span>
           <span class="dica" tabindex="0" role="button" aria-expanded="false"
                 aria-label="Saiba mais sobre Precificar Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
@@ -239,38 +265,13 @@ if (!window.XLSX) {
           </div>
         </button>
 
-        <button class="tool tool-2 live" data-tilt onclick="ir('planilha')">
-          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-          <span class="tool-num">02</span>
-          <span class="tool-status st-live">ATIVO</span>
-          <span class="dica" tabindex="0" role="button" aria-expanded="false"
-                aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-          <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha" width="76" height="76" loading="lazy"/></div>
-          <div class="tool-body lift-1">
-            <div class="tool-title">Planilha de produtos</div>
-            <div class="tool-desc">O catálogo do fornecedor pronto para o marketplace.</div>
-          </div>
-          <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-          <div class="saibamais" aria-hidden="true">
-            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
-            <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha.</p>
-            <ul>
-            <li>Encurta a descrição para os 60 caracteres do anúncio</li>
-            <li>Tira o bloco cadastral colado no fim da descrição</li>
-            <li>Preenche a condição do produto como NOVO</li>
-            <li>Gera a coluna <b>Modelo</b>, que o ML exige</li>
-            <li>Remove termos que não podem ir para o marketplace</li>
-            <li>Confere 8 pontos antes de gerar</li>
-            </ul>
-          </div>
-        </button>
         </div>
 
         <div class="mkt-sub">Consultas de apoio</div>
         <div class="minis">
         <button class="mini" onclick="irMercado('produto')">
           <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-          <span><b>Consultar um produto</b><i>categoria, comissão e exigências</i></span>
+          <span><b>Consultar um produto</b><i>comissão e exigências</i></span>
         </button>
         <button class="mini" onclick="irMercado('ficha')">
           <img src="assets/img/ic-planilha.webp" alt="" loading="lazy"/>
@@ -286,7 +287,7 @@ if (!window.XLSX) {
         </button>
         <button class="mini" onclick="irMercado('categorias')">
           <img src="assets/img/ic-shopee.webp" alt="" loading="lazy"/>
-          <span><b>Categorias</b><i>a árvore e o código de cada uma</i></span>
+          <span><b>Categorias</b><i>a árvore e os códigos</i></span>
         </button>
         <button class="mini" onclick="irMercado('envios')">
           <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
@@ -298,7 +299,7 @@ if (!window.XLSX) {
         <div class="minis">
         <button class="mini off" disabled>
           <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-          <span><b>Base já publicada</b><i>revisar e reajustar o que está no ar</i></span>
+          <span><b>Base já publicada</b><i>revisar o que está no ar</i></span>
         </button>
         </div>
       </section>
@@ -319,7 +320,7 @@ if (!window.XLSX) {
         </button>
         <button class="mini off" disabled>
           <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Base da Shopee</b><i>reprocessar o que já está no ar</i></span>
+          <span><b>Base da Shopee</b><i>reprocessar o que está no ar</i></span>
         </button>
         </div>
         <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre —
@@ -339,11 +340,11 @@ if (!window.XLSX) {
         <div class="minis minis-g">
         <button class="mini off" disabled>
           <img src="assets/img/ic-ml.webp" alt="" loading="lazy"/>
-          <span><b>Precificar Amazon</b><i>referral fee e taxa de fechamento</i></span>
+          <span><b>Precificar Amazon</b><i>referral fee e fechamento</i></span>
         </button>
         <button class="mini off" disabled>
           <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Base da Amazon</b><i>reprocessar o que já está no ar</i></span>
+          <span><b>Base da Amazon</b><i>reprocessar o que está no ar</i></span>
         </button>
         </div>
         <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de
@@ -384,6 +385,16 @@ if (!window.XLSX) {
          está produzindo. Antes as três coisas ficavam soltas na mesma linha. -->
     <div class="ctx">
       <div class="ctx-esq">
+      <!-- As duas escolhas ja vem preenchidas, entao o aviso nao pede para
+           "selecionar": pede para conferir, porque cada uma muda o preco. Ele
+           some assim que voce mexe em qualquer uma das duas. -->
+      <div class="ctx-alerta" id="ctxAlerta">
+        <span class="ctx-al-ic">
+          <svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <span class="ctx-al-tx"><b>Confira antes de calcular</b>
+          <i>reputação e tipo de anúncio mudam o preço de cada produto</i></span>
+      </div>
       <div class="ctx-linha">
       <div class="ctx-bloco">
         <div class="ctx-lbl">1 · Reputação da conta</div>
