@@ -299,7 +299,7 @@ function ctxResumo(){
   if(pml.aliquotaImposto) itens.push(['Imposto', pct(pml.aliquotaImposto)]);
   if(pml.rebate) itens.push(['Rebate', ML.brl(pml.rebate)]);
 
-  el.innerHTML = `<div class="ctx-lbl">Está valendo</div>
+  el.innerHTML = `<div class="ctx-lbl">Está valendo <span class="ctx-ver">ver custos oficiais</span></div>
     <div class="ctx-agora-l">${itens.map(([t, v]) =>
       `<span><i>${esc(t)}</i><b>${esc(v)}</b></span>`).join('')}</div>`;
 }

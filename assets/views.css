@@ -900,3 +900,12 @@ button.ctx-agora{background:none;border:none;border-left:1px solid var(--line);
 button.ctx-agora:hover{background:rgba(79,124,255,.07)}
 button.ctx-agora:hover .ctx-lbl{color:var(--blue-dk)}
 button.ctx-agora .ctx-lbl::after{content:' ›';font-size:13px;opacity:.6}
+
+/* deixa claro que o resumo leva a algum lugar — a seta sozinha passava batida */
+.ctx-ver{display:inline-flex;align-items:center;gap:3px;margin-left:8px;
+  font-size:9px;font-weight:600;letter-spacing:.6px;padding:3px 8px;border-radius:100px;
+  color:var(--blue-dk);background:rgba(79,124,255,.12);text-transform:none;
+  transition:background .2s ease}
+.ctx-ver::after{content:'›';font-size:12px;line-height:1}
+button.ctx-agora:hover .ctx-ver{background:rgba(79,124,255,.24)}
+button.ctx-agora .ctx-lbl::after{content:none}
