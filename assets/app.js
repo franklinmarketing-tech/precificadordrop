@@ -34,6 +34,7 @@ const VIEWS = {
   ml:       {sub:'PRECIFICAR MERCADO LIVRE',      titulo:'Precificar Mercado Livre — Precificador Drop'},
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
   manual:   {sub:'MANUAL DO SISTEMA',              titulo:'Manual — Precificador Drop'},
+  mercado:  {sub:'PESQUISA DE MERCADO',            titulo:'Pesquisa de Mercado — Precificador Drop'},
 };
 let viewAtual = 'hub';
 
@@ -43,9 +44,9 @@ function ir(v, semHash){
   Object.keys(VIEWS).forEach(k => mostrar('view-' + k, k === v));
 
   document.body.classList.toggle('view-hub', v === 'hub');
-  mostrar('topoTool', v !== 'hub' && v !== 'manual');
-  mostrar('topoHub',  v === 'hub' || v === 'manual');
-  mostrar('rodape', v !== 'hub' && v !== 'manual');
+  mostrar('topoTool', v !== 'hub' && v !== 'manual' && v !== 'mercado');
+  mostrar('topoHub',  v === 'hub' || v === 'manual' || v === 'mercado');
+  mostrar('rodape', v !== 'hub' && v !== 'manual' && v !== 'mercado');
   mostrar('btnParams', v === 'planilha');
   mostrar('passos', v === 'ml' && mlAba === 'massa');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
@@ -55,6 +56,7 @@ function ir(v, semHash){
   if(!semHash) location.hash = v === 'hub' ? '' : '#/' + v;
   window.scrollTo({top:0, behavior:'instant'});
   if(v === 'hub') contarPreco();
+  if(v === 'mercado') mercadoAbrir();
   if(v === 'ml' && mlAba === 'taxas'){ montarTaxas(); apiCarregar(); }
 }
 function daHash(){
@@ -838,6 +840,174 @@ function mlValidaCol(){
     ? `✓ "${mlCabecalho[im]}" — tarifa de cada produto`
     : `todos com ${(ML.comissaoPct(pml)*100).toFixed(1).replace('.0','').replace('.', ',')}% (${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'})`;
   $('mlBtnCalc').disabled = ic < 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PESQUISA DE MERCADO
+
+   O que a API do Mercado Livre abre sem exigir login de vendedor: o que as
+   pessoas estão procurando, em que categoria um produto cai, quanto se paga
+   de comissão ali e o que o anúncio vai exigir.
+   ══════════════════════════════════════════════════════════════════════════ */
+let merAba = 'produto';
+const merJaCarregou = {tendencias: false, categorias: false, envios: false};
+
+function abaMer(qual, botao){
+  merAba = qual;
+  document.querySelectorAll('[data-mertab]').forEach(b => b.classList.toggle('active', b === botao));
+  ['produto','tendencias','categorias','envios'].forEach(k => mostrar('mer-' + k, k === qual));
+  if(qual === 'tendencias' && !merJaCarregou.tendencias) merTendencias();
+  if(qual === 'categorias' && !merJaCarregou.categorias) merCategorias(null);
+  if(qual === 'envios'     && !merJaCarregou.envios)     merEnvios();
+}
+
+function mercadoAbrir(){
+  if(merAba === 'produto') return;                 // a busca é manual
+  if(merAba === 'tendencias' && !merJaCarregou.tendencias) merTendencias();
+}
+
+async function merApi(params){
+  const r = await fetch('/api/ml-mercado?' + new URLSearchParams(params));
+  const d = await r.json();
+  if(d.erro) throw new Error(d.erro);
+  return d;
+}
+const merFalha = (alvo, e) =>
+  $(alvo).innerHTML = `<div class="api-erro"><div class="api-ok-d">${esc(e.message)}</div></div>`;
+
+/* ── consultar um produto ─────────────────────────────────────────────── */
+async function merBuscar(termo){
+  const q = termo !== undefined ? termo : $('merQ').value.trim();
+  if(termo !== undefined) $('merQ').value = termo;
+  if(!q){
+    $('merResultado').innerHTML = '<div class="api-erro"><div class="api-ok-d">Digite o título do produto.</div></div>';
+    return;
+  }
+  const preco = ML.parseNumero($('merPreco').value) || 100;
+  $('merBtn').disabled = true;
+  $('merResultado').innerHTML = '<div class="api-ok-d">Consultando o Mercado Livre…</div>';
+  try{
+    const d = await merApi({acao:'produto', q, preco});
+    if(!d.achou){
+      $('merResultado').innerHTML = `<div class="api-erro">
+        <div class="api-ok-t">O Mercado Livre não reconheceu esse produto.</div>
+        <div class="api-ok-d">Tente um título mais descritivo, como ele apareceria no anúncio.</div></div>`;
+    }else{
+      const c = d.categoria, t = d.tarifas || {};
+      const obr = d.obrigatorios || [];
+      $('merResultado').innerHTML = `
+        <div class="mer-res">
+          <div class="mer-res-cat">
+            <span class="mer-lbl">Categoria reconhecida</span>
+            <b>${esc(c.nome || '—')}</b>
+            <code>${esc(c.id)}</code>
+          </div>
+          <div class="mer-res-tar">
+            <div class="mer-tar"><span>Clássico</span><b>${t.classico != null ? String(t.classico).replace('.', ',') + '%' : '—'}</b></div>
+            <div class="mer-tar"><span>Premium</span><b>${t.premium != null ? String(t.premium).replace('.', ',') + '%' : '—'}</b></div>
+            <div class="mer-tar-n">comissão nesta categoria, para um produto de ${ML.brl(d.preco)}</div>
+          </div>
+          <div class="mer-res-obr">
+            <span class="mer-lbl">O anúncio vai exigir${d.totalAtributos ? ` (${obr.length} de ${d.totalAtributos} atributos)` : ''}</span>
+            ${obr.length
+              ? '<div class="mer-tags">' + obr.map(a => `<span class="mer-tag">${esc(a.nome)}</span>`).join('') + '</div>'
+              : '<div class="api-ok-d">Nenhum campo obrigatório nesta categoria.</div>'}
+          </div>
+          ${d.sugestoes && d.sugestoes.length ? `
+            <div class="mer-res-sug">
+              <span class="mer-lbl">O ML também considerou</span>
+              <div class="api-ok-d">${d.sugestoes.map(x => esc(x.nome)).join(' · ')}</div>
+            </div>` : ''}
+        </div>`;
+    }
+  }catch(e){ merFalha('merResultado', e); }
+  $('merBtn').disabled = false;
+}
+
+/* ── tendências ───────────────────────────────────────────────────────── */
+async function merTendencias(){
+  merJaCarregou.tendencias = true;
+  $('merTendPill').textContent = 'carregando…';
+  try{
+    const d = await merApi({acao:'tendencias'});
+    $('merTendPill').className = 'pill pill-ok';
+    $('merTendPill').textContent = d.termos.length + ' TERMOS';
+    $('merTend').innerHTML = d.termos.map(t => `
+      <button class="mer-termo" onclick="merVerTermo('${esc(t.termo).replace(/'/g, "\\'")}')">
+        <span class="mer-pos">${t.posicao}</span>
+        <span class="mer-kw">${esc(t.termo)}</span>
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>`).join('');
+  }catch(e){
+    $('merTendPill').className = 'pill pill-bad';
+    $('merTendPill').textContent = 'FALHOU';
+    merFalha('merTend', e);
+  }
+}
+/* clicar num termo leva para a consulta já preenchida */
+function merVerTermo(termo){
+  document.querySelector('[data-mertab="produto"]').click();
+  merBuscar(termo);
+}
+
+/* ── categorias ───────────────────────────────────────────────────────── */
+async function merCategorias(id){
+  merJaCarregou.categorias = true;
+  $('merCatPill').textContent = 'carregando…';
+  try{
+    const d = await merApi(id ? {acao:'categorias', id} : {acao:'categorias'});
+    const trilha = (d.caminho || []);
+    $('merTrilha').innerHTML =
+      `<button class="mer-migalha" onclick="merCategorias(null)">Todas</button>` +
+      trilha.map(c => `<span class="mer-seta">/</span>
+        <button class="mer-migalha" onclick="merCategorias('${esc(c.id)}')">${esc(c.nome)}</button>`).join('');
+
+    const filhas = d.filhas || [];
+    $('merCatPill').className = 'pill pill-ok';
+    $('merCatPill').textContent = d.id ? esc(d.id) : filhas.length + ' RAÍZES';
+
+    $('merCats').innerHTML = filhas.length
+      ? filhas.map(c => `
+          <button class="mer-cat" onclick="merCategorias('${esc(c.id)}')">
+            <b>${esc(c.nome)}</b><code>${esc(c.id)}</code>
+          </button>`).join('')
+      : `<div class="mer-folha">
+           <b>${esc(d.nome || '')}</b>
+           <div class="api-ok-d">Esta é uma categoria final — é o código que você usa na consulta de tarifa.</div>
+           <code class="mer-cod">${esc(d.id || '')}</code>
+           ${d.totalItens != null ? `<div class="api-ok-d">${d.totalItens.toLocaleString('pt-BR')} anúncios publicados aqui.</div>` : ''}
+         </div>`;
+  }catch(e){
+    $('merCatPill').className = 'pill pill-bad';
+    $('merCatPill').textContent = 'FALHOU';
+    merFalha('merCats', e);
+  }
+}
+
+/* ── envios ───────────────────────────────────────────────────────────── */
+async function merEnvios(){
+  merJaCarregou.envios = true;
+  $('merEnvPill').textContent = 'carregando…';
+  try{
+    const d = await merApi({acao:'envios'});
+    const ativos = d.metodos.filter(m => m.ativo);
+    $('merEnvPill').className = 'pill pill-ok';
+    $('merEnvPill').textContent = ativos.length + ' ATIVOS';
+    $('merEnvios').innerHTML =
+      '<thead><tr><th>Modalidade</th><th>Tipo</th><th>Entrega em</th><th>Frete grátis</th><th>Situação</th></tr></thead><tbody>'
+      + d.metodos.map(m => `<tr>
+          <td><b>${esc(m.nome)}</b></td>
+          <td style="color:var(--sub)">${esc(m.tipo || '—')}</td>
+          <td style="color:var(--sub)">${m.entregaEm === 'address' ? 'endereço' : esc(m.entregaEm || '—')}</td>
+          <td>${m.freeOption ? '<span style="color:var(--green-dk)">permite</span>' : '<span style="color:var(--faint)">não</span>'}</td>
+          <td>${m.ativo ? '<span style="color:var(--green-dk)">ativo</span>' : '<span style="color:var(--faint)">inativo</span>'}</td>
+        </tr>`).join('') + '</tbody>';
+  }catch(e){
+    $('merEnvPill').className = 'pill pill-bad';
+    $('merEnvPill').textContent = 'FALHOU';
+    merFalha('merEnvios', e);
+  }
 }
 
 /* ══ CATEGORIA E TARIFA REAL PELO MERCADO LIVRE ════════════════════════════

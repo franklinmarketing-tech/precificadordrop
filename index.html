@@ -64,6 +64,11 @@ if (!window.XLSX) {
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Precificar Shopee</b><i>Em breve</i></span>
           </button>
+          <div class="mn-grupo">PESQUISA</div>
+          <button class="mn-i" onclick="ir('mercado')">
+            <img src="assets/img/ic-base-ml.webp" alt=""/>
+            <span><b>Pesquisa de mercado</b><i>Categoria, comissão e o que está em alta</i></span>
+          </button>
           <div class="mn-grupo">BASES JÁ PUBLICADAS</div>
           <button class="mn-i mn-off" disabled>
             <img src="assets/img/ic-base-ml.webp" alt=""/>
@@ -106,7 +111,7 @@ if (!window.XLSX) {
         <div class="h-sub">Comissão, custo fixo e frete do Mercado Livre já descontados. Você diz a margem que quer — o hub devolve a planilha pronta para o Bling.</div>
       </div>
       <div class="hub-prova">
-        <div class="prv"><b>2</b><span>ferramentas no ar</span></div>
+        <div class="prv"><b>3</b><span>ferramentas no ar</span></div>
         <div class="prv"><b id="liveChecks">0/8</b><span>validações por planilha</span></div>
         <div class="prv"><b>3</b><span>chegando</span></div>
       </div>
@@ -167,9 +172,36 @@ if (!window.XLSX) {
         </div>
       </button>
 
-      <button class="tool tool-3 soon" data-tilt>
+      <button class="tool tool-3 live" data-tilt onclick="ir('mercado')">
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">03</span>
+        <span class="tool-status st-live">ATIVO</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Pesquisa de mercado"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
+        <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Relatório com gráfico" width="76" height="76" loading="lazy"/></div>
+        <div class="tool-body lift-1">
+          <div class="tool-title">Pesquisa de mercado</div>
+          <div class="tool-desc">Antes de escolher o produto.</div>
+        </div>
+        <div class="tool-cta">ABRIR PESQUISA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que dá para descobrir</span></div>
+          <p>O que o Mercado Livre responde sobre um produto antes de você fechar com o
+             fornecedor — sem precisar ter conta de vendedor conectada.</p>
+          <ul>
+            <li>Em que categoria o produto cai, pelo título</li>
+            <li>A comissão que se paga naquela categoria</li>
+            <li>Os campos que o anúncio vai exigir, como <b>Marca</b> e <b>Modelo</b></li>
+            <li>O que as pessoas estão procurando no site agora</li>
+            <li>A árvore de categorias, com o código de cada uma</li>
+            <li>As modalidades de envio disponíveis</li>
+          </ul>
+        </div>
+      </button>
+
+      <button class="tool tool-4 soon" data-tilt>
+        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+        <span class="tool-num">04</span>
         <span class="tool-status st-soon">EM BREVE</span>
         <span class="dica" tabindex="0" role="button" aria-expanded="false"
               aria-label="Saiba mais sobre Precificar Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
@@ -191,9 +223,9 @@ if (!window.XLSX) {
         </div>
       </button>
 
-      <button class="tool tool-4 soon" data-tilt>
+      <button class="tool tool-5 soon" data-tilt>
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">04</span>
+        <span class="tool-num">05</span>
         <span class="tool-status st-soon">EM BREVE</span>
         <span class="dica" tabindex="0" role="button" aria-expanded="false"
               aria-label="Saiba mais sobre Base do Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
@@ -215,16 +247,16 @@ if (!window.XLSX) {
         </div>
       </button>
 
-      <button class="tool tool-5 soon" data-tilt>
+      <button class="tool tool-6 soon" data-tilt>
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">05</span>
+        <span class="tool-num">06</span>
         <span class="tool-status st-soon">EM BREVE</span>
         <span class="dica" tabindex="0" role="button" aria-expanded="false"
               aria-label="Saiba mais sobre Base da Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-base-shop.webp" alt="Nuvem com seta para cima" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
           <div class="tool-title">Base da Shopee</div>
-          <div class="tool-desc">O mesmo do card 04, na Shopee.</div>
+          <div class="tool-desc">O mesmo do card 05, na Shopee.</div>
         </div>
         <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
         <div class="saibamais" aria-hidden="true">
@@ -245,6 +277,7 @@ if (!window.XLSX) {
       <div class="strip">
         <span><i class="sdot" style="background:linear-gradient(135deg,#7ea1ff,#2f5ae0)"></i><b>PLANILHA DE PRODUTOS</b> · ATIVO</span>
         <span><i class="sdot" style="background:linear-gradient(135deg,#8bacff,#3a63e8)"></i><b>MERCADO LIVRE</b> · ATIVO</span>
+        <span><i class="sdot" style="background:linear-gradient(135deg,#8bacff,#3a63e8)"></i><b>PESQUISA DE MERCADO</b> · ATIVO</span>
         <span><i class="sdot" style="background:linear-gradient(135deg,#abc4ff,#5a80fb)"></i><b>SHOPEE</b> · EM BREVE</span>
       </div>
       <div class="pagenum">01</div>
@@ -835,6 +868,97 @@ if (!window.XLSX) {
           <span>O ecossistema do dropshipping no Brasil · precificador-drop.vercel.app</span>
         </div>
       </article>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ VIEW: PESQUISA DE MERCADO ═══════════════ -->
+  <div id="view-mercado" class="view hide">
+    <div class="ml-head">
+      <div class="ml-selo">
+        <svg viewBox="0 0 44 30" aria-hidden="true">
+          <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
+                fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Mercado&nbsp;Livre</span>
+      </div>
+      <div>
+        <h1>Pesquisa de <span class="grad">mercado.</span></h1>
+        <div class="h-sub">Antes de escolher o produto: o que estão procurando, em que categoria
+          ele cai, quanto o Mercado Livre cobra ali e o que o anúncio vai exigir.</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-mertab="produto" onclick="abaMer('produto',this)">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Consultar um produto
+      </button>
+      <button class="tab" data-mertab="tendencias" onclick="abaMer('tendencias',this)">
+        <svg viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Em alta agora
+      </button>
+      <button class="tab" data-mertab="categorias" onclick="abaMer('categorias',this)">
+        <svg viewBox="0 0 24 24"><path d="M3 7h7v7H3zM14 3h7v11h-7zM3 17h7v4H3zM14 17h7v4h-7z"/></svg>Categorias
+      </button>
+      <button class="tab" data-mertab="envios" onclick="abaMer('envios',this)">
+        <svg viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3M20 17h2v-3.3a2 2 0 0 0-.6-1.4L18 9h-4v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>Envios
+      </button>
+    </div>
+
+    <!-- ── consultar um produto ── -->
+    <div id="mer-produto">
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t verde">Quanto o Mercado Livre cobra neste produto</div></div>
+        <p class="api-nota">Digite o título como ele vai para o anúncio. O Mercado Livre
+          identifica a categoria, e daí saem a comissão e os campos que o anúncio exige.</p>
+        <div class="mer-busca">
+          <input type="text" id="merQ" placeholder="Ex.: Fone de Ouvido Bluetooth TWS sem fio"
+                 spellcheck="false" onkeydown="if(event.key==='Enter')merBuscar()"/>
+          <input type="text" id="merPreco" placeholder="Preço" inputmode="decimal" value="100"/>
+          <button class="btn btn-primary" id="merBtn" onclick="merBuscar()">Consultar</button>
+        </div>
+        <div id="merResultado"></div>
+      </div>
+    </div>
+
+    <!-- ── tendências ── -->
+    <div id="mer-tendencias" class="hide">
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">O que estão procurando no Mercado Livre</div>
+          <span class="pill" id="merTendPill">carregando…</span>
+        </div>
+        <p class="api-nota">As buscas em alta no site agora, em ordem. Serve para achar
+          produto com procura antes de fechar com o fornecedor. Clique em um termo para
+          consultar a categoria e a comissão dele.</p>
+        <div id="merTend" class="mer-termos"></div>
+      </div>
+    </div>
+
+    <!-- ── categorias ── -->
+    <div id="mer-categorias" class="hide">
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Categorias do Mercado Livre</div>
+          <span class="pill" id="merCatPill">carregando…</span>
+        </div>
+        <p class="api-nota">Navegue até a categoria do seu produto para ver o código dela —
+          o mesmo que a consulta de tarifa usa.</p>
+        <div class="mer-trilha" id="merTrilha"></div>
+        <div id="merCats" class="mer-cats"></div>
+      </div>
+    </div>
+
+    <!-- ── envios ── -->
+    <div id="mer-envios" class="hide">
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Modalidades de envio do site</div>
+          <span class="pill" id="merEnvPill">carregando…</span>
+        </div>
+        <p class="api-nota">O que existe hoje no Mercado Livre Brasil. O custo de cada uma
+          continua saindo das tabelas por reputação, na aba Custos oficiais do precificador.</p>
+        <div class="tbl-wrap" style="max-height:none"><table id="merEnvios"></table></div>
+      </div>
     </div>
   </div>
 
