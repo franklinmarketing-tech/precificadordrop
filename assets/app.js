@@ -48,7 +48,7 @@ function ir(v, semHash){
   mostrar('topoHub',  v === 'hub' || v === 'manual' || v === 'mercado');
   mostrar('rodape', v !== 'hub' && v !== 'manual' && v !== 'mercado');
   mostrar('btnParams', v === 'planilha');
-  mostrar('passos', v === 'ml' && mlAba === 'massa');
+  mostrar('passos', v === 'ml');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
   $('logoSub').textContent = VIEWS[v].sub;
   document.title = VIEWS[v].titulo;
@@ -57,7 +57,6 @@ function ir(v, semHash){
   window.scrollTo({top:0, behavior:'instant'});
   if(v === 'hub') contarPreco();
   if(v === 'mercado') mercadoAbrir();
-  if(v === 'ml' && mlAba === 'taxas'){ montarTaxas(); apiCarregar(); }
 }
 function daHash(){
   const v = (location.hash || '').replace(/^#\/?/, '') || 'hub';
@@ -240,7 +239,7 @@ addEventListener('scroll', () => {
    VIEW: PRECIFICADOR MERCADO LIVRE
    ══════════════════════════════════════════════════════════════════════════ */
 const CHAVE_ML = 'precificador-drop:params-ml';
-let mlAba = 'calc', modo = 'a';
+let modo = 'a';
 let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
 let mlConferencia = null, mlFiltro = null, mlPagina = 0;
 /* categoria descoberta no Mercado Livre, por linha da planilha */
@@ -320,17 +319,44 @@ function setAnuncio(tipo, btn){
 }
 function recalcularTudo(){
   if(modo === 'a') calcA(); else calcB();
-  if(mlAba === 'taxas'){ taxasProntas = false; montarTaxas(); }
   if(mlLinhas.length && !$('mlStep3').classList.contains('hide')) mlProcessar();
 }
 
-function abaML(qual, btn){
-  mlAba = qual;
-  ['calc','massa','taxas'].forEach(k => mostrar('ml-' + k, k === qual));
-  document.querySelectorAll('[data-mltab]').forEach(t => t.classList.toggle('active', t.dataset.mltab === qual));
-  mostrar('passos', qual === 'massa');
-  if(qual === 'taxas'){ montarTaxas(); apiCarregar(); }
+/* ══ POP-UPS DO PRECIFICADOR ═══════════════════════════════════════════════
+   A tela do precificador é a planilha em massa. A calculadora de um produto e
+   os custos oficiais viram pop-up: são consultas pontuais, não passos do
+   trabalho — antes dividiam a tela em três abas de peso igual.             */
+function abrirPop(pop, scrim, aoAbrir){
+  $(scrim).classList.add('open');
+  $(pop).classList.add('open');
+  document.body.classList.add('sem-rolagem');
+  if(aoAbrir) aoAbrir();
 }
+function fecharPop(pop, scrim){
+  $(scrim).classList.remove('open');
+  $(pop).classList.remove('open');
+  if(!document.querySelector('.pop.open, .drawer.open'))
+    document.body.classList.remove('sem-rolagem');
+}
+
+function abrirCalc(){ abrirPop('popCalc', 'scrimCalc', () => recalcularTudo()); }
+function fecharCalc(){ fecharPop('popCalc', 'scrimCalc'); }
+
+function abrirCustos(){
+  abrirPop('popCustos', 'scrimCustos', () => {
+    taxasProntas = false;
+    montarTaxas();
+    apiCarregar();
+  });
+}
+function fecharCustos(){ fecharPop('popCustos', 'scrimCustos'); }
+
+/* Escape fecha o que estiver aberto */
+addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if($('popCalc').classList.contains('open')) fecharCalc();
+  if($('popCustos').classList.contains('open')) fecharCustos();
+});
 
 /* ── editor visual das faixas de custo fixo ─────────────────────────────── */
 let faixasEditor = [];

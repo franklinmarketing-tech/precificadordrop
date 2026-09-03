@@ -320,7 +320,8 @@ if (!window.XLSX) {
           </button>
         </div>
       </div>
-      <div class="ctx-agora" id="ctxAgora"></div>
+      <button class="ctx-agora" id="ctxAgora" onclick="abrirCustos()"
+           title="Ver todos os custos oficiais"></button>
 
       <button class="btn btn-primary" onclick="abrirParamsML()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -328,97 +329,26 @@ if (!window.XLSX) {
       </button>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-mltab="calc" onclick="abaML('calc',this)">
-        <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h1M8 15h1M12 11h1M12 15h1M16 11h1M16 15h1"/></svg>Calculadora
-      </button>
-      <button class="tab" data-mltab="massa" onclick="abaML('massa',this)">
-        <svg viewBox="0 0 24 24"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>Planilha em massa
-      </button>
-      <button class="tab" data-mltab="taxas" onclick="abaML('taxas',this)">
-        <svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>Custos oficiais
-      </button>
-    </div>
+    
 
     <!-- ── calculadora individual ── -->
-    <div id="ml-calc">
-      <div class="panel">
-        <div class="modos">
-          <button class="modo active" id="modoA" onclick="setModo('a')">
-            <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>
-            Tenho o custo → calcular preço de venda
-          </button>
-          <button class="modo" id="modoB" onclick="setModo('b')">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg>
-            Tenho o preço → ver custos e lucro
-          </button>
-        </div>
-
-        <div id="formA">
-          <div class="grid3">
-            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcA()"/></div>
-            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoA" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcA()"/></div>
-            <div><div class="lbl verde">Margem líquida desejada (%)</div><input type="number" id="mgA" value="20" min="1" max="90" oninput="calcA()"/></div>
-          </div>
-          <div class="nota">O peso define o custo de envio pela tabela oficial. Sem peso, é usado o frete manual dos parâmetros.</div>
-        </div>
-
-        <div id="formB" class="hide">
-          <div class="grid3">
-            <div><div class="lbl verde">Preço de venda (R$)</div><input type="number" id="pB" min="0" step="0.01" placeholder="Ex: 188,19" oninput="calcB()"/></div>
-            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cB" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcB()"/></div>
-            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoB" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcB()"/></div>
-          </div>
-        </div>
-
-        <!-- campos que na planilha ficam em amarelo: valem só para este cálculo -->
-        <div class="amarelos">
-          <div class="am-cab">
-            <div class="am-t">
-              <span class="am-marca"></span>Ajustes deste produto
-              <i>vazio = usa o valor dos parâmetros</i>
-            </div>
-            <button class="am-limpar" onclick="limparAjustes()">Limpar</button>
-          </div>
-          <div class="am-grid">
-            <div><label>Frete (R$)</label>
-              <input type="number" id="ajFrete" min="0" step="0.01" placeholder="tabela" oninput="recalc()"/>
-              <small id="ajFreteInfo">pela tabela oficial</small></div>
-            <div><label>Rebate (+ R$)</label>
-              <input type="number" id="ajRebate" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
-              <small>subsídio do ML</small></div>
-            <div><label>Imposto (%)</label>
-              <input type="number" id="ajImposto" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
-              <small>alíquota sobre o preço</small></div>
-            <div><label>Devolução (%)</label>
-              <input type="number" id="ajDevolucao" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
-              <small>reserva para perdas</small></div>
-            <div><label>Embalagem (R$)</label>
-              <input type="number" id="ajEmbalagem" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
-              <small>por unidade</small></div>
-          </div>
-
-          <div class="am-cab" style="margin:14px 0 10px">
-            <div class="am-t"><span class="am-marca"></span>Medidas da embalagem (cm)
-              <i>o frete usa o maior entre o peso real e o volumétrico</i></div>
-            <span class="am-vol" id="ajVolumetrico">—</span>
-          </div>
-          <div class="am-grid">
-            <div><label>Altura (cm)</label>
-              <input type="number" id="ajAltura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
-            <div><label>Largura (cm)</label>
-              <input type="number" id="ajLargura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
-            <div><label>Comprimento (cm)</label>
-              <input type="number" id="ajComprimento" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="resCalc"></div>
-    </div>
+    
 
     <!-- ── planilha em massa ── -->
-    <div id="ml-massa" class="hide">
+    <!-- Atalho para a calculadora de um produto só. O trabalho principal é a
+         planilha; a simulação avulsa vira pop-up para não dividir a tela. -->
+    <button class="calc-card" onclick="abrirCalc()">
+      <span class="calc-ic"><img src="assets/img/ic-ml.webp" alt="" width="52" height="52"/></span>
+      <span class="calc-txt">
+        <b>Calculadora de um produto</b>
+        <i>Simule custo, peso e margem sem subir planilha nenhuma.</i>
+      </span>
+      <span class="calc-cta">ABRIR
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </span>
+    </button>
+
+    <div id="ml-massa">
       <div class="panel" id="mlStep1">
         <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar planilha de produtos</div></div>
         <div class="zone" id="mlZone" onclick="document.getElementById('mlFi').click()"
@@ -564,79 +494,7 @@ if (!window.XLSX) {
     </div>
 
     <!-- ── custos oficiais ── -->
-    <div id="ml-taxas" class="hide">
-
-      <!-- Integração: o que vem do Mercado Livre ao vivo e o que vem de tabela -->
-      <div class="panel">
-        <div class="panel-h">
-          <div class="panel-t verde">Integração com o Mercado Livre</div>
-          <span class="pill" id="apiPill">verificando…</span>
-        </div>
-        <div class="api-topo" id="apiTopo"></div>
-        <div class="api-cols">
-          <div class="api-col">
-            <div class="api-col-t"><span class="api-marca viva"></span>Vem da API, ao vivo</div>
-            <div id="apiVivo" class="api-lista"></div>
-          </div>
-          <div class="api-col">
-            <div class="api-col-t"><span class="api-marca tabela"></span>Vem de tabela no app</div>
-            <div id="apiTabela" class="api-lista"></div>
-          </div>
-        </div>
-        <div class="api-teste">
-          <label>Testar agora com um preço
-            <input type="text" id="apiPreco" value="188,19" inputmode="decimal"/>
-          </label>
-          <label>Categoria (opcional)
-            <input type="text" id="apiCat" placeholder="MLB1051" spellcheck="false"/>
-          </label>
-          <button class="btn btn-primary" id="apiBtn" onclick="apiTestar()">Consultar o ML</button>
-        </div>
-        <div id="apiResultado"></div>
-      </div>
-
-      <!-- O que ainda dá para construir com esta credencial -->
-      <div class="panel">
-        <div class="panel-h">
-          <div class="panel-t verde">O que dá para construir com esta API</div>
-          <span class="pill" id="apiIdeiasPill">7 verificados</span>
-        </div>
-        <p class="api-nota">Cada item abaixo foi testado com a credencial que está
-          configurada agora. O que aparece como disponível já pode virar ferramenta no hub.</p>
-        <div id="apiIdeias" class="api-ideias"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h">
-          <div class="panel-t verde">Como o preço é formado</div>
-          <span class="pill pill-ok" id="taxasRep"></span>
-        </div>
-        <div class="formula" id="formulaML"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h"><div class="panel-t verde">Custo fixo por faixa de preço</div></div>
-        <div class="tbl-wrap" style="max-height:none"><table id="mlTabFixa"></table></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h">
-          <div class="panel-t verde">Como o seu frete está sendo calculado</div>
-          <button class="btn btn-ghost" onclick="abrirParamsML()" style="padding:8px 14px;font-size:11px">Alterar</button>
-        </div>
-        <div class="regras" id="regrasFrete"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-h">
-          <div class="panel-t verde">Custo de envio — tabela oficial</div>
-          <span class="pill pill-ok" id="taxasRepFrete"></span>
-        </div>
-        <div class="nota" style="margin-bottom:12px">Valores por peso da embalagem e faixa de preço do anúncio, já com o desconto da reputação selecionada. Produtos abaixo de R$ 19 pagam no máximo metade do preço.</div>
-        <div class="tbl-wrap"><table id="mlTabFrete"></table></div>
-        <div class="nota" style="margin-top:12px">Fonte: Mercado Livre — Central de vendedores.</div>
-      </div>
-    </div>
+    
   </div>
 
   <!-- ═══════════════ VIEW: EDITOR DE PLANILHA ═══════════════ -->
@@ -968,6 +826,187 @@ if (!window.XLSX) {
 
   <div class="rodape" id="rodape">Precificador Drop · o ecossistema do dropshipping no Brasil</div>
 </div>
+</div>
+
+
+<!-- ═══ POP-UP: CALCULADORA DE UM PRODUTO ═══ -->
+<div class="scrim" id="scrimCalc" onclick="fecharCalc()"></div>
+<div class="pop" id="popCalc" role="dialog" aria-modal="true" aria-label="Calculadora de um produto">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t">Calculadora de um produto</div>
+      <div class="pop-s">CUSTO, PESO E MARGEM · SEM PLANILHA</div>
+    </div>
+    <button class="x" onclick="fecharCalc()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b">
+<div id="ml-calc">
+      <div class="panel">
+        <div class="modos">
+          <button class="modo active" id="modoA" onclick="setModo('a')">
+            <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>
+            Tenho o custo → calcular preço de venda
+          </button>
+          <button class="modo" id="modoB" onclick="setModo('b')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg>
+            Tenho o preço → ver custos e lucro
+          </button>
+        </div>
+
+        <div id="formA">
+          <div class="grid3">
+            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcA()"/></div>
+            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoA" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcA()"/></div>
+            <div><div class="lbl verde">Margem líquida desejada (%)</div><input type="number" id="mgA" value="20" min="1" max="90" oninput="calcA()"/></div>
+          </div>
+          <div class="nota">O peso define o custo de envio pela tabela oficial. Sem peso, é usado o frete manual dos parâmetros.</div>
+        </div>
+
+        <div id="formB" class="hide">
+          <div class="grid3">
+            <div><div class="lbl verde">Preço de venda (R$)</div><input type="number" id="pB" min="0" step="0.01" placeholder="Ex: 188,19" oninput="calcB()"/></div>
+            <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cB" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcB()"/></div>
+            <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoB" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcB()"/></div>
+          </div>
+        </div>
+
+        <!-- campos que na planilha ficam em amarelo: valem só para este cálculo -->
+        <div class="amarelos">
+          <div class="am-cab">
+            <div class="am-t">
+              <span class="am-marca"></span>Ajustes deste produto
+              <i>vazio = usa o valor dos parâmetros</i>
+            </div>
+            <button class="am-limpar" onclick="limparAjustes()">Limpar</button>
+          </div>
+          <div class="am-grid">
+            <div><label>Frete (R$)</label>
+              <input type="number" id="ajFrete" min="0" step="0.01" placeholder="tabela" oninput="recalc()"/>
+              <small id="ajFreteInfo">pela tabela oficial</small></div>
+            <div><label>Rebate (+ R$)</label>
+              <input type="number" id="ajRebate" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
+              <small>subsídio do ML</small></div>
+            <div><label>Imposto (%)</label>
+              <input type="number" id="ajImposto" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
+              <small>alíquota sobre o preço</small></div>
+            <div><label>Devolução (%)</label>
+              <input type="number" id="ajDevolucao" min="0" max="100" step="0.01" placeholder="0" oninput="recalc()"/>
+              <small>reserva para perdas</small></div>
+            <div><label>Embalagem (R$)</label>
+              <input type="number" id="ajEmbalagem" min="0" step="0.01" placeholder="0,00" oninput="recalc()"/>
+              <small>por unidade</small></div>
+          </div>
+
+          <div class="am-cab" style="margin:14px 0 10px">
+            <div class="am-t"><span class="am-marca"></span>Medidas da embalagem (cm)
+              <i>o frete usa o maior entre o peso real e o volumétrico</i></div>
+            <span class="am-vol" id="ajVolumetrico">—</span>
+          </div>
+          <div class="am-grid">
+            <div><label>Altura (cm)</label>
+              <input type="number" id="ajAltura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+            <div><label>Largura (cm)</label>
+              <input type="number" id="ajLargura" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+            <div><label>Comprimento (cm)</label>
+              <input type="number" id="ajComprimento" min="0" step="0.1" placeholder="0" oninput="recalc()"/></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resCalc"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ POP-UP: CUSTOS OFICIAIS ═══ -->
+<div class="scrim" id="scrimCustos" onclick="fecharCustos()"></div>
+<div class="pop pop-largo" id="popCustos" role="dialog" aria-modal="true" aria-label="Custos oficiais">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t">Custos oficiais do Mercado Livre</div>
+      <div class="pop-s">O QUE ENTRA NO PREÇO E DE ONDE VEM CADA NÚMERO</div>
+    </div>
+    <button class="x" onclick="fecharCustos()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b">
+<div id="ml-taxas">
+
+      <!-- Integração: o que vem do Mercado Livre ao vivo e o que vem de tabela -->
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Integração com o Mercado Livre</div>
+          <span class="pill" id="apiPill">verificando…</span>
+        </div>
+        <div class="api-topo" id="apiTopo"></div>
+        <div class="api-cols">
+          <div class="api-col">
+            <div class="api-col-t"><span class="api-marca viva"></span>Vem da API, ao vivo</div>
+            <div id="apiVivo" class="api-lista"></div>
+          </div>
+          <div class="api-col">
+            <div class="api-col-t"><span class="api-marca tabela"></span>Vem de tabela no app</div>
+            <div id="apiTabela" class="api-lista"></div>
+          </div>
+        </div>
+        <div class="api-teste">
+          <label>Testar agora com um preço
+            <input type="text" id="apiPreco" value="188,19" inputmode="decimal"/>
+          </label>
+          <label>Categoria (opcional)
+            <input type="text" id="apiCat" placeholder="MLB1051" spellcheck="false"/>
+          </label>
+          <button class="btn btn-primary" id="apiBtn" onclick="apiTestar()">Consultar o ML</button>
+        </div>
+        <div id="apiResultado"></div>
+      </div>
+
+      <!-- O que ainda dá para construir com esta credencial -->
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">O que dá para construir com esta API</div>
+          <span class="pill" id="apiIdeiasPill">7 verificados</span>
+        </div>
+        <p class="api-nota">Cada item abaixo foi testado com a credencial que está
+          configurada agora. O que aparece como disponível já pode virar ferramenta no hub.</p>
+        <div id="apiIdeias" class="api-ideias"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Como o preço é formado</div>
+          <span class="pill pill-ok" id="taxasRep"></span>
+        </div>
+        <div class="formula" id="formulaML"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t verde">Custo fixo por faixa de preço</div></div>
+        <div class="tbl-wrap" style="max-height:none"><table id="mlTabFixa"></table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Como o seu frete está sendo calculado</div>
+          <button class="btn btn-ghost" onclick="abrirParamsML()" style="padding:8px 14px;font-size:11px">Alterar</button>
+        </div>
+        <div class="regras" id="regrasFrete"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Custo de envio — tabela oficial</div>
+          <span class="pill pill-ok" id="taxasRepFrete"></span>
+        </div>
+        <div class="nota" style="margin-bottom:12px">Valores por peso da embalagem e faixa de preço do anúncio, já com o desconto da reputação selecionada. Produtos abaixo de R$ 19 pagam no máximo metade do preço.</div>
+        <div class="tbl-wrap"><table id="mlTabFrete"></table></div>
+        <div class="nota" style="margin-top:12px">Fonte: Mercado Livre — Central de vendedores.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ DRAWER DE PARÂMETROS (editor de planilha) ═══ -->
