@@ -706,3 +706,40 @@ body.view-hub .wrap{min-height:0}
 .api-chip svg{width:10px;height:10px;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .api-chip.ok{background:rgba(18,183,106,.14);color:var(--green-dk);stroke:var(--green-dk)}
 .api-chip.nao{background:rgba(20,30,60,.08);color:var(--faint);stroke:var(--faint)}
+
+/* ═══ TARIFA POR CATEGORIA (consulta ao Mercado Livre) ════ */
+.cat-box{margin:0 0 18px;padding:14px 16px;border-radius:13px;
+  background:linear-gradient(165deg,rgba(255,255,255,.9),rgba(240,245,255,.75));
+  border:1px solid rgba(79,124,255,.2)}
+.cat-liga{display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.cat-liga input{position:absolute;opacity:0;width:0;height:0}
+.cat-sw{width:40px;height:23px;border-radius:100px;flex:none;position:relative;margin-top:1px;
+  background:linear-gradient(180deg,#e2e7f2,#d3daea);transition:background .3s ease;
+  box-shadow:0 1px 3px rgba(20,30,60,.12) inset}
+.cat-sw::after{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 5px rgba(20,30,60,.28);
+  transition:transform .32s cubic-bezier(.16,1,.3,1)}
+.cat-liga input:checked + .cat-sw{background:linear-gradient(180deg,#6b93ff,#2145c9)}
+.cat-liga input:checked + .cat-sw::after{transform:translateX(17px)}
+.cat-liga input:focus-visible + .cat-sw{box-shadow:0 0 0 3px rgba(79,124,255,.3)}
+.cat-txt b{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.cat-txt i{font-style:normal;font-size:11.5px;line-height:1.55;color:var(--sub)}
+
+.cat-aviso{font-size:11.5px;line-height:1.5;margin-top:0;max-height:0;overflow:hidden;
+  transition:max-height .3s ease,margin-top .3s ease,opacity .3s ease;opacity:0}
+.cat-aviso.mostra{max-height:70px;margin-top:11px;opacity:1;
+  padding-top:11px;border-top:1px solid rgba(79,124,255,.16);color:var(--sub)}
+.cat-aviso.ok{color:var(--green-dk)}
+.cat-aviso.alerta{color:var(--amber-dk,#a8630a)}
+.cat-aviso.ruim{color:var(--red)}
+
+.cat-prog{margin-top:12px}
+.cat-barra{height:6px;border-radius:100px;background:rgba(20,30,60,.09);overflow:hidden}
+.cat-barra i{display:block;height:100%;width:0;border-radius:100px;
+  background:linear-gradient(90deg,#7ea1ff,#2f5ae0);transition:width .35s ease}
+.cat-prog-t{font-size:11px;color:var(--sub);margin-top:6px;font-variant-numeric:tabular-nums}
+
+.td-cat{font-size:11px;color:var(--sub);max-width:170px}
+.td-cat b{display:inline-block;margin-left:6px;font-variant-numeric:tabular-nums;
+  color:var(--blue-dk);font-weight:700}
+.td-cat.vazia{color:var(--faint);font-style:italic}

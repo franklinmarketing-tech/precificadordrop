@@ -241,6 +241,9 @@ const CHAVE_ML = 'precificador-drop:params-ml';
 let mlAba = 'calc', modo = 'a';
 let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
 let mlConferencia = null, mlFiltro = null, mlPagina = 0;
+/* categoria descoberta no Mercado Livre, por linha da planilha */
+let mlCategorias = null;        // Map linha → {categoria, nome, classico, premium, obrigatorios}
+let mlUsandoCategoria = false;
 const ML_POR_PAGINA = 100;
 let pml = carregarParamsML();
 
@@ -759,6 +762,7 @@ function mlCarregar(f){
       $('mlAltura').innerHTML      = '<option value="-1">Sem altura</option>' + opcoes;
       $('mlLargura').innerHTML     = '<option value="-1">Sem largura</option>' + opcoes;
       $('mlComprimento').innerHTML = '<option value="-1">Sem comprimento</option>' + opcoes;
+      $('mlTitulo').innerHTML      = '<option value="-1">— Selecione —</option>' + opcoes;
 
       // auto-seleção: só serve coluna que realmente tenha número > 0
       const temValores = i => i >= 0 && mlAoa.slice(1).some(l => {
@@ -779,6 +783,16 @@ function mlCarregar(f){
       if(iComp !== undefined) $('mlComprimento').value = iComp;
       if(iPreco >= 0) $('mlPreco').value = iPreco;
 
+      /* título: serve a coluna que tem texto de verdade, não código nem número */
+      const temTexto = i => i >= 0 && mlAoa.slice(1).some(l => {
+        const v = String(l[i] || '').trim();
+        return v.length >= 12 && /[a-zA-ZÀ-ÿ]{3}/.test(v);
+      });
+      const iTit = [acha(/descri[çc][ãa]o\s*curta/i), acha(/^t[íi]tulo$/i), acha(/^nome$/i),
+                    acha(/descri[çc][ãa]o/i), acha(/produto/i)].find(temTexto);
+      if(iTit !== undefined) $('mlTitulo').value = iTit;
+      mlToggleCategoria();
+
       $('mlFName').textContent = f.name;
       $('mlFInfo').textContent = `${mlAoa.length - 1} produtos · ${mlCabecalho.length} colunas · aba "${mlWb.SheetNames[0]}"`;
       mlValidaCol();
@@ -795,6 +809,8 @@ function mlValidaCol(){
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
+  const it = parseInt($('mlTitulo').value);
+  if(it >= 0 && $('mlUsarCategoria').checked) mlToggleCategoria();
   /* A escolha manual também precisa ser conferida: escolher "Estoque" ou
      "Largura" como custo gera preços plausíveis e completamente errados. */
   const numeros = i => {
@@ -824,7 +840,97 @@ function mlValidaCol(){
   $('mlBtnCalc').disabled = ic < 0;
 }
 
-function mlProcessar(){
+/* ══ CATEGORIA E TARIFA REAL PELO MERCADO LIVRE ════════════════════════════
+   O ML descobre a categoria pelo título e devolve a comissão daquela
+   categoria. Isso muda o preço: a mesma planilha tem produtos de 10,5% e de
+   14%, enquanto o parâmetro único assume um valor só para todos.
+
+   As consultas vão em blocos porque o endpoint aceita um número limitado de
+   itens por chamada, e porque assim dá para mostrar progresso em vez de
+   deixar a tela parada.                                                     */
+const CAT_BLOCO = 60;
+
+function mlToggleCategoria(){
+  const ligado = $('mlUsarCategoria').checked;
+  const it = parseInt($('mlTitulo').value);
+  const aviso = $('mlCatAviso');
+  if(ligado && !(it >= 0)){
+    aviso.className = 'cat-aviso mostra alerta';
+    aviso.textContent = 'Escolha antes a coluna do título do produto — é ela que o Mercado Livre usa para achar a categoria.';
+  }else if(ligado){
+    aviso.className = 'cat-aviso mostra';
+    aviso.textContent = 'Cada produto vai ser precificado com a comissão da categoria dele. A consulta acontece ao calcular.';
+  }else{
+    aviso.className = 'cat-aviso';
+    aviso.textContent = '';
+  }
+}
+
+function mlCatProgresso(feitos, total){
+  const pct = total ? Math.round(feitos / total * 100) : 0;
+  $('mlCatBarra').style.width = pct + '%';
+  $('mlCatProgT').textContent = `consultando o Mercado Livre — ${feitos} de ${total} produtos`;
+}
+
+async function mlDescobrirCategorias(entradas, iTitulo, iCusto){
+  const linhas = mlAoa.slice(1);
+  const pedidos = entradas.map(e => ({
+    i: e.linha,
+    titulo: String(linhas[e.linha - 1][iTitulo] || '').slice(0, 120),
+    preco: ML.parseNumero(e.custo),
+  })).filter(x => x.titulo);
+
+  if(!pedidos.length){
+    $('mlCatAviso').className = 'cat-aviso mostra alerta';
+    $('mlCatAviso').textContent = 'A coluna escolhida não tem títulos — a tarifa por categoria foi ignorada.';
+    return false;
+  }
+
+  mostrar('mlCatProg', true);
+  mlCatProgresso(0, pedidos.length);
+  const mapa = new Map();
+  let feitos = 0, falhou = null;
+
+  for(let i = 0; i < pedidos.length; i += CAT_BLOCO){
+    const bloco = pedidos.slice(i, i + CAT_BLOCO);
+    try{
+      const r = await fetch('/api/ml-lote', {
+        method: 'POST',
+        headers: {'content-type': 'application/json'},
+        body: JSON.stringify({itens: bloco}),
+      });
+      const d = await r.json();
+      if(d.erro){ falhou = d.erro; break; }
+      (d.resultados || []).forEach(x => {
+        if(x.achou) mapa.set(x.i, {
+          categoria: x.categoria, nome: x.categoriaNome,
+          classico: x.classico, premium: x.premium,
+          obrigatorios: x.obrigatorios || [],
+        });
+      });
+    }catch(e){ falhou = e.message; break; }
+    feitos += bloco.length;
+    mlCatProgresso(feitos, pedidos.length);
+  }
+
+  mostrar('mlCatProg', false);
+
+  if(falhou){
+    $('mlCatAviso').className = 'cat-aviso mostra ruim';
+    $('mlCatAviso').textContent = 'Não consegui consultar o Mercado Livre (' + falhou
+      + '). Os preços foram calculados com a tarifa dos parâmetros.';
+    return false;
+  }
+
+  mlCategorias = mapa;
+  const achou = mapa.size, semCat = pedidos.length - achou;
+  $('mlCatAviso').className = 'cat-aviso mostra ok';
+  $('mlCatAviso').textContent = `Categoria encontrada para ${achou} de ${pedidos.length} produtos`
+    + (semCat ? `. Os ${semCat} sem categoria usaram a tarifa dos parâmetros.` : '.');
+  return achou > 0;
+}
+
+async function mlProcessar(){
   const ic = parseInt($('mlCusto').value);
   const ip = parseInt($('mlPeso').value);
   const im = parseInt($('mlComissao').value);
@@ -849,6 +955,26 @@ function mlProcessar(){
       comissaoProduto: im >= 0 ? linha[im] : '',
     };
   });
+
+  /* Antes de precificar, descobre a categoria de cada produto no Mercado Livre
+     e usa a tarifa real daquela categoria em vez de uma comissão única. */
+  mlCategorias = null;
+  mlUsandoCategoria = false;
+  if($('mlUsarCategoria').checked){
+    const it = parseInt($('mlTitulo').value);
+    if(it >= 0){
+      const ok = await mlDescobrirCategorias(entradas, it, ic);
+      if(ok) mlUsandoCategoria = true;
+    }
+  }
+  if(mlUsandoCategoria){
+    const tipo = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
+    entradas.forEach(e => {
+      const c = mlCategorias.get(e.linha);
+      // só sobrescreve quando o ML devolveu a tarifa daquele tipo de anúncio
+      if(c && c[tipo] != null) e.comissaoProduto = c[tipo];
+    });
+  }
 
   const lote = ML.precificarLote(entradas, Object.assign({}, pml, {margemAlvo: mlMargem}));
   mlLinhas = lote.linhas;
@@ -916,7 +1042,43 @@ function mlRenderChecks(){
         <div class="chk-d">${esc(g.descricao)}</div></div>
       <button class="chk-btn${mlFiltro === g.id ? ' on' : ''}" onclick="mlVerLinhas('${g.id}')">
         ${mlFiltro === g.id ? 'ver todos' : 'ver as linhas'}</button>
-    </div>`).join('');
+    </div>`).join('') + mlChecksCategoria();
+}
+
+/* O que a categoria exige antes de o anúncio ser aceito. É daqui que vem a
+   coluna Modelo: quando ela falta, o Mercado Livre recusa a importação — e o
+   erro só aparece lá, depois de subir tudo. */
+function mlChecksCategoria(){
+  if(!mlUsandoCategoria || !mlCategorias || !mlCategorias.size) return '';
+
+  const semCat = mlLinhas.filter(r => !mlCategorias.get(r.linha)).length;
+
+  /* junta os atributos exigidos, contando em quantos produtos cada um aparece */
+  const exigidos = new Map();
+  mlCategorias.forEach(c => (c.obrigatorios || []).forEach(a => {
+    const e = exigidos.get(a.id) || {nome: a.nome, n: 0};
+    e.n++; exigidos.set(a.id, e);
+  }));
+  const lista = [...exigidos.values()].sort((a, b) => b.n - a.n).slice(0, 6);
+
+  let saida = '';
+  if(semCat) saida += `
+    <div class="chk ok">
+      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
+      <div><div class="chk-t">Categoria não encontrada <span class="tag">${semCat} ${semCat === 1 ? 'produto' : 'produtos'}</span></div>
+        <div class="chk-d">O Mercado Livre não reconheceu a categoria pelo título. Esses produtos
+          foram precificados com a tarifa dos parâmetros — confira se o título está descritivo.</div></div>
+    </div>`;
+
+  if(lista.length) saida += `
+    <div class="chk ok">
+      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div><div class="chk-t">O que as categorias exigem no anúncio</div>
+        <div class="chk-d">Sem estes campos preenchidos o Mercado Livre recusa a importação:
+          ${lista.map(a => `<b>${esc(a.nome)}</b> (${a.n})`).join(' · ')}.</div></div>
+    </div>`;
+
+  return saida;
 }
 
 /* filtra a tabela por um tipo de problema — inclusive linhas além da centésima */
@@ -947,18 +1109,26 @@ function mlRenderTabela(){
   };
 
   $('mlTabela').innerHTML =
-    `<thead><tr><th>Linha</th><th>Descrição</th><th>Custo</th><th>Peso</th><th>Preço de venda</th>
+    `<thead><tr><th>Linha</th><th>Descrição</th>${mlUsandoCategoria ? '<th>Categoria no ML</th>' : ''}
+      <th>Custo</th><th>Peso</th><th>Preço de venda</th>
       <th>Comissão</th><th>Envio</th><th>Lucro</th><th>Situação</th></tr></thead><tbody>` +
     pagina.map(r => {
       const desc = iDesc >= 0 ? String((mlAoa[r.linha] || [])[iDesc] || '').slice(0, 40) : '';
+      /* a categoria vem do Mercado Livre; sem ela a linha usou a tarifa dos parâmetros */
+      const cat = mlUsandoCategoria && mlCategorias ? mlCategorias.get(r.linha) : null;
+      const tipoAn = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
+      const tdCat = !mlUsandoCategoria ? '' : (cat && cat[tipoAn] != null
+        ? `<td class="td-cat" title="${esc(cat.categoria)}">${esc(cat.nome || cat.categoria)}
+             <b>${String(cat[tipoAn]).replace('.', ',')}%</b></td>`
+        : '<td class="td-cat vazia">não encontrada</td>');
       if(r.preco == null) return `<tr>
         <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(desc)}">${esc(desc) || '—'}</td>
+        <td title="${esc(desc)}">${esc(desc) || '—'}</td>${tdCat}
         <td colspan="6" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
       return `<tr>
         <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(desc)}">${esc(desc) || '—'}</td>
+        <td title="${esc(desc)}">${esc(desc) || '—'}</td>${tdCat}
         <td style="color:var(--amber)">${ML.brl(r.custo)}</td>
         <td style="color:var(--faint)">${r.peso ? String(r.peso).replace('.', ',') + ' kg' : '—'}</td>
         <td style="font-weight:700">${ML.brl(r.preco)}</td>
@@ -1018,7 +1188,10 @@ function mlBaixar(){
     const base = mlCabecalho.length;
 
     const NOVAS = ['Custo do produto','Peso (kg)','Preço de venda ML','Comissão','Custo fixo',
-                   'Custo de envio','Receita líquida','Lucro líquido','Margem líquida','Conferência'];
+                   'Custo de envio','Receita líquida','Lucro líquido','Margem líquida','Conferência']
+      /* quando a tarifa veio do ML, o arquivo registra de onde: sem isso não dá
+         para saber depois se a linha usou a tarifa da categoria ou a do parâmetro */
+      .concat(mlUsandoCategoria ? ['Categoria ML','Código da categoria','Tarifa aplicada (%)'] : []);
     if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
 
     mlLinhas.forEach((r, i) => {
@@ -1030,6 +1203,13 @@ function mlBaixar(){
           ? [r.custo, r.peso, '', '', '', '', '', '', '', conf || 'sem preço calculado']
           : [r.custo, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
              r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4), conf];
+        if(mlUsandoCategoria){
+          const c = mlCategorias ? mlCategorias.get(r.linha) : null;
+          const tp = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
+          vals.push(c ? (c.nome || '') : 'não encontrada',
+                    c ? c.categoria : '',
+                    c && c[tp] != null ? c[tp] : '');
+        }
         vals.forEach((v, k) => XU.escrever(ws, linha, base + k, v === undefined ? '' : v));
       }
     });

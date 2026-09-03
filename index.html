@@ -443,7 +443,29 @@ if (!window.XLSX) {
               <select id="mlComissao" onchange="mlValidaCol()"><option value="-1">Usar a tarifa do tipo de anúncio</option></select>
               <div class="nota" id="mlComissaoNota"></div>
             </div>
-            <div></div>
+            <div>
+              <div class="lbl verde">Coluna do título do produto</div>
+              <select id="mlTitulo" onchange="mlValidaCol()"><option value="-1">— Selecione —</option></select>
+              <div class="nota">Usada para descobrir a categoria no Mercado Livre.</div>
+            </div>
+          </div>
+
+          <!-- Tarifa real por categoria, consultada no Mercado Livre -->
+          <div class="cat-box" id="mlCatBox">
+            <label class="cat-liga">
+              <input type="checkbox" id="mlUsarCategoria" onchange="mlToggleCategoria()"/>
+              <span class="cat-sw"></span>
+              <span class="cat-txt">
+                <b>Usar a tarifa real de cada categoria</b>
+                <i>O Mercado Livre descobre a categoria pelo título e devolve a comissão
+                   daquele produto. Sem isso, a mesma tarifa vale para a planilha inteira.</i>
+              </span>
+            </label>
+            <div class="cat-aviso" id="mlCatAviso"></div>
+            <div class="cat-prog hide" id="mlCatProg">
+              <div class="cat-barra"><i id="mlCatBarra"></i></div>
+              <div class="cat-prog-t" id="mlCatProgT">consultando…</div>
+            </div>
           </div>
 
           <div class="lbl verde">Margem líquida desejada</div>
