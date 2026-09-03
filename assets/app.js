@@ -273,7 +273,7 @@ function montarContexto(){
   $('ctxReputacao').innerHTML = MLFretes.REPUTACOES.map(r => `
     <button class="ctx-opt rep-${r.id}${pml.reputacao === r.id ? ' active' : ''}" data-rep="${r.id}"
             onclick="setReputacao('${r.id}',this)" title="${esc(r.desc)}">
-      <i class="bolinha"></i>${esc(r.nome)}
+      <i class="radio"></i>${esc(r.nome)}
     </button>`).join('');
   $('pctClassico').textContent = (pml.comissaoClassico * 100).toFixed(1).replace('.0','').replace('.', ',') + '%';
   $('pctPremium').textContent  = (pml.comissaoPremium  * 100).toFixed(1).replace('.0','').replace('.', ',') + '%';
@@ -281,6 +281,28 @@ function montarContexto(){
     b.classList.toggle('active', b.dataset.anuncio === pml.tipoAnuncio));
   const rep = MLFretes.REPUTACOES.find(r => r.id === pml.reputacao);
   if($('mlRepAtual')) $('mlRepAtual').textContent = rep ? rep.nome.toLowerCase() : pml.reputacao;
+  ctxResumo();
+}
+
+/* O que as escolhas acima estão produzindo agora. Fica ao lado delas porque é
+   a consequência do que foi marcado — antes só dava para saber abrindo os
+   parâmetros. */
+function ctxResumo(){
+  const el = $('ctxAgora');
+  if(!el) return;
+  const pct = v => (v * 100).toFixed(1).replace('.0', '').replace('.', ',') + '%';
+  const itens = [
+    ['Comissão', pct(pml.tipoAnuncio === 'premium' ? pml.comissaoPremium : pml.comissaoClassico)],
+    ['Frete', pml.freteAutomatico ? 'tabela oficial' : ML.brl(pml.freteManual) + ' fixo'],
+    ['Volumétrico', pml.usarPesoVolumetrico ? 'ligado ÷' + (pml.divisorVolumetrico || 6000) : 'desligado'],
+  ];
+  if(pml.taxaDevolucao) itens.push(['Devolução', pct(pml.taxaDevolucao)]);
+  if(pml.aliquotaImposto) itens.push(['Imposto', pct(pml.aliquotaImposto)]);
+  if(pml.rebate) itens.push(['Rebate', ML.brl(pml.rebate)]);
+
+  el.innerHTML = `<div class="ctx-lbl">Está valendo</div>
+    <div class="ctx-agora-l">${itens.map(([t, v]) =>
+      `<span><i>${esc(t)}</i><b>${esc(v)}</b></span>`).join('')}</div>`;
 }
 function setReputacao(id, btn){
   pml.reputacao = id;
@@ -293,6 +315,7 @@ function setAnuncio(tipo, btn){
   pml.tipoAnuncio = tipo;
   guardarParamsML();
   document.querySelectorAll('[data-anuncio]').forEach(b => b.classList.toggle('active', b === btn));
+  ctxResumo();          // a comissão exibida muda com o tipo de anúncio
   recalcularTudo();
 }
 function recalcularTudo(){
@@ -503,7 +526,7 @@ async function buscarTarifaAPI(){
     if(cat) q.set('categoria', cat);
 
     const r = await fetch('/api/ml-tarifa?' + q);
-    const d = await r.json();
+    const d = await lerJson(r);
 
     if(!r.ok || d.erro){
       const faltaSecret = (d.faltando || []).includes('ML_CLIENT_SECRET');
@@ -869,7 +892,7 @@ function mercadoAbrir(){
 
 async function merApi(params){
   const r = await fetch('/api/ml-mercado?' + new URLSearchParams(params));
-  const d = await r.json();
+  const d = await lerJson(r);
   if(d.erro) throw new Error(d.erro);
   return d;
 }
@@ -1069,7 +1092,7 @@ async function mlDescobrirCategorias(entradas, iTitulo, iCusto){
         headers: {'content-type': 'application/json'},
         body: JSON.stringify({itens: bloco}),
       });
-      const d = await r.json();
+      const d = await lerJson(r);
       if(d.erro){ falhou = d.erro; break; }
       (d.resultados || []).forEach(x => {
         if(x.achou) mapa.set(x.i, {
@@ -1434,6 +1457,21 @@ let taxasProntas = false;
    fixo nem a tabela de frete — esses continuam vindo das tabelas oficiais
    embutidas no app.
    ══════════════════════════════════════════════════════════════════════════ */
+/* No localhost as funções /api não existem: o servidor devolve a página 404 em
+   HTML e o JSON.parse estoura com "Unexpected token '<'". Isso é ambiente sem
+   backend, não integração quebrada — e a mensagem precisa dizer isso. */
+async function lerJson(r){
+  const tipo = r.headers.get('content-type') || '';
+  if(!tipo.includes('json')){
+    const e = new Error(r.status === 404
+      ? 'As funções do servidor não existem neste endereço. Isso acontece ao abrir o app localmente: a integração funciona no site publicado.'
+      : `O servidor respondeu ${r.status} sem JSON.`);
+    e.semBackend = true;
+    throw e;
+  }
+  return r.json();
+}
+
 let apiStatus = null, apiCarregando = false;
 
 /* o que cada fonte cobre — é isto que o painel explica */
@@ -1467,9 +1505,9 @@ async function apiCarregar(){
   $('apiPill').textContent = 'verificando…';
   try{
     const r = await fetch('/api/ml-status?sondar=1');
-    apiStatus = await r.json();
+    apiStatus = await lerJson(r);
   }catch(e){
-    apiStatus = {conectado:false, erro:'Não consegui falar com o servidor: ' + e.message, sondas:[]};
+    apiStatus = {conectado:false, erro:e.message, semBackend:!!e.semBackend, sondas:[]};
   }
   apiCarregando = false;
   apiPintar();
@@ -1498,8 +1536,9 @@ function apiPintar(){
          <div class="api-ok-t">A integração não está respondendo.</div>
          <div class="api-ok-d">${esc(st.erro || 'Erro desconhecido.')}
            ${st.semCredencial ? ' Configure ML_CLIENT_ID e ML_CLIENT_SECRET na Vercel.' : ''}</div>
-         <div class="api-ok-d">Enquanto isso o preço continua saindo pelas tabelas oficiais
-           embutidas — que é o comportamento padrão e está correto.</div>
+         <div class="api-ok-d">${st.semBackend
+           ? 'Os preços continuam corretos: são calculados pelas tabelas oficiais embutidas, que não dependem da internet.'
+           : 'Enquanto isso o preço continua saindo pelas tabelas oficiais embutidas — que é o comportamento padrão e está correto.'}</div>
        </div>`;
 
   const lista = itens => itens.map(([t, d]) =>

@@ -297,27 +297,31 @@ if (!window.XLSX) {
       </div>
       <div>
         <h1>Precificar <span class="grad">Mercado Livre.</span></h1>
-        <div class="h-sub">Custo do fornecedor, peso e margem — com comissão, custo fixo e frete oficiais do ML já descontados. Escolha a reputação da sua conta antes de gerar o preço.</div>
+        <div class="h-sub">Você diz a margem que quer. Comissão, custo fixo e frete saem das tabelas oficiais.</div>
       </div>
     </div>
 
-    <!-- barra de contexto: reputação e tipo de anúncio -->
+    <!-- Barra de contexto: à esquerda o que você escolhe, à direita o que isso
+         está produzindo. Antes as três coisas ficavam soltas na mesma linha. -->
     <div class="ctx">
       <div class="ctx-bloco">
-        <div class="ctx-lbl">Reputação da conta</div>
+        <div class="ctx-lbl">1 · Reputação da conta</div>
         <div class="ctx-opts" id="ctxReputacao"></div>
       </div>
+      <div class="ctx-risca"></div>
       <div class="ctx-bloco">
-        <div class="ctx-lbl">Tipo de anúncio</div>
+        <div class="ctx-lbl">2 · Tipo de anúncio</div>
         <div class="ctx-opts">
           <button class="ctx-opt active" data-anuncio="classico" onclick="setAnuncio('classico',this)">
-            Clássico <b id="pctClassico">13%</b>
+            <i class="radio"></i>Clássico <b id="pctClassico">13%</b>
           </button>
           <button class="ctx-opt" data-anuncio="premium" onclick="setAnuncio('premium',this)">
-            Premium <b id="pctPremium">18%</b>
+            <i class="radio"></i>Premium <b id="pctPremium">18%</b>
           </button>
         </div>
       </div>
+      <div class="ctx-agora" id="ctxAgora"></div>
+
       <button class="btn btn-primary" onclick="abrirParamsML()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Editar parâmetros
