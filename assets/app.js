@@ -911,6 +911,16 @@ function mlValidaCol(){
 let merAba = 'produto';
 const merJaCarregou = {tendencias: false, categorias: false, envios: false, campeoes: false};
 
+/* Leva à pesquisa de mercado já na aba certa. Os cartões da home apontam para
+   cada ferramenta direto, em vez de largar a pessoa na primeira aba. */
+function irMercado(aba){
+  ir('mercado');
+  setTimeout(() => {
+    const bt = document.querySelector(`[data-mertab="${aba}"]`);
+    if(bt) bt.click();
+  }, 60);
+}
+
 function abaMer(qual, botao){
   merAba = qual;
   document.querySelectorAll('[data-mertab]').forEach(b => b.classList.toggle('active', b === botao));

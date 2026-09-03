@@ -6,23 +6,20 @@
 /* ═══ TROCA DE VIEW ═══════════════════════════════════════ */
 .view{animation:viewIn .45s cubic-bezier(.16,1,.3,1) both}
 @keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-body.view-hub{height:100vh;overflow:hidden}
-body.view-hub .shell{height:100vh}
-body.view-hub .wrap{min-height:0}
+/* A home tinha uma tela só, sem rolagem. Com um marketplace por seção isso
+   não cabe mais — e forçar caber espremeria tudo. Ela rola. */
+body.view-hub{overflow-x:hidden}
 /* abaixo de 900px o hub rola normalmente: sem isso o shell fica preso em
    100vh e corta o fim dos cartões (preço e botão sumiam no celular) */
-@media(max-width:900px){
-  body.view-hub,body.view-hub .shell{height:auto;overflow:visible}
-  body.view-hub .wrap{min-height:auto}
-  body.view-hub{overflow-x:hidden}
-}
+
 
 /* ═══ HUB — GRID BENTO ════════════════════════════════════ */
 /* Os cinco cards têm o mesmo peso: são ferramentas independentes, não etapas
    de um fluxo. Seis colunas com cada card ocupando duas dão três em cima e os
    dois de baixo centralizados, todos do mesmo tamanho. */
-.bento{flex:1;min-height:0;display:grid;grid-template-columns:repeat(6,1fr);
-  grid-template-rows:1fr 1fr;gap:16px;perspective:1400px}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;perspective:1400px}
+.bento-2{grid-template-columns:1fr 1fr}
+.bento-2 .tool{grid-column:auto!important;grid-row:auto!important;min-height:260px}
 @media(max-width:1040px){.bento{flex:none;min-height:auto;grid-template-columns:1fr 1fr;
   grid-template-rows:auto;perspective:none}}
 @media(max-width:620px){.bento{grid-template-columns:1fr}}
@@ -999,3 +996,55 @@ body.sem-rolagem{overflow:hidden}
   box-shadow:0 5px 12px -4px rgba(47,90,224,.6);transition:transform .25s ease}
 .cp-btn:hover{transform:translateY(-1px)}
 @media(max-width:620px){.cp-item{flex-wrap:wrap}.cp-btn{width:100%}}
+
+/* ═══ SEÇÕES POR MARKETPLACE ══════════════════════════════
+   Cada marketplace tem a sua conta e as suas regras. Separar por seção deixa
+   claro o que já existe em cada um — e onde uma ferramenta nova vai entrar. */
+.secoes{display:flex;flex-direction:column;gap:20px;padding-bottom:8px}
+.mkt{padding:20px 22px;border-radius:22px;position:relative;
+  background:linear-gradient(168deg,rgba(255,255,255,.72),rgba(248,250,255,.6));
+  border:1px solid var(--borda,rgba(20,30,60,.1));
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 10px 30px -22px rgba(20,30,60,.3)}
+.mkt-ml{--borda:rgba(255,224,0,.5);--selo:#2d2a00;--selofundo:linear-gradient(160deg,#ffe600,#f5cb00)}
+.mkt-shopee{--borda:rgba(238,77,45,.3);--selo:#fff;--selofundo:linear-gradient(160deg,#ff7a55,#ee4d2d)}
+.mkt-amazon{--borda:rgba(255,153,0,.34);--selo:#3a2400;--selofundo:linear-gradient(160deg,#ffb84d,#ff9900)}
+
+.mkt-h{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.mkt-selo{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:100px;
+  font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:-.2px;
+  color:var(--selo);background:var(--selofundo);
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 7px 16px -7px rgba(20,30,60,.4)}
+.mkt-selo svg{width:22px;height:22px;flex:none}
+.mkt-n{font-size:10.5px;letter-spacing:.7px;color:var(--faint);text-transform:uppercase}
+.mkt-sub{font-size:9.5px;font-weight:600;letter-spacing:1.3px;color:var(--faint);
+  text-transform:uppercase;margin:18px 0 10px}
+.mkt-nota{margin-top:14px;font-size:11.5px;line-height:1.65;color:var(--sub);
+  padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.6);
+  border:1px dashed var(--borda)}
+
+/* cartões menores: as consultas de apoio, que não são o trabalho principal */
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:9px}
+.minis-g{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.mini{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:13px;
+  cursor:pointer;font-family:inherit;text-align:left;
+  background:rgba(255,255,255,.82);border:1px solid rgba(20,30,60,.08);
+  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .28s ease,border-color .28s ease}
+.mini:hover{transform:translateY(-3px);border-color:rgba(79,124,255,.4);background:#fff;
+  box-shadow:0 12px 24px -14px rgba(20,30,60,.4)}
+.mini img{width:34px;height:34px;flex:none;object-fit:contain;
+  filter:drop-shadow(0 3px 6px rgba(20,30,60,.18));transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.mini:hover img{transform:scale(1.1) rotate(-4deg)}
+.mini span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mini b{font-size:12.5px;font-weight:600;color:var(--ink);letter-spacing:-.1px}
+.mini i{font-style:normal;font-size:10.5px;color:var(--faint);line-height:1.4}
+.mini.off{cursor:default;opacity:.6}
+.mini.off:hover{transform:none;border-color:rgba(20,30,60,.08);box-shadow:none;background:rgba(255,255,255,.82)}
+.mini.off img{filter:grayscale(.6) drop-shadow(0 3px 6px rgba(20,30,60,.12))}
+
+/* selo do marketplace no menu do topo */
+.mn-selo{width:9px;height:9px;border-radius:50%;flex:none}
+.mn-selo.ml{background:linear-gradient(160deg,#ffe600,#f5cb00)}
+.mn-selo.shopee{background:linear-gradient(160deg,#ff7a55,#ee4d2d)}
+.mn-selo.amazon{background:linear-gradient(160deg,#ffb84d,#ff9900)}
+.mn-nota{padding:10px 11px;margin-top:6px;font-size:10.5px;line-height:1.55;color:var(--faint);
+  border-top:1px solid var(--line)}

@@ -42,48 +42,89 @@ if (!window.XLSX) {
     <!-- Menu do topo: abre passando o mouse. Cada grupo lista as ferramentas
          daquela família; conforme o projeto crescer, entram novas linhas aqui
          sem mexer no resto da página. -->
+    <!-- Um menu por marketplace: conforme entrarem ferramentas novas, cada
+         uma cai no marketplace a que pertence, sem inchar uma lista só. -->
     <nav class="menu" aria-label="Ferramentas do hub">
       <div class="mn">
         <button class="mn-t" aria-haspopup="true" aria-expanded="false">
-          <svg viewBox="0 0 24 24"><path d="M3 7h7v7H3zM14 3h7v11h-7zM3 17h7v4H3zM14 17h7v4h-7z"/></svg>
-          Ferramentas
+          <span class="mn-selo ml"></span>Mercado Livre
           <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mn-drop">
+          <div class="mn-grupo">PRECIFICAR</div>
+          <button class="mn-i" onclick="ir('ml')">
+            <img src="assets/img/ic-ml.webp" alt=""/>
+            <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
+          </button>
           <div class="mn-grupo">CATÁLOGO</div>
           <button class="mn-i" onclick="ir('planilha')">
             <img src="assets/img/ic-planilha.webp" alt=""/>
             <span><b>Planilha de produtos</b><i>Trata o catálogo do fornecedor</i></span>
           </button>
-          <div class="mn-grupo">PRECIFICAÇÃO</div>
-          <button class="mn-i" onclick="ir('ml')">
-            <img src="assets/img/ic-ml.webp" alt=""/>
-            <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
-          </button>
-          <button class="mn-i mn-off" disabled>
-            <img src="assets/img/ic-shopee.webp" alt=""/>
-            <span><b>Precificar Shopee</b><i>Em breve</i></span>
-          </button>
-          <div class="mn-grupo">PESQUISA</div>
-          <button class="mn-i" onclick="ir('mercado')">
+          <div class="mn-grupo">PESQUISA E APOIO</div>
+          <button class="mn-i" onclick="irMercado('produto')">
             <img src="assets/img/ic-base-ml.webp" alt=""/>
-            <span><b>Pesquisa de mercado</b><i>Categoria, comissão e o que está em alta</i></span>
+            <span><b>Consultar um produto</b><i>Categoria, comissão e exigências</i></span>
           </button>
-          <div class="mn-grupo">BASES JÁ PUBLICADAS</div>
-          <button class="mn-i mn-off" disabled>
+          <button class="mn-i" onclick="irMercado('ficha')">
+            <img src="assets/img/ic-planilha.webp" alt=""/>
+            <span><b>Ficha do anúncio</b><i>O que a categoria obriga</i></span>
+          </button>
+          <button class="mn-i" onclick="irMercado('campeoes')">
             <img src="assets/img/ic-base-ml.webp" alt=""/>
-            <span><b>Base do Mercado Livre</b><i>Em breve</i></span>
+            <span><b>Mais vendidos</b><i>O ranking de cada categoria</i></span>
           </button>
-          <button class="mn-i mn-off" disabled>
+          <button class="mn-i" onclick="irMercado('tendencias')">
             <img src="assets/img/ic-base-shop.webp" alt=""/>
-            <span><b>Base da Shopee</b><i>Em breve</i></span>
+            <span><b>Em alta agora</b><i>O que estão procurando</i></span>
+          </button>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-base-ml.webp" alt=""/>
+            <span><b>Base já publicada</b><i>Em breve</i></span>
           </button>
         </div>
       </div>
 
-      <!-- O manual tem nome: "Guia do Drop". Abre passando o mouse, com
-           atalho direto para cada capítulo — assim quem tem uma dúvida
-           específica não precisa abrir e procurar. -->
+      <div class="mn">
+        <button class="mn-t" aria-haspopup="true" aria-expanded="false">
+          <span class="mn-selo shopee"></span>Shopee
+          <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mn-drop">
+          <div class="mn-grupo">EM PREPARAÇÃO</div>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-shopee.webp" alt=""/>
+            <span><b>Precificar Shopee</b><i>Comissão e taxa fixa da Shopee</i></span>
+          </button>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-base-shop.webp" alt=""/>
+            <span><b>Base da Shopee</b><i>Reprocessar o que já está no ar</i></span>
+          </button>
+          <div class="mn-nota">A conta da Shopee é diferente da do Mercado Livre —
+            por isso pede ferramenta própria, e não um botão a mais.</div>
+        </div>
+      </div>
+
+      <div class="mn">
+        <button class="mn-t" aria-haspopup="true" aria-expanded="false">
+          <span class="mn-selo amazon"></span>Amazon
+          <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mn-drop">
+          <div class="mn-grupo">EM PREPARAÇÃO</div>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-ml.webp" alt=""/>
+            <span><b>Precificar Amazon</b><i>Referral fee e tarifa por categoria</i></span>
+          </button>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-base-shop.webp" alt=""/>
+            <span><b>Base da Amazon</b><i>Reprocessar o que já está no ar</i></span>
+          </button>
+          <div class="mn-nota">A Amazon cobra comissão por categoria e taxa de
+            fechamento — outra conta, outra ferramenta.</div>
+        </div>
+      </div>
+
       <div class="mn">
         <button class="mn-t" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -122,15 +163,14 @@ if (!window.XLSX) {
             <b>Importar no Bling</b><i>o caminho certo, e o que dá erro</i>
           </button>
           <button class="mn-g mn-g-tudo" onclick="ir('manual')">
-            Abrir o guia inteiro
-            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            Abrir o guia inteiro <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
     </nav>
 
     <div id="topoHub">
-      <div class="badge"><span class="dot"></span>O ECOSSISTEMA DO DROPSHIPPING NO BRASIL</div>
+      <div class="badge"><span class="dot"></span><span>O ECOSSISTEMA DO DROPSHIPPING NO BRASIL</span></div>
     </div>
 
     <div id="topoTool" class="hide" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -159,159 +199,156 @@ if (!window.XLSX) {
       </div>
     </div>
 
-    <div class="bento">
+    <div class="secoes">
 
-      <button class="tool tool-1 live" data-tilt onclick="ir('planilha')">
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">01</span>
-        <span class="tool-status st-live">ATIVO</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha e gráfico" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Planilha de produtos</div>
-          <div class="tool-desc">Trata o catálogo do fornecedor.</div>
+      <!-- ═══ MERCADO LIVRE ═══ -->
+      <section class="mkt mkt-ml">
+        <div class="mkt-h">
+          <span class="mkt-selo ml">
+            <svg viewBox="0 0 44 30" aria-hidden="true"><path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Mercado Livre
+          </span>
+          <span class="mkt-n">2 ferramentas · 5 consultas</span>
         </div>
-        <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
-          <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha e sem mexer no que já estava certo.</p>
-          <ul>
-            <li>Encurta a descrição para os 60 caracteres que o anúncio aceita</li>
-            <li>Tira o bloco cadastral que vem colado no fim da descrição</li>
-            <li>Preenche a condição do produto como NOVO</li>
-            <li>Gera a coluna <b>Modelo</b>, que o Mercado Livre exige</li>
-            <li>Remove termos que não podem ir para o marketplace</li>
-            <li>Confere 8 pontos antes de gerar e avisa o que ficou estranho</li>
-          </ul>
-        </div>
-      </button>
 
-      <button class="tool tool-2 live" data-tilt onclick="ir('ml')">
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">02</span>
-        <span class="tool-status st-live">ATIVO</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Precificar Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-ml.webp" alt="Calculadora com moedas" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Precificar Mercado Livre</div>
-          <div class="tool-desc">O preço que entrega a margem que você pediu.</div>
-        </div>
-        <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>Como o preço é calculado</span></div>
-          <p>Você diz a margem que quer; o cálculo desconta tudo que o Mercado Livre cobra e devolve o preço de venda. Um produto por vez ou a planilha inteira de uma vez.</p>
-          <ul>
+        <div class="bento bento-2">
+        <button class="tool tool-1 live" data-tilt onclick="ir('ml')">
+          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+          <span class="tool-num">01</span>
+          <span class="tool-status st-live">ATIVO</span>
+          <span class="dica" tabindex="0" role="button" aria-expanded="false"
+                aria-label="Saiba mais sobre Precificar Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
+          <div class="tool-ic"><img src="assets/img/ic-ml.webp" alt="Calculadora com moedas" width="76" height="76" loading="lazy"/></div>
+          <div class="tool-body lift-1">
+            <div class="tool-title">Precificar Mercado Livre</div>
+            <div class="tool-desc">O preço que entrega a margem que você pediu.</div>
+          </div>
+          <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+          <div class="saibamais" aria-hidden="true">
+            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>Como o preço é calculado</span></div>
+            <p>Você diz a margem que quer; o cálculo desconta tudo que o Mercado Livre cobra e devolve o preço de venda. Um produto por vez ou a planilha inteira.</p>
+            <ul>
             <li>Comissão por tipo de anúncio, Clássico ou Premium</li>
+            <li>Tarifa real de cada categoria, consultada no ML</li>
             <li>Custo fixo por faixa de preço, pela tabela oficial</li>
             <li>Frete pela sua reputação, peso e faixa de preço</li>
-            <li>Peso volumétrico: cobra pelo maior entre ele e o peso real</li>
-            <li>Impostos, devolução, embalagem e rebate, se você usar</li>
-            <li>Avisa antes de gerar o que pode fazer você perder dinheiro</li>
-            <li>Sai um arquivo pronto para importar no Bling</li>
-          </ul>
-        </div>
-      </button>
+            <li>Peso volumétrico: cobra pelo maior entre ele e o real</li>
+            <li>Avisa o que pode fazer você perder dinheiro</li>
+            <li>Sai um arquivo pronto para o Bling</li>
+            </ul>
+          </div>
+        </button>
 
-      <button class="tool tool-3 live" data-tilt onclick="ir('mercado')">
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">03</span>
-        <span class="tool-status st-live">ATIVO</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Pesquisa de mercado"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Relatório com gráfico" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Pesquisa de mercado</div>
-          <div class="tool-desc">Antes de escolher o produto.</div>
+        <button class="tool tool-2 live" data-tilt onclick="ir('planilha')">
+          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+          <span class="tool-num">02</span>
+          <span class="tool-status st-live">ATIVO</span>
+          <span class="dica" tabindex="0" role="button" aria-expanded="false"
+                aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
+          <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha" width="76" height="76" loading="lazy"/></div>
+          <div class="tool-body lift-1">
+            <div class="tool-title">Planilha de produtos</div>
+            <div class="tool-desc">O catálogo do fornecedor pronto para o marketplace.</div>
+          </div>
+          <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+          <div class="saibamais" aria-hidden="true">
+            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
+            <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha.</p>
+            <ul>
+            <li>Encurta a descrição para os 60 caracteres do anúncio</li>
+            <li>Tira o bloco cadastral colado no fim da descrição</li>
+            <li>Preenche a condição do produto como NOVO</li>
+            <li>Gera a coluna <b>Modelo</b>, que o ML exige</li>
+            <li>Remove termos que não podem ir para o marketplace</li>
+            <li>Confere 8 pontos antes de gerar</li>
+            </ul>
+          </div>
+        </button>
         </div>
-        <div class="tool-cta">ABRIR PESQUISA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que dá para descobrir</span></div>
-          <p>O que o Mercado Livre responde sobre um produto antes de você fechar com o
-             fornecedor — sem precisar ter conta de vendedor conectada.</p>
-          <ul>
-            <li>Em que categoria o produto cai, pelo título</li>
-            <li>A comissão que se paga naquela categoria</li>
-            <li>Os campos que o anúncio vai exigir, como <b>Marca</b> e <b>Modelo</b></li>
-            <li>O que as pessoas estão procurando no site agora</li>
-            <li>A árvore de categorias, com o código de cada uma</li>
-            <li>As modalidades de envio disponíveis</li>
-          </ul>
-        </div>
-      </button>
 
-      <button class="tool tool-4 soon" data-tilt>
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">04</span>
-        <span class="tool-status st-soon">EM BREVE</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Precificar Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-shopee.webp" alt="Loja online no celular" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Precificar Shopee</div>
-          <div class="tool-desc">A mesma conta, com as regras da Shopee.</div>
+        <div class="mkt-sub">Consultas de apoio</div>
+        <div class="minis">
+        <button class="mini" onclick="irMercado('produto')">
+          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
+          <span><b>Consultar um produto</b><i>categoria, comissão e exigências</i></span>
+        </button>
+        <button class="mini" onclick="irMercado('ficha')">
+          <img src="assets/img/ic-planilha.webp" alt="" loading="lazy"/>
+          <span><b>Ficha do anúncio</b><i>o que a categoria obriga</i></span>
+        </button>
+        <button class="mini" onclick="irMercado('campeoes')">
+          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
+          <span><b>Mais vendidos</b><i>o ranking de cada categoria</i></span>
+        </button>
+        <button class="mini" onclick="irMercado('tendencias')">
+          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
+          <span><b>Em alta agora</b><i>o que estão procurando</i></span>
+        </button>
+        <button class="mini" onclick="irMercado('categorias')">
+          <img src="assets/img/ic-shopee.webp" alt="" loading="lazy"/>
+          <span><b>Categorias</b><i>a árvore e o código de cada uma</i></span>
+        </button>
+        <button class="mini" onclick="irMercado('envios')">
+          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
+          <span><b>Envios</b><i>modalidades ativas no site</i></span>
+        </button>
         </div>
-        <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
-          <p>O mesmo cálculo do card 02, trocando as regras do Mercado Livre pelas da Shopee — que cobra de um jeito diferente e por isso pede a própria conta.</p>
-          <ul>
-            <li>Comissão e taxa fixa da Shopee</li>
-            <li>Programa de frete grátis e cupom do vendedor</li>
-            <li>Um produto por vez ou a planilha inteira</li>
-            <li>Arquivo pronto para subir de volta</li>
-          </ul>
-        </div>
-      </button>
 
-      <button class="tool tool-5 soon" data-tilt>
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">05</span>
-        <span class="tool-status st-soon">EM BREVE</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Base do Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Relatório com gráfico de linha" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Base do Mercado Livre</div>
-          <div class="tool-desc">Revisa o que já está anunciado.</div>
+        <div class="mkt-sub">Chegando</div>
+        <div class="minis">
+        <button class="mini off" disabled>
+          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
+          <span><b>Base já publicada</b><i>revisar e reajustar o que está no ar</i></span>
+        </button>
         </div>
-        <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
-          <p>Para o catálogo que já está no ar. Você sobe a base exportada do Mercado Livre e vê, anúncio por anúncio, se o preço de hoje ainda paga a conta.</p>
-          <ul>
-            <li>Compara o preço que está no ar com o preço sugerido</li>
-            <li>Mostra quais anúncios estão vendendo no prejuízo</li>
-            <li>Mostra quais estão abaixo da margem que você quer</li>
-            <li>Reajusta em massa e devolve a base pronta</li>
-          </ul>
-        </div>
-      </button>
+      </section>
 
-      <button class="tool tool-6 soon" data-tilt>
-        <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-        <span class="tool-num">06</span>
-        <span class="tool-status st-soon">EM BREVE</span>
-        <span class="dica" tabindex="0" role="button" aria-expanded="false"
-              aria-label="Saiba mais sobre Base da Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-        <div class="tool-ic"><img src="assets/img/ic-base-shop.webp" alt="Nuvem com seta para cima" width="76" height="76" loading="lazy"/></div>
-        <div class="tool-body lift-1">
-          <div class="tool-title">Base da Shopee</div>
-          <div class="tool-desc">O mesmo do card 05, na Shopee.</div>
+      <!-- ═══ SHOPEE ═══ -->
+      <section class="mkt mkt-shopee">
+        <div class="mkt-h">
+          <span class="mkt-selo shopee">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Shopee
+          </span>
+          <span class="mkt-n">em preparação</span>
         </div>
-        <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-        <div class="saibamais" aria-hidden="true">
-          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
-          <p>Sobe a base que já está publicada na Shopee, reprocessa os preços com a margem que você definir e devolve pronta para reenviar.</p>
-          <ul>
-            <li>Lê a base exportada da Shopee</li>
-            <li>Reprocessa com a margem nova</li>
-            <li>Aponta o que está no prejuízo hoje</li>
-            <li>Devolve o arquivo pronto para reenviar</li>
-          </ul>
+        <div class="minis minis-g">
+        <button class="mini off" disabled>
+          <img src="assets/img/ic-shopee.webp" alt="" loading="lazy"/>
+          <span><b>Precificar Shopee</b><i>comissão e taxa fixa da Shopee</i></span>
+        </button>
+        <button class="mini off" disabled>
+          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
+          <span><b>Base da Shopee</b><i>reprocessar o que já está no ar</i></span>
+        </button>
         </div>
-      </button>
+        <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre —
+          comissão, taxa fixa, frete grátis e cupom do vendedor entram em outra conta.
+          Por isso pede ferramenta própria, e não um botão a mais na de hoje.</div>
+      </section>
+
+      <!-- ═══ AMAZON ═══ -->
+      <section class="mkt mkt-amazon">
+        <div class="mkt-h">
+          <span class="mkt-selo amazon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16c4 3 14 3 18 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M5 5h14v7H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            Amazon
+          </span>
+          <span class="mkt-n">em preparação</span>
+        </div>
+        <div class="minis minis-g">
+        <button class="mini off" disabled>
+          <img src="assets/img/ic-ml.webp" alt="" loading="lazy"/>
+          <span><b>Precificar Amazon</b><i>referral fee e taxa de fechamento</i></span>
+        </button>
+        <button class="mini off" disabled>
+          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
+          <span><b>Base da Amazon</b><i>reprocessar o que já está no ar</i></span>
+        </button>
+        </div>
+        <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de
+          fechamento em algumas delas. Outra conta, outra ferramenta.</div>
+      </section>
 
     </div>
 

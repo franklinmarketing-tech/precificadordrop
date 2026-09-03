@@ -71,16 +71,57 @@ body.awake .spot{opacity:1}
 .logo-title span{background:linear-gradient(90deg,var(--blue-dk),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;margin-left:4px}
 .logo-sub{font-size:9.5px;color:var(--faint);letter-spacing:1.7px;margin-top:3px}
 
-.badge{display:inline-flex;align-items:center;gap:9px;padding:9px 17px;border-radius:100px;
-  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(246,248,253,.92));backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.9);box-shadow:0 1px 0 #fff inset,0 6px 18px -6px rgba(20,30,60,.22);
-  font-size:11px;letter-spacing:.8px;font-weight:500;color:var(--sub);position:relative;overflow:hidden}
-.badge::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);animation:sheen 4.5s ease-in-out infinite}
-@keyframes sheen{0%{left:-60%}45%,100%{left:130%}}
-.badge .dot{position:relative;width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));flex:none}
-.badge .dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(79,124,255,.5);animation:ring 2.2s ease-out infinite}
-@keyframes ring{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.7);opacity:0}}
+/* ═══ ASSINATURA DO HUB ═══════════════════════════════════
+   É a frase que diz o que este produto é. Ganhou tratamento de vitrine: fundo
+   escuro para destacar do resto claro da página, borda com um brilho girando,
+   varredura de luz atravessando e o texto com um clarão que passa. */
+.badge{display:inline-flex;align-items:center;gap:11px;padding:11px 20px;border-radius:100px;
+  font-size:11px;letter-spacing:1.1px;font-weight:600;position:relative;isolation:isolate;
+  color:#eef2ff;background:linear-gradient(140deg,#141b33,#1e2a4c 45%,#111830);
+  box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -8px 20px -12px rgba(0,0,0,.7) inset,
+             0 14px 34px -14px rgba(20,30,60,.7),0 3px 10px -4px rgba(20,30,60,.4);
+  animation:badgeEntra 1s cubic-bezier(.16,1,.3,1) both .3s}
+@keyframes badgeEntra{from{opacity:0;transform:translateY(-8px) scale(.94)}to{opacity:1;transform:none}}
+
+/* O anel de luz que dá a volta na borda. A máscara vaza o miolo: sem ela o
+   gradiente cônico pinta o fundo inteiro, não a borda. */
+.badge::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  pointer-events:none;
+  background:conic-gradient(from var(--giro,0deg),rgba(255,255,255,.1) 0deg,
+    rgba(79,124,255,.95) 40deg,rgba(139,92,246,1) 70deg,rgba(30,214,127,.9) 105deg,
+    rgba(255,255,255,.1) 160deg,rgba(255,255,255,.1) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:badgeGiro 4.5s linear infinite}
+@property --giro{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes badgeGiro{to{--giro:360deg}}
+
+/* a varredura que atravessa o fundo */
+.badge::after{content:'';position:absolute;top:0;left:-50%;width:38%;height:100%;
+  pointer-events:none;border-radius:inherit;
+  background:linear-gradient(100deg,transparent,rgba(140,175,255,.35),transparent);
+  animation:sheen 5s ease-in-out infinite 1s}
+@keyframes sheen{0%{left:-50%}45%,100%{left:140%}}
+
+/* o texto recebe um clarão passando por cima */
+.badge span:not(.dot){position:relative;
+  background:linear-gradient(100deg,#cdd8f5 20%,#fff 40%,#8fb6ff 52%,#cdd8f5 70%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:badgeTexto 5s ease-in-out infinite 1s}
+@keyframes badgeTexto{0%{background-position:120% 0}55%,100%{background-position:-60% 0}}
+
+.badge .dot{position:relative;width:8px;height:8px;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,#7ea1ff,#28dd8a);
+  box-shadow:0 0 10px rgba(79,124,255,.9),0 0 20px rgba(40,221,138,.5)}
+.badge .dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;
+  border:1.5px solid rgba(126,161,255,.7);animation:ring 2.4s ease-out infinite}
+@keyframes ring{0%{transform:scale(.55);opacity:1}100%{transform:scale(1.9);opacity:0}}
+
+/* quem pediu menos animação recebe o selo parado, sem perder o visual */
+@media(prefers-reduced-motion:reduce){
+  .badge,.badge::before,.badge::after,.badge span:not(.dot),.badge .dot::after{animation:none}
+  .badge span:not(.dot){color:#eef2ff;background:none;-webkit-text-fill-color:#eef2ff}
+}
 
 /* ── botões ─────────────────────────────────────────────── */
 .btn{border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.3px;
