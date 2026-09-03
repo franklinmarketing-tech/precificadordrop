@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Precificador Drop — Hub do Ecossistema</title>
-<link rel="icon" type="image/webp" href="assets/img/logo3d.webp"/>
+<link rel="icon" type="image/webp" href="assets/img/favicon.webp"/>
 <meta name="description" content="O ecossistema de precificação para dropshipping no Brasil: Mercado Livre, Shopee e gestão de catálogo em um só hub."/>
 <link rel="stylesheet" href="assets/hub.css"/>
 <link rel="stylesheet" href="assets/views.css"/>
@@ -38,6 +38,49 @@ if (!window.XLSX) {
         <div class="logo-sub" id="logoSub">HUB DO ECOSSISTEMA</div>
       </div>
     </button>
+
+    <!-- Menu do topo: abre passando o mouse. Cada grupo lista as ferramentas
+         daquela família; conforme o projeto crescer, entram novas linhas aqui
+         sem mexer no resto da página. -->
+    <nav class="menu" aria-label="Ferramentas do hub">
+      <div class="mn">
+        <button class="mn-t" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M3 7h7v7H3zM14 3h7v11h-7zM3 17h7v4H3zM14 17h7v4h-7z"/></svg>
+          Ferramentas
+          <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mn-drop">
+          <div class="mn-grupo">CATÁLOGO</div>
+          <button class="mn-i" onclick="ir('planilha')">
+            <img src="assets/img/ic-planilha.webp" alt=""/>
+            <span><b>Planilha de produtos</b><i>Trata o catálogo do fornecedor</i></span>
+          </button>
+          <div class="mn-grupo">PRECIFICAÇÃO</div>
+          <button class="mn-i" onclick="ir('ml')">
+            <img src="assets/img/ic-ml.webp" alt=""/>
+            <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
+          </button>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-shopee.webp" alt=""/>
+            <span><b>Precificar Shopee</b><i>Em breve</i></span>
+          </button>
+          <div class="mn-grupo">BASES JÁ PUBLICADAS</div>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-base-ml.webp" alt=""/>
+            <span><b>Base do Mercado Livre</b><i>Em breve</i></span>
+          </button>
+          <button class="mn-i mn-off" disabled>
+            <img src="assets/img/ic-base-shop.webp" alt=""/>
+            <span><b>Base da Shopee</b><i>Em breve</i></span>
+          </button>
+        </div>
+      </div>
+
+      <button class="mn-t mn-solo" onclick="ir('manual')">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Manual
+      </button>
+    </nav>
 
     <div id="topoHub">
       <div class="badge"><span class="dot"></span>O ECOSSISTEMA DO DROPSHIPPING NO BRASIL</div>
@@ -75,85 +118,125 @@ if (!window.XLSX) {
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">01</span>
         <span class="tool-status st-live">ATIVO</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha e gráfico" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
-          <div class="tool-title">Edição de planilha de produtos</div>
-          <div class="tool-desc">O catálogo do fornecedor pronto para o marketplace.</div>
-          <ul class="feats azul">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Descrição em até 60 caracteres</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Bloco cadastral fora da descrição</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>A coluna <b>Modelo</b> que o ML exige</li>
-          </ul>
+          <div class="tool-title">Planilha de produtos</div>
+          <div class="tool-desc">Trata o catálogo do fornecedor.</div>
         </div>
         <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
+          <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha e sem mexer no que já estava certo.</p>
+          <ul>
+            <li>Encurta a descrição para os 60 caracteres que o anúncio aceita</li>
+            <li>Tira o bloco cadastral que vem colado no fim da descrição</li>
+            <li>Preenche a condição do produto como NOVO</li>
+            <li>Gera a coluna <b>Modelo</b>, que o Mercado Livre exige</li>
+            <li>Remove termos que não podem ir para o marketplace</li>
+            <li>Confere 8 pontos antes de gerar e avisa o que ficou estranho</li>
+          </ul>
+        </div>
       </button>
 
       <button class="tool tool-2 live" data-tilt onclick="ir('ml')">
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">02</span>
         <span class="tool-status st-live">ATIVO</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Precificar Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-ml.webp" alt="Calculadora com moedas" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
           <div class="tool-title">Precificar Mercado Livre</div>
           <div class="tool-desc">O preço que entrega a margem que você pediu.</div>
-          <ul class="feats">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Comissão, custo fixo e frete oficiais</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Frete por reputação e peso volumétrico</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Arquivo pronto para o Bling</li>
-          </ul>
         </div>
         <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>Como o preço é calculado</span></div>
+          <p>Você diz a margem que quer; o cálculo desconta tudo que o Mercado Livre cobra e devolve o preço de venda. Um produto por vez ou a planilha inteira de uma vez.</p>
+          <ul>
+            <li>Comissão por tipo de anúncio, Clássico ou Premium</li>
+            <li>Custo fixo por faixa de preço, pela tabela oficial</li>
+            <li>Frete pela sua reputação, peso e faixa de preço</li>
+            <li>Peso volumétrico: cobra pelo maior entre ele e o peso real</li>
+            <li>Impostos, devolução, embalagem e rebate, se você usar</li>
+            <li>Avisa antes de gerar o que pode fazer você perder dinheiro</li>
+            <li>Sai um arquivo pronto para importar no Bling</li>
+          </ul>
+        </div>
       </button>
 
       <button class="tool tool-3 soon" data-tilt>
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">03</span>
         <span class="tool-status st-soon">EM BREVE</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Precificar Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-shopee.webp" alt="Loja online no celular" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
           <div class="tool-title">Precificar Shopee</div>
-          <div class="tool-desc">A conta do card 02, com as regras da Shopee.</div>
-          <ul class="feats laranja">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Comissão e taxa fixa da Shopee</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Frete grátis e cupom do vendedor</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Também em massa, pela planilha</li>
-          </ul>
+          <div class="tool-desc">A mesma conta, com as regras da Shopee.</div>
         </div>
         <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
+          <p>O mesmo cálculo do card 02, trocando as regras do Mercado Livre pelas da Shopee — que cobra de um jeito diferente e por isso pede a própria conta.</p>
+          <ul>
+            <li>Comissão e taxa fixa da Shopee</li>
+            <li>Programa de frete grátis e cupom do vendedor</li>
+            <li>Um produto por vez ou a planilha inteira</li>
+            <li>Arquivo pronto para subir de volta</li>
+          </ul>
+        </div>
       </button>
 
       <button class="tool tool-4 soon" data-tilt>
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">04</span>
         <span class="tool-status st-soon">EM BREVE</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Base do Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Relatório com gráfico de linha" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
-          <div class="tool-title">Editar base Mercado Livre</div>
-          <div class="tool-desc">Revisa e reajusta o que já está anunciado.</div>
-          <ul class="feats violeta">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Compara o preço atual com o sugerido</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Mostra o que está vendendo no prejuízo</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Reajuste em massa, com a margem nova</li>
-          </ul>
+          <div class="tool-title">Base do Mercado Livre</div>
+          <div class="tool-desc">Revisa o que já está anunciado.</div>
         </div>
         <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
+          <p>Para o catálogo que já está no ar. Você sobe a base exportada do Mercado Livre e vê, anúncio por anúncio, se o preço de hoje ainda paga a conta.</p>
+          <ul>
+            <li>Compara o preço que está no ar com o preço sugerido</li>
+            <li>Mostra quais anúncios estão vendendo no prejuízo</li>
+            <li>Mostra quais estão abaixo da margem que você quer</li>
+            <li>Reajusta em massa e devolve a base pronta</li>
+          </ul>
+        </div>
       </button>
 
       <button class="tool tool-5 soon" data-tilt>
         <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
         <span class="tool-num">05</span>
         <span class="tool-status st-soon">EM BREVE</span>
+        <span class="dica" tabindex="0" role="button" aria-expanded="false"
+              aria-label="Saiba mais sobre Base da Shopee"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
         <div class="tool-ic"><img src="assets/img/ic-base-shop.webp" alt="Nuvem com seta para cima" width="76" height="76" loading="lazy"/></div>
         <div class="tool-body lift-1">
-          <div class="tool-title">Carregar base Shopee</div>
-          <div class="tool-desc">O mesmo do card 04, para a base da Shopee.</div>
-          <ul class="feats rosa">
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Sobe a base exportada da Shopee</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Reprocessa com a margem que você definir</li>
-            <li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Devolve pronta para reenviar</li>
-          </ul>
+          <div class="tool-title">Base da Shopee</div>
+          <div class="tool-desc">O mesmo do card 04, na Shopee.</div>
         </div>
         <div class="tool-cta">EM BREVE <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+        <div class="saibamais" aria-hidden="true">
+          <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que vem por aí</span></div>
+          <p>Sobe a base que já está publicada na Shopee, reprocessa os preços com a margem que você definir e devolve pronta para reenviar.</p>
+          <ul>
+            <li>Lê a base exportada da Shopee</li>
+            <li>Reprocessa com a margem nova</li>
+            <li>Aponta o que está no prejuízo hoje</li>
+            <li>Devolve o arquivo pronto para reenviar</li>
+          </ul>
+        </div>
       </button>
 
     </div>
@@ -521,6 +604,174 @@ if (!window.XLSX) {
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ VIEW: MANUAL ═══════════════ -->
+  <div id="view-manual" class="view hide">
+    <div class="man-head">
+      <div>
+        <h1>Manual do <span class="grad">sistema.</span></h1>
+        <div class="h-sub">Como cada ferramenta funciona, o que entra e o que sai, e as
+          contas por trás do preço. Dá para imprimir ou salvar em PDF.</div>
+      </div>
+      <button class="btn btn-primary" onclick="manualPDF()">
+        <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        Gerar PDF
+      </button>
+    </div>
+
+    <div class="man">
+      <nav class="man-sum" aria-label="Sumário">
+        <div class="man-sum-t">NESTE MANUAL</div>
+        <a href="#m-inicio">Por onde começar</a>
+        <a href="#m-planilha">1 · Planilha de produtos</a>
+        <a href="#m-ml">2 · Precificar Mercado Livre</a>
+        <a href="#m-conta">3 · A conta do preço</a>
+        <a href="#m-frete">4 · Frete e peso volumétrico</a>
+        <a href="#m-conferencia">5 · A conferência</a>
+        <a href="#m-bling">6 · Importar no Bling</a>
+        <a href="#m-duvidas">7 · Perguntas frequentes</a>
+      </nav>
+
+      <article class="man-txt">
+        <section id="m-inicio">
+          <h2>Por onde começar</h2>
+          <p>O hub tem duas ferramentas no ar. Elas são independentes — você usa a que
+            precisar, na ordem que quiser.</p>
+          <div class="man-passos">
+            <div><b>1</b><span>Trate a planilha do fornecedor no <strong>editor de planilha</strong>:
+              descrições, coluna Modelo, termos que não podem ir para o marketplace.</span></div>
+            <div><b>2</b><span>Passe essa planilha pelo <strong>precificador</strong>: você diz a
+              margem, ele devolve o preço com as taxas do Mercado Livre já descontadas.</span></div>
+            <div><b>3</b><span>Importe o arquivo que sai no <strong>Bling</strong> e publique.</span></div>
+          </div>
+        </section>
+
+        <section id="m-planilha">
+          <h2>1 · Planilha de produtos</h2>
+          <p>Sobe a planilha que veio do fornecedor e devolve a mesma planilha ajustada
+            para o marketplace. <strong>Nenhuma linha é perdida</strong> e o arquivo sai só
+            com a aba corrigida.</p>
+          <h3>O que ele muda</h3>
+          <ul>
+            <li><b>Descrição curta</b> — encurta para os 60 caracteres que o anúncio aceita,
+              cortando em palavra inteira, nunca no meio.</li>
+            <li><b>Bloco cadastral</b> — tira do fim da descrição longa aquele bloco de
+              SKU, EAN, marca e preço. Menção no meio do texto não é tocada.</li>
+            <li><b>Condição</b> — preenche como NOVO.</li>
+            <li><b>Modelo</b> — gera a coluna que o Mercado Livre exige. Sem ela a
+              importação falha.</li>
+            <li><b>Termos removidos</b> — palavras que não podem ir para o marketplace,
+              como o nome da sua loja. Você edita a lista nos parâmetros.</li>
+          </ul>
+          <h3>Antes de gerar</h3>
+          <p>São oito verificações automáticas: contagem de linhas, colunas obrigatórias,
+            descrições dentro do limite, nada apagado por engano. O que ficar estranho
+            aparece na tela antes de você baixar o arquivo.</p>
+        </section>
+
+        <section id="m-ml">
+          <h2>2 · Precificar Mercado Livre</h2>
+          <p>Duas formas de usar: <b>um produto por vez</b>, para simular, ou
+            <b>em massa</b>, subindo a planilha inteira.</p>
+          <h3>O que você informa</h3>
+          <ul>
+            <li><b>Custo</b> do fornecedor.</li>
+            <li><b>Peso</b> e, se tiver, <b>altura, largura e comprimento</b>.</li>
+            <li><b>Margem</b> que quer no fim, depois de tudo descontado.</li>
+            <li><b>Reputação</b> da sua conta e <b>tipo de anúncio</b>, Clássico ou Premium.</li>
+          </ul>
+          <h3>O que sai</h3>
+          <p>O preço de venda que entrega aquela margem, mais a memória de cálculo:
+            quanto foi comissão, quanto foi custo fixo, quanto foi frete e quanto sobrou
+            de lucro por unidade.</p>
+        </section>
+
+        <section id="m-conta">
+          <h2>3 · A conta do preço</h2>
+          <p>É a mesma conta da planilha de referência, célula por célula. Do preço de
+            venda saem, nesta ordem:</p>
+          <ol>
+            <li><b>Comissão</b> — percentual sobre o preço, conforme o tipo de anúncio.
+              Clássico e Premium têm percentuais diferentes, e você pode informar a tarifa
+              real da categoria se souber.</li>
+            <li><b>Custo fixo</b> — por faixa de preço, pela tabela oficial:
+              abaixo de R$ 12,50 são 50% do preço; de R$ 12,50 a R$ 29 são R$ 6,25;
+              até R$ 50 são R$ 6,50; até R$ 78,99 são R$ 6,75; de R$ 79 em diante não há
+              custo fixo.</li>
+            <li><b>Frete</b> — pela sua reputação, o peso cobrável e a faixa de preço.</li>
+            <li><b>Rebate</b> — entra somando, quando o Mercado Livre subsidia parte.</li>
+            <li><b>Imposto, devolução e embalagem</b> — se você usar; vêm zerados por padrão.</li>
+          </ol>
+          <p>O que sobra é o <b>lucro líquido</b>. A margem líquida é esse lucro dividido
+            pelo preço de venda — não pelo custo.</p>
+        </section>
+
+        <section id="m-frete">
+          <h2>4 · Frete e peso volumétrico</h2>
+          <p>O frete não depende só do peso da balança. O Mercado Livre cobra pelo
+            <b>maior</b> entre o peso real e o <b>peso volumétrico</b>:</p>
+          <p class="man-form">peso volumétrico (kg) = altura × largura × comprimento ÷ 6.000</p>
+          <p>Com as medidas em centímetros. Um produto leve e grande paga pelo volume.
+            Uma moto elétrica de 13 kg em caixa de 45 × 91 × 43 cm tem peso cobrável de
+            29,3 kg — o frete sai de R$ 70,95 para R$ 107,85.</p>
+          <p><b>Produto sem peso e sem medidas sai com frete zero</b>, o que faz o lucro
+            parecer maior do que é. O precificador avisa quando isso acontece.</p>
+          <h3>Reputação</h3>
+          <p>São três tabelas oficiais — verde, amarela e vermelha. A mesma caixa de
+            1,2 kg num produto de R$ 89,99 custa R$ 14,75 na verde, R$ 17,70 na amarela e
+            R$ 29,50 na vermelha. Escolha a reputação da sua conta antes de gerar os preços.</p>
+          <p>Abaixo de R$ 19 o frete é limitado a metade do preço do produto.</p>
+        </section>
+
+        <section id="m-conferencia">
+          <h2>5 · A conferência</h2>
+          <p>Antes de baixar o arquivo, o precificador mostra o que pode fazer você perder
+            dinheiro. Cada aviso tem um botão que filtra a tabela nas linhas afetadas —
+            inclusive além das cem primeiras.</p>
+          <ul>
+            <li><b>Frete zero</b> — produto sem peso, sem medidas e sem frete manual.</li>
+            <li><b>Sem custo</b> ou <b>custo não é um número</b> — a linha fica sem preço novo.</li>
+            <li><b>Peso parece errado</b> — abaixo de 10 g, sinal de peso em gramas no lugar de quilos.</li>
+            <li><b>Margem inalcançável</b> — não existe preço que entregue a margem pedida.</li>
+            <li><b>Tarifa suspeita</b> — comissão acima de 50%, provavelmente coluna errada.</li>
+          </ul>
+          <p>Se restar alguma linha sem preço, o hub avisa antes de gerar: essas linhas
+            manteriam o preço antigo e sairiam misturadas no arquivo.</p>
+        </section>
+
+        <section id="m-bling">
+          <h2>6 · Importar no Bling</h2>
+          <p>O arquivo sai no formato de produtos do Bling, com todas as colunas na ordem
+            certa e o preço como número.</p>
+          <p>No Bling: <b>Cadastros → Produtos → Mais ações → Importar produtos</b>.
+            Não use o importador de <b>campos personalizados</b> — é outro formato e a
+            importação falha.</p>
+        </section>
+
+        <section id="m-duvidas">
+          <h2>7 · Perguntas frequentes</h2>
+          <h3>Por que o preço mudou depois que troquei a reputação?</h3>
+          <p>Porque o frete muda. A tabela vermelha chega a custar o dobro da verde no
+            mesmo peso, e isso entra inteiro no preço.</p>
+          <h3>A coluna "Preço de custo" da minha planilha está zerada. Está errado?</h3>
+          <p>Não. Na sua planilha o custo do fornecedor está na coluna <b>Preço</b>. É ela
+            que o precificador usa.</p>
+          <h3>Posso mudar a taxa de devolução?</h3>
+          <p>Pode. Vem zerada por padrão; se você tem histórico de devolução, coloque o
+            percentual real nos parâmetros e o preço passa a cobrir essa perda.</p>
+          <h3>Onde vejo as tabelas que o sistema usa?</h3>
+          <p>Nos parâmetros do precificador, no painel de custos oficiais. Todos os
+            valores ficam à vista e podem ser corrigidos se o Mercado Livre mudar a tabela.</p>
+        </section>
+
+        <div class="man-fim">
+          <b>Precificador Drop</b>
+          <span>O ecossistema do dropshipping no Brasil · precificador-drop.vercel.app</span>
+        </div>
+      </article>
     </div>
   </div>
 

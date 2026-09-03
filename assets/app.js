@@ -33,6 +33,7 @@ const VIEWS = {
   hub:      {sub:'HUB DO ECOSSISTEMA',            titulo:'Precificador Drop — Hub do Ecossistema'},
   ml:       {sub:'PRECIFICAR MERCADO LIVRE',      titulo:'Precificar Mercado Livre — Precificador Drop'},
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
+  manual:   {sub:'MANUAL DO SISTEMA',              titulo:'Manual — Precificador Drop'},
 };
 let viewAtual = 'hub';
 
@@ -42,9 +43,9 @@ function ir(v, semHash){
   Object.keys(VIEWS).forEach(k => mostrar('view-' + k, k === v));
 
   document.body.classList.toggle('view-hub', v === 'hub');
-  mostrar('topoHub', v === 'hub');
-  mostrar('topoTool', v !== 'hub');
-  mostrar('rodape', v === 'hub' ? false : true);
+  mostrar('topoTool', v !== 'hub' && v !== 'manual');
+  mostrar('topoHub',  v === 'hub' || v === 'manual');
+  mostrar('rodape', v !== 'hub' && v !== 'manual');
   mostrar('btnParams', v === 'planilha');
   mostrar('passos', v === 'ml' && mlAba === 'massa');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
@@ -118,6 +119,66 @@ function contarPreco(){
   })(t0);
 }
 /* quem dispara é o roteador, sempre que o hub entra em cena */
+
+/* ══ MANUAL ════════════════════════════════════════════════════════════════
+   "Gerar PDF" abre o diálogo de impressão, onde o navegador oferece "Salvar
+   como PDF". O CSS de impressão já tira topo, sumário e fundo. É o caminho sem
+   biblioteca nova — e sai com o texto selecionável, não como imagem. */
+function manualPDF(){
+  if(viewAtual !== 'manual') ir('manual');
+  setTimeout(() => window.print(), 260);   // dá tempo da view trocar
+}
+
+/* o sumário rola suave até a seção, sem sujar a barra de endereço */
+document.querySelectorAll('.man-sum a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const alvo = document.querySelector(a.getAttribute('href'));
+    if(alvo) alvo.scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
+  });
+});
+
+/* ══ LÂMPADA "SAIBA MAIS" ══════════════════════════════════════════════════
+   O painel abre no hover pelo CSS. Aqui ficam os dois casos que o CSS não
+   cobre: a lâmpada está DENTRO do botão do cartão, então clicar nela abriria a
+   ferramenta; e no celular não existe hover, então o toque precisa abrir. */
+document.querySelectorAll('.dica').forEach(lamp => {
+  const painel = lamp.parentElement.querySelector('.saibamais');
+
+  const marcar = aberto => {
+    lamp.setAttribute('aria-expanded', aberto);
+    if(painel) painel.setAttribute('aria-hidden', !aberto);
+  };
+
+  lamp.addEventListener('click', e => {
+    e.stopPropagation();          // não abre a ferramenta
+    e.preventDefault();
+    const abrindo = !lamp.classList.contains('aberta');
+    document.querySelectorAll('.dica.aberta').forEach(o => {
+      o.classList.remove('aberta');
+      o.setAttribute('aria-expanded', 'false');
+    });
+    lamp.classList.toggle('aberta', abrindo);
+    marcar(abrindo);
+  });
+
+  // teclado: Enter e espaço abrem, como em qualquer botão
+  lamp.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); lamp.click(); }
+  });
+  lamp.addEventListener('mouseenter', () => marcar(true));
+  lamp.addEventListener('mouseleave', () => { if(!lamp.classList.contains('aberta')) marcar(false); });
+});
+
+/* toque fora fecha o painel que ficou aberto */
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dica.aberta').forEach(o => {
+    o.classList.remove('aberta');
+    o.setAttribute('aria-expanded', 'false');
+    const p = o.parentElement.querySelector('.saibamais');
+    if(p) p.setAttribute('aria-hidden', 'true');
+  });
+});
 
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: PRECIFICADOR MERCADO LIVRE
