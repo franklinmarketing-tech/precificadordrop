@@ -346,11 +346,12 @@ if (!window.XLSX) {
     <!-- Barra de contexto: à esquerda o que você escolhe, à direita o que isso
          está produzindo. Antes as três coisas ficavam soltas na mesma linha. -->
     <div class="ctx">
+      <div class="ctx-esq">
+      <div class="ctx-linha">
       <div class="ctx-bloco">
         <div class="ctx-lbl">1 · Reputação da conta</div>
         <div class="ctx-opts" id="ctxReputacao"></div>
       </div>
-      <div class="ctx-risca"></div>
       <div class="ctx-bloco">
         <div class="ctx-lbl">2 · Tipo de anúncio</div>
         <div class="ctx-opts">
@@ -362,6 +363,22 @@ if (!window.XLSX) {
           </button>
         </div>
       </div>
+      </div>
+
+      <!-- A calculadora ocupa o vazio sob os seletores: é consulta rápida, não
+           passo do fluxo — e assim o cartão da planilha sobe. -->
+      <button class="calc-card" onclick="abrirCalc()">
+        <span class="calc-ic"><img src="assets/img/ic-ml.webp" alt="" width="40" height="40"/></span>
+        <span class="calc-txt">
+          <b>Calculadora de um produto</b>
+          <i>simule custo, peso e margem sem planilha</i>
+        </span>
+        <span class="calc-cta">ABRIR
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </span>
+      </button>
+      </div>
+
       <div class="ctx-lado">
         <div class="ctx-agora" id="ctxAgora"></div>
         <div class="ctx-cards">
@@ -385,19 +402,6 @@ if (!window.XLSX) {
     
 
     <!-- ── planilha em massa ── -->
-    <!-- Atalho para a calculadora de um produto só. O trabalho principal é a
-         planilha; a simulação avulsa vira pop-up para não dividir a tela. -->
-    <button class="calc-card" onclick="abrirCalc()">
-      <span class="calc-ic"><img src="assets/img/ic-ml.webp" alt="" width="52" height="52"/></span>
-      <span class="calc-txt">
-        <b>Calculadora de um produto</b>
-        <i>Simule custo, peso e margem sem subir planilha nenhuma.</i>
-      </span>
-      <span class="calc-cta">ABRIR
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </span>
-    </button>
-
     <div id="ml-massa">
       <div class="panel" id="mlStep1">
         <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar planilha de produtos</div></div>
