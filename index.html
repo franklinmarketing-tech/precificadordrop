@@ -81,10 +81,52 @@ if (!window.XLSX) {
         </div>
       </div>
 
-      <button class="mn-t mn-solo" onclick="ir('manual')">
-        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        Manual
-      </button>
+      <!-- O manual tem nome: "Guia do Drop". Abre passando o mouse, com
+           atalho direto para cada capítulo — assim quem tem uma dúvida
+           específica não precisa abrir e procurar. -->
+      <div class="mn">
+        <button class="mn-t" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Guia do Drop
+          <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mn-drop mn-guia">
+          <button class="mn-g" onclick="irManual('m-inicio')">
+            <b>Por onde começar</b><i>o caminho do fornecedor até o anúncio</i>
+          </button>
+          <div class="mn-grupo">AS FERRAMENTAS</div>
+          <button class="mn-g" onclick="irManual('m-planilha')">
+            <b>Planilha de produtos</b><i>60 caracteres, coluna Modelo, bloco cadastral</i>
+          </button>
+          <button class="mn-g" onclick="irManual('m-ml')">
+            <b>Precificar no Mercado Livre</b><i>o que entra e o que sai</i>
+          </button>
+          <button class="mn-g" onclick="irManual('m-categoria')">
+            <b>Tarifa real por categoria</b><i>por que 13% para todos custa caro</i>
+          </button>
+          <button class="mn-g" onclick="irManual('m-pesquisa')">
+            <b>Pesquisa de mercado</b><i>categoria, comissão e o que está em alta</i>
+          </button>
+          <div class="mn-grupo">AS CONTAS</div>
+          <button class="mn-g" onclick="irManual('m-conta')">
+            <b>A conta do preço</b><i>comissão, custo fixo, frete e o que sobra</i>
+          </button>
+          <button class="mn-g" onclick="irManual('m-frete')">
+            <b>Frete e peso volumétrico</b><i>quando o volume paga mais que a balança</i>
+          </button>
+          <div class="mn-grupo">NA HORA DE SUBIR</div>
+          <button class="mn-g" onclick="irManual('m-conferencia')">
+            <b>A conferência</b><i>o que pode fazer você perder dinheiro</i>
+          </button>
+          <button class="mn-g" onclick="irManual('m-bling')">
+            <b>Importar no Bling</b><i>o caminho certo, e o que dá erro</i>
+          </button>
+          <button class="mn-g mn-g-tudo" onclick="ir('manual')">
+            Abrir o guia inteiro
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
     </nav>
 
     <div id="topoHub">
@@ -320,23 +362,21 @@ if (!window.XLSX) {
           </button>
         </div>
       </div>
-      <button class="ctx-agora" id="ctxAgora" onclick="abrirCustos()"
-           title="Ver todos os custos oficiais"></button>
-
-      <div class="ctx-acoes">
-      <button class="btn btn-custos" onclick="abrirCustos()">
-        <svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>
-        Custos oficiais
-      </button>
-      <button class="btn btn-params" onclick="abrirParamsML()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Editar parâmetros
-      </button>
-      <button class="btn btn-manual" onclick="irManual('m-ml')" title="Como o preço é calculado">
-        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        Manual
-      </button>
+      <div class="ctx-lado">
+        <div class="ctx-agora" id="ctxAgora"></div>
+        <div class="ctx-cards">
+          <button class="cfg-card cfg-custos" onclick="abrirCustos()">
+            <span class="cfg-ic"><svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg></span>
+            <span class="cfg-tx"><b>Custos oficiais</b><i>tabelas do Mercado Livre</i></span>
+          </button>
+          <button class="cfg-card cfg-params" onclick="abrirParamsML()">
+            <span class="cfg-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+            <span class="cfg-tx"><b>Editar parâmetros</b><i>seus números</i></span>
+          </button>
+        </div>
       </div>
+
+
     </div>
 
     
@@ -580,7 +620,7 @@ if (!window.XLSX) {
   <div id="view-manual" class="view hide">
     <div class="man-head">
       <div>
-        <h1>Manual do <span class="grad">sistema.</span></h1>
+        <h1>Guia do <span class="grad">Drop.</span></h1>
         <div class="h-sub">Como cada ferramenta funciona, o que entra e o que sai, e as
           contas por trás do preço. Dá para imprimir ou salvar em PDF.</div>
       </div>
@@ -832,6 +872,12 @@ if (!window.XLSX) {
       <button class="tab" data-mertab="tendencias" onclick="abaMer('tendencias',this)">
         <svg viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>Em alta agora
       </button>
+      <button class="tab" data-mertab="ficha" onclick="abaMer('ficha',this)">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Ficha do anúncio
+      </button>
+      <button class="tab" data-mertab="campeoes" onclick="abaMer('campeoes',this)">
+        <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>Mais vendidos
+      </button>
       <button class="tab" data-mertab="categorias" onclick="abaMer('categorias',this)">
         <svg viewBox="0 0 24 24"><path d="M3 7h7v7H3zM14 3h7v11h-7zM3 17h7v4H3zM14 17h7v4h-7z"/></svg>Categorias
       </button>
@@ -869,6 +915,48 @@ if (!window.XLSX) {
         <div id="merTend" class="mer-termos"></div>
       </div>
     </div>
+
+
+    <!-- ── ficha do anúncio ── -->
+    <div id="mer-ficha" class="hide">
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t verde">O que o anúncio vai exigir</div></div>
+        <p class="api-nota">Antes de subir no Bling: os campos que a categoria obriga, as
+          condições de venda que ela pede, e como um produto parecido preencheu a ficha.</p>
+        <div class="mer-busca">
+          <input type="text" id="fiQ" placeholder="Ex.: Cofrinho Eletrônico Infantil Elefante"
+                 spellcheck="false" onkeydown="if(event.key==='Enter')fiBuscar()"/>
+          <button class="btn btn-primary" id="fiBtn" onclick="fiBuscar()">Consultar</button>
+        </div>
+        <div id="fiResultado"></div>
+      </div>
+    </div>
+
+    <!-- ── mais vendidos ── -->
+    <div id="mer-campeoes" class="hide">
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">O que mais vende em cada categoria</div>
+          <span class="pill" id="cpPill">escolha uma categoria</span>
+        </div>
+        <p class="api-nota">Os produtos campeões de venda, em ordem. Serve para ver o que
+          já funciona numa categoria antes de escolher o que comprar do fornecedor.</p>
+        <div class="mer-busca">
+          <input type="text" id="cpCat" placeholder="Código da categoria, ex.: MLB1051"
+                 spellcheck="false" onkeydown="if(event.key==='Enter')cpBuscar()"/>
+          <button class="btn btn-primary" id="cpBtn" onclick="cpBuscar()">Ver campeões</button>
+        </div>
+        <div class="cp-atalhos" id="cpAtalhos"></div>
+        <div id="cpResultado"></div>
+      </div>
+    </div>
+
+
+    <!-- ── ficha do anúncio ── -->
+    
+
+    <!-- ── mais vendidos ── -->
+    
 
     <!-- ── categorias ── -->
     <div id="mer-categorias" class="hide">

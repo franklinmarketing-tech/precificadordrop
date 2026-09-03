@@ -33,7 +33,7 @@ const VIEWS = {
   hub:      {sub:'HUB DO ECOSSISTEMA',            titulo:'Precificador Drop — Hub do Ecossistema'},
   ml:       {sub:'PRECIFICAR MERCADO LIVRE',      titulo:'Precificar Mercado Livre — Precificador Drop'},
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
-  manual:   {sub:'MANUAL DO SISTEMA',              titulo:'Manual — Precificador Drop'},
+  manual:   {sub:'GUIA DO DROP',                   titulo:'Guia do Drop — Precificador Drop'},
   mercado:  {sub:'PESQUISA DE MERCADO',            titulo:'Pesquisa de Mercado — Precificador Drop'},
 };
 let viewAtual = 'hub';
@@ -299,7 +299,7 @@ function ctxResumo(){
   if(pml.aliquotaImposto) itens.push(['Imposto', pct(pml.aliquotaImposto)]);
   if(pml.rebate) itens.push(['Rebate', ML.brl(pml.rebate)]);
 
-  el.innerHTML = `<div class="ctx-lbl">Está valendo <span class="ctx-ver">ver custos oficiais</span></div>
+  el.innerHTML = `<div class="ctx-lbl">Está valendo</div>
     <div class="ctx-agora-l">${itens.map(([t, v]) =>
       `<span><i>${esc(t)}</i><b>${esc(v)}</b></span>`).join('')}</div>`;
 }
@@ -909,15 +909,17 @@ function mlValidaCol(){
    de comissão ali e o que o anúncio vai exigir.
    ══════════════════════════════════════════════════════════════════════════ */
 let merAba = 'produto';
-const merJaCarregou = {tendencias: false, categorias: false, envios: false};
+const merJaCarregou = {tendencias: false, categorias: false, envios: false, campeoes: false};
 
 function abaMer(qual, botao){
   merAba = qual;
   document.querySelectorAll('[data-mertab]').forEach(b => b.classList.toggle('active', b === botao));
-  ['produto','tendencias','categorias','envios'].forEach(k => mostrar('mer-' + k, k === qual));
+  ['produto','ficha','campeoes','tendencias','categorias','envios']
+    .forEach(k => mostrar('mer-' + k, k === qual));
   if(qual === 'tendencias' && !merJaCarregou.tendencias) merTendencias();
   if(qual === 'categorias' && !merJaCarregou.categorias) merCategorias(null);
   if(qual === 'envios'     && !merJaCarregou.envios)     merEnvios();
+  if(qual === 'campeoes'   && !merJaCarregou.campeoes)  cpAtalhos();
 }
 
 function mercadoAbrir(){
@@ -981,6 +983,129 @@ async function merBuscar(termo){
     }
   }catch(e){ merFalha('merResultado', e); }
   $('merBtn').disabled = false;
+}
+
+/* ── ficha do anúncio ─────────────────────────────────────────────────────
+   O que a categoria exige, e uma referência de como um produto parecido
+   preencheu. A referência é de OUTRO produto — a marca ali é de outra
+   empresa. Vai marcada como referência, nunca como preenchimento: copiar
+   marca de terceiro para o seu anúncio é problema de marca, não atalho.   */
+async function fiBuscar(termo){
+  const q = termo !== undefined ? termo : $('fiQ').value.trim();
+  if(termo !== undefined) $('fiQ').value = termo;
+  if(!q){
+    $('fiResultado').innerHTML = '<div class="api-erro"><div class="api-ok-d">Digite o título do produto.</div></div>';
+    return;
+  }
+  $('fiBtn').disabled = true;
+  $('fiResultado').innerHTML = '<div class="api-ok-d">Consultando o Mercado Livre…</div>';
+  try{
+    const d = await merApi({acao:'ficha', q});
+    if(!d.achou){
+      $('fiResultado').innerHTML = `<div class="api-erro">
+        <div class="api-ok-t">O Mercado Livre não reconheceu esse produto.</div>
+        <div class="api-ok-d">Tente um título mais descritivo.</div></div>`;
+    }else{
+      const obr = d.obrigatorios || [], cond = d.condicoesVenda || [], ref = d.referencia;
+      const campo = a => `<div class="fi-campo">
+          <b>${esc(a.nome)}</b><code>${esc(a.id)}</code>
+          ${a.valores && a.valores.length
+            ? `<span class="fi-vals">aceita: ${a.valores.map(esc).join(' · ')}${a.valores.length >= 8 ? '…' : ''}</span>`
+            : ''}
+        </div>`;
+      $('fiResultado').innerHTML = `
+        <div class="mer-res">
+          <div class="mer-res-cat">
+            <span class="mer-lbl">Categoria</span>
+            <b>${esc(d.categoria.nome || '—')}</b><code>${esc(d.categoria.id)}</code>
+          </div>
+          <div class="fi-bloco">
+            <span class="mer-lbl">Campos obrigatórios${d.totalAtributos ? ` — ${obr.length} de ${d.totalAtributos} atributos` : ''}</span>
+            ${obr.length ? obr.map(campo).join('')
+                         : '<div class="api-ok-d">Nenhum campo obrigatório nesta categoria.</div>'}
+          </div>
+          ${cond.length ? `
+            <div class="fi-bloco">
+              <span class="mer-lbl">Condições de venda que a categoria pede</span>
+              ${cond.map(campo).join('')}
+            </div>` : ''}
+          ${ref ? `
+            <div class="fi-bloco fi-ref">
+              <span class="mer-lbl">Como um produto parecido preencheu</span>
+              <div class="fi-aviso">
+                Esta ficha é de <b>outro produto</b> — “${esc(ref.nome || '')}”. Serve para
+                ver o formato esperado. <b>Não copie a marca</b>: ela é de outra empresa,
+                e anunciar com marca de terceiro dá problema.
+              </div>
+              <div class="fi-refs">
+                ${ref.campos.map(c => `<div class="fi-ref-l ${c.id === 'BRAND' ? 'perigo' : ''}">
+                    <i>${esc(c.nome)}</i><b>${esc(c.valor)}</b>
+                    ${c.id === 'BRAND' ? '<span class="fi-tag">não copie</span>' : ''}
+                  </div>`).join('')}
+              </div>
+            </div>` : ''}
+        </div>`;
+    }
+  }catch(e){ merFalha('fiResultado', e); }
+  $('fiBtn').disabled = false;
+}
+
+/* ── mais vendidos ────────────────────────────────────────────────────── */
+async function cpAtalhos(){
+  merJaCarregou.campeoes = true;
+  try{
+    const d = await merApi({acao:'categorias'});
+    $('cpAtalhos').innerHTML = '<span class="cp-atalho-t">Ou escolha:</span>' +
+      (d.filhas || []).slice(0, 10).map(c =>
+        `<button class="cp-atalho" onclick="cpBuscar('${esc(c.id)}')">${esc(c.nome)}</button>`).join('');
+  }catch(e){ /* atalho é conveniência: sem ele ainda dá para digitar o código */ }
+}
+
+async function cpBuscar(id){
+  const cat = (id !== undefined ? id : $('cpCat').value).trim().toUpperCase();
+  if(id !== undefined) $('cpCat').value = cat;
+  if(!cat){
+    $('cpResultado').innerHTML = '<div class="api-erro"><div class="api-ok-d">Informe o código da categoria, como MLB1051.</div></div>';
+    return;
+  }
+  $('cpBtn').disabled = true;
+  $('cpPill').className = 'pill';
+  $('cpPill').textContent = 'consultando…';
+  $('cpResultado').innerHTML = '<div class="api-ok-d">Buscando os mais vendidos…</div>';
+  try{
+    const d = await merApi({acao:'campeoes', id: cat});
+    const lista = d.campeoes || [];
+    if(!lista.length){
+      $('cpPill').className = 'pill';
+      $('cpPill').textContent = 'sem dados';
+      $('cpResultado').innerHTML = `<div class="api-erro">
+        <div class="api-ok-t">Esta categoria não tem ranking publicado.</div>
+        <div class="api-ok-d">Nem toda tem. Tente uma categoria mais ampla, ou uma das sugeridas acima.</div></div>`;
+    }else{
+      $('cpPill').className = 'pill pill-ok';
+      $('cpPill').textContent = lista.length + ' PRODUTOS';
+      $('cpResultado').innerHTML = '<div class="cp-lista">' + lista.map(c => `
+        <div class="cp-item">
+          <span class="cp-pos">${c.posicao}</span>
+          ${c.foto ? `<img src="${esc(c.foto)}" alt="" loading="lazy"/>` : '<span class="cp-semfoto"></span>'}
+          <div class="cp-txt">
+            <b>${esc(c.nome || 'sem nome no catálogo')}</b>
+            <i>${c.marca ? 'marca ' + esc(c.marca) : ''}${c.marca && c.atributos ? ' · ' : ''}${c.atributos ? c.atributos + ' atributos na ficha' : ''}</i>
+          </div>
+          ${c.nome ? `<button class="cp-btn" onclick="cpConsultar(this.dataset.n)" data-n="${esc(c.nome)}">ver tarifa</button>` : ''}
+        </div>`).join('') + '</div>';
+    }
+  }catch(e){
+    $('cpPill').className = 'pill pill-bad';
+    $('cpPill').textContent = 'falhou';
+    merFalha('cpResultado', e);
+  }
+  $('cpBtn').disabled = false;
+}
+/* do campeão para a consulta de tarifa, sem digitar de novo */
+function cpConsultar(nome){
+  document.querySelector('[data-mertab="produto"]').click();
+  merBuscar(nome);
 }
 
 /* ── tendências ───────────────────────────────────────────────────────── */
