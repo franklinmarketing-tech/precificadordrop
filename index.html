@@ -385,16 +385,6 @@ if (!window.XLSX) {
          está produzindo. Antes as três coisas ficavam soltas na mesma linha. -->
     <div class="ctx">
       <div class="ctx-esq">
-      <!-- As duas escolhas ja vem preenchidas, entao o aviso nao pede para
-           "selecionar": pede para conferir, porque cada uma muda o preco. Ele
-           some assim que voce mexe em qualquer uma das duas. -->
-      <div class="ctx-alerta" id="ctxAlerta">
-        <span class="ctx-al-ic">
-          <svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><circle cx="12" cy="12" r="9"/></svg>
-        </span>
-        <span class="ctx-al-tx"><b>Confira antes de calcular</b>
-          <i>reputação e tipo de anúncio mudam o preço de cada produto</i></span>
-      </div>
       <div class="ctx-linha">
       <div class="ctx-bloco">
         <div class="ctx-lbl">1 · Reputação da conta</div>
@@ -411,6 +401,15 @@ if (!window.XLSX) {
           </button>
         </div>
       </div>
+        <!-- As duas escolhas já vêm preenchidas, então o aviso não pede para
+             "selecionar": pede para conferir, porque cada uma muda o preço.
+             Em texto, ao lado — não numa faixa própria. Some no primeiro toque. -->
+        <div class="ctx-alerta" id="ctxAlerta">
+          <span class="ctx-al-ic">
+            <svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><circle cx="12" cy="12" r="9"/></svg>
+          </span>
+          <span class="ctx-al-tx"><b>Confira</b><i>as duas mudam o preço</i></span>
+        </div>
       </div>
 
       <!-- A calculadora ocupa o vazio sob os seletores: é consulta rápida, não

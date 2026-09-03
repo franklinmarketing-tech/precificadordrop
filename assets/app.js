@@ -308,7 +308,7 @@ function ctxConferido(){
   const al = $('ctxAlerta');
   if(al && !al.classList.contains('some')){
     al.classList.add('feito');
-    al.querySelector('.ctx-al-tx').innerHTML = '<b>Conferido</b><i>o preço vai usar estas duas escolhas</i>';
+    al.querySelector('.ctx-al-tx').innerHTML = '<b>Conferido</b><i>o preço usa estas escolhas</i>';
     setTimeout(() => al.classList.add('some'), 2200);
   }
 }

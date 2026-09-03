@@ -1111,35 +1111,34 @@ body.sem-rolagem{overflow:hidden}
    escolher: é reparar que estão ali. A tabela de frete da reputação vermelha
    custa o dobro da verde, e Premium tem 5 pontos a mais de comissão — quem
    passa direto precifica errado sem perceber. Some no primeiro toque. */
-.ctx-alerta{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;
-  padding:8px 14px 8px 11px;border-radius:100px;margin-bottom:2px;
-  background:linear-gradient(150deg,rgba(255,247,232,.96),rgba(255,240,214,.9));
-  border:1px solid rgba(224,124,10,.28);
-  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 6px 16px -8px rgba(224,124,10,.5);
-  animation:alertaEntra .55s cubic-bezier(.16,1,.3,1) both .35s,
-             alertaResp 2.8s ease-in-out infinite 1s;
-  transition:opacity .45s ease,transform .45s ease,max-height .45s ease,margin .45s ease}
+/* Só texto, ao lado dos seletores: chama a atenção sem tomar uma faixa
+   inteira da barra, que era o que a caixa fazia. */
+.ctx-alerta{display:inline-flex;align-items:center;gap:7px;align-self:flex-end;
+  padding:0 0 7px;background:none;border:none;box-shadow:none;
+  animation:alertaEntra .55s cubic-bezier(.16,1,.3,1) both .35s;
+  transition:opacity .4s ease,transform .4s ease,max-width .4s ease,margin .4s ease}
 @keyframes alertaEntra{from{opacity:0;transform:translateY(-6px) scale(.95)}to{opacity:1;transform:none}}
-@keyframes alertaResp{0%,100%{box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 6px 16px -8px rgba(224,124,10,.5)}
-  50%{box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 10px 24px -8px rgba(224,124,10,.75)}}
-.ctx-al-ic{width:22px;height:22px;flex:none;border-radius:50%;display:flex;
+@keyframes alertaResp{0%,100%{box-shadow:0 2px 6px -2px rgba(224,124,10,.7),0 0 0 0 rgba(224,124,10,.45)}
+  60%{box-shadow:0 2px 6px -2px rgba(224,124,10,.7),0 0 0 7px rgba(224,124,10,0)}}
+.ctx-al-ic{width:17px;height:17px;flex:none;border-radius:50%;display:flex;
   align-items:center;justify-content:center;
   background:linear-gradient(160deg,#ffb454,#e07c0a);
-  box-shadow:0 3px 8px -2px rgba(224,124,10,.7)}
-.ctx-al-ic svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.2;
+  box-shadow:0 2px 6px -2px rgba(224,124,10,.7);
+  animation:alertaResp 2.6s ease-in-out infinite 1s}
+.ctx-al-ic svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
 .ctx-al-tx{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
-.ctx-al-tx b{font-size:11.5px;font-weight:700;color:#8a5200}
-.ctx-al-tx i{font-style:normal;font-size:11px;color:#a06a1e}
+.ctx-al-tx b{font-size:10.5px;font-weight:700;color:#a06a1e;letter-spacing:.2px}
+.ctx-al-tx i{font-style:normal;font-size:10.5px;color:var(--faint)}
 
-.ctx-alerta.feito{background:linear-gradient(150deg,rgba(238,253,245,.96),rgba(226,250,238,.9));
-  border-color:rgba(18,183,106,.3);animation:none}
+.ctx-alerta.feito{animation:none}
+.ctx-alerta.feito .ctx-al-ic{animation:none}
 .ctx-alerta.feito .ctx-al-ic{background:linear-gradient(160deg,#28dd8a,#079254);
   box-shadow:0 3px 8px -2px rgba(18,183,106,.7)}
 .ctx-alerta.feito .ctx-al-tx b{color:var(--green-dk)}
 .ctx-alerta.feito .ctx-al-tx i{color:#0e8f63}
-.ctx-alerta.some{opacity:0;transform:translateY(-8px);max-height:0;margin:0;
-  padding-top:0;padding-bottom:0;border-width:0;pointer-events:none;overflow:hidden}
+.ctx-alerta.some{opacity:0;transform:translateX(6px);max-width:0;margin:0;padding:0;
+  pointer-events:none;overflow:hidden}
 
 /* enquanto não conferiu, os dois grupos respiram junto com o aviso */
 .ctx-bloco.pedeconfere{position:relative}
