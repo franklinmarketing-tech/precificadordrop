@@ -635,3 +635,74 @@ body.view-hub .wrap{min-height:0}
   .man-head h1{font-size:26px}
   .view{animation:none}
 }
+
+/* ═══ PAINEL DA INTEGRAÇÃO COM A API ══════════════════════
+   A tela distingue duas fontes: o que o Mercado Livre responde ao vivo e o
+   que vem de tabela conferida dentro do app. Sem essa separação, dá para
+   achar que tudo se atualiza sozinho — e não é o caso do custo fixo nem do
+   frete, que a API não expõe. */
+.api-ok,.api-erro{padding:14px 16px;border-radius:13px;margin-bottom:14px}
+.api-ok{background:linear-gradient(165deg,rgba(240,253,246,.9),rgba(232,250,241,.75));
+  border:1px solid rgba(18,183,106,.22)}
+.api-erro{background:linear-gradient(165deg,rgba(255,245,245,.9),rgba(254,238,238,.8));
+  border:1px solid rgba(224,49,49,.22)}
+.api-ok-t{font-weight:600;font-size:13px;color:var(--ink);margin-bottom:4px}
+.api-ok-d{font-size:11.5px;line-height:1.6;color:var(--sub)}
+.api-ok-d + .api-ok-d{margin-top:6px}
+
+.api-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:820px){.api-cols{grid-template-columns:1fr}}
+.api-col{padding:14px;border-radius:13px;background:rgba(255,255,255,.7);
+  border:1px solid var(--line)}
+.api-col-t{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;
+  letter-spacing:.5px;color:var(--ink);margin-bottom:11px}
+.api-marca{width:9px;height:9px;border-radius:50%;flex:none}
+.api-marca.viva{background:linear-gradient(160deg,#28dd8a,#079254);
+  box-shadow:0 0 0 3px rgba(18,183,106,.18);animation:vivoPulso 2.4s ease-in-out infinite}
+@keyframes vivoPulso{0%,100%{box-shadow:0 0 0 3px rgba(18,183,106,.18)}50%{box-shadow:0 0 0 6px rgba(18,183,106,.05)}}
+.api-marca.tabela{background:linear-gradient(160deg,#a9b4c9,#6c7891)}
+.api-lista{display:flex;flex-direction:column;gap:11px}
+.api-item b{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.api-item span{font-size:11px;line-height:1.55;color:var(--sub)}
+.api-item code{font-family:ui-monospace,monospace;font-size:10.5px;background:rgba(20,30,60,.06);
+  padding:1px 5px;border-radius:5px}
+
+.api-teste{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+  padding-top:14px;border-top:1px solid var(--line)}
+.api-teste label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--sub)}
+.api-teste input{width:150px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+  font-family:inherit;font-size:13px;background:#fff;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.api-teste input:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+
+.api-res{margin-top:14px;padding:14px 16px;border-radius:13px;
+  background:linear-gradient(165deg,rgba(255,255,255,.95),rgba(240,245,255,.85));
+  border:1px solid rgba(79,124,255,.2)}
+.api-res-t{font-size:11.5px;color:var(--sub);margin-bottom:10px}
+.api-linha{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;
+  padding:7px 0;border-bottom:1px solid rgba(20,30,60,.06);font-size:13px}
+.api-linha:last-of-type{border-bottom:none}
+.api-linha b{font-family:var(--display);font-size:16px;color:var(--blue-dk);
+  font-variant-numeric:tabular-nums}
+.api-linha span:last-child{font-variant-numeric:tabular-nums;color:var(--sub);min-width:72px;text-align:right}
+.api-res-d{margin-top:9px;padding-top:9px;border-top:1px solid rgba(20,30,60,.06);
+  font-size:11px;line-height:1.6;color:var(--sub)}
+
+.api-nota{font-size:11.5px;line-height:1.6;color:var(--sub);margin-bottom:14px}
+.api-ideias{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:820px){.api-ideias{grid-template-columns:1fr}}
+.api-ideia{padding:14px;border-radius:13px;background:rgba(255,255,255,.75);
+  border:1px solid var(--line);transition:border-color .25s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.api-ideia:hover{border-color:rgba(79,124,255,.35);transform:translateY(-2px)}
+.api-ideia.bloq{opacity:.62}
+.api-ideia-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.api-ideia-h b{font-size:12.5px;font-weight:600;color:var(--ink)}
+.api-ideia p{font-size:11px;line-height:1.6;color:var(--sub);margin:0}
+.api-tag{display:inline-block;margin-top:9px;font-size:9.5px;font-weight:600;letter-spacing:.4px;
+  padding:4px 9px;border-radius:100px;color:var(--blue-dk);background:rgba(79,124,255,.12)}
+.api-chip{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:600;
+  letter-spacing:.3px;padding:4px 9px;border-radius:100px;white-space:nowrap;flex:none}
+.api-chip svg{width:10px;height:10px;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.api-chip.ok{background:rgba(18,183,106,.14);color:var(--green-dk);stroke:var(--green-dk)}
+.api-chip.nao{background:rgba(20,30,60,.08);color:var(--faint);stroke:var(--faint)}

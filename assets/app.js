@@ -55,7 +55,7 @@ function ir(v, semHash){
   if(!semHash) location.hash = v === 'hub' ? '' : '#/' + v;
   window.scrollTo({top:0, behavior:'instant'});
   if(v === 'hub') contarPreco();
-  if(v === 'ml' && mlAba === 'taxas') montarTaxas();
+  if(v === 'ml' && mlAba === 'taxas'){ montarTaxas(); apiCarregar(); }
 }
 function daHash(){
   const v = (location.hash || '').replace(/^#\/?/, '') || 'hub';
@@ -301,7 +301,7 @@ function abaML(qual, btn){
   ['calc','massa','taxas'].forEach(k => mostrar('ml-' + k, k === qual));
   document.querySelectorAll('[data-mltab]').forEach(t => t.classList.toggle('active', t.dataset.mltab === qual));
   mostrar('passos', qual === 'massa');
-  if(qual === 'taxas') montarTaxas();
+  if(qual === 'taxas'){ montarTaxas(); apiCarregar(); }
 }
 
 /* ── editor visual das faixas de custo fixo ─────────────────────────────── */
@@ -1072,6 +1072,184 @@ function mlReset(){
 
 /* ── custos oficiais ── */
 let taxasProntas = false;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PAINEL DA INTEGRAÇÃO COM O MERCADO LIVRE
+
+   A tela não afirma "conectado": ela mostra o que foi verificado agora. O
+   /api/ml-status bate em cada endpoint e devolve o status real de cada um.
+
+   O ponto que importa entender: a API entrega a COMISSÃO (que muda por
+   categoria e é o dado difícil de manter na mão), mas NÃO entrega o custo
+   fixo nem a tabela de frete — esses continuam vindo das tabelas oficiais
+   embutidas no app.
+   ══════════════════════════════════════════════════════════════════════════ */
+let apiStatus = null, apiCarregando = false;
+
+/* o que cada fonte cobre — é isto que o painel explica */
+const API_VIVO = [
+  ['Comissão por categoria',
+   'A tarifa real de venda em Clássico e Premium. Muda de categoria para categoria: em Celulares dá 13% e 18%; sem categoria informada, o ML devolve o piso de 11% e 16%.'],
+  ['Categoria pelo título',
+   'A partir do nome do produto, o ML diz em que categoria ele cai — e daí sai a comissão certa daquele item.'],
+  ['Atributos obrigatórios',
+   'O que a categoria exige antes de aceitar o anúncio. É de onde vem a exigência da coluna <b>Modelo</b>.'],
+];
+const API_TABELA = [
+  ['Custo fixo por faixa',
+   'A API devolve <code>fixed_fee: 0</code> em toda consulta de preço — ela não expõe esse valor. Vem da tabela oficial: 50% abaixo de R$ 12,50, depois R$ 6,25, R$ 6,50 e R$ 6,75.'],
+  ['Frete por reputação',
+   'As três tabelas (verde, amarela e vermelha), 30 faixas de peso por 8 faixas de preço, não têm endpoint público. Estão conferidas valor a valor no app.'],
+  ['Peso volumétrico',
+   'É uma regra de cálculo, não um dado: (A × L × C) ÷ 6.000, cobrando pelo maior entre ele e o peso real.'],
+];
+
+function apiChip(ok, txt){
+  return `<span class="api-chip ${ok ? 'ok' : 'nao'}">${ok
+    ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'}${esc(txt)}</span>`;
+}
+
+async function apiCarregar(){
+  if(apiCarregando || apiStatus) return apiPintar();
+  apiCarregando = true;
+  $('apiPill').className = 'pill';
+  $('apiPill').textContent = 'verificando…';
+  try{
+    const r = await fetch('/api/ml-status?sondar=1');
+    apiStatus = await r.json();
+  }catch(e){
+    apiStatus = {conectado:false, erro:'Não consegui falar com o servidor: ' + e.message, sondas:[]};
+  }
+  apiCarregando = false;
+  apiPintar();
+}
+
+function apiPintar(){
+  const st = apiStatus;
+  if(!st) return;
+
+  const pill = $('apiPill');
+  pill.className = 'pill ' + (st.conectado ? 'pill-ok' : 'pill-bad');
+  pill.textContent = st.conectado ? 'CONECTADO' : 'FORA DO AR';
+
+  const quando = st.verificadoEm
+    ? new Date(st.verificadoEm).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'})
+    : '';
+
+  $('apiTopo').innerHTML = st.conectado
+    ? `<div class="api-ok">
+         <div class="api-ok-t">A aplicação está autenticada no Mercado Livre.</div>
+         <div class="api-ok-d">Autenticação por <b>${esc(st.autenticacao || '—')}</b> ·
+           ${st.escopos || 0} permissões · verificado em ${esc(quando)}.
+           A chave fica no servidor e nunca chega ao navegador.</div>
+       </div>`
+    : `<div class="api-erro">
+         <div class="api-ok-t">A integração não está respondendo.</div>
+         <div class="api-ok-d">${esc(st.erro || 'Erro desconhecido.')}
+           ${st.semCredencial ? ' Configure ML_CLIENT_ID e ML_CLIENT_SECRET na Vercel.' : ''}</div>
+         <div class="api-ok-d">Enquanto isso o preço continua saindo pelas tabelas oficiais
+           embutidas — que é o comportamento padrão e está correto.</div>
+       </div>`;
+
+  const lista = itens => itens.map(([t, d]) =>
+    `<div class="api-item"><b>${esc(t)}</b><span>${d}</span></div>`).join('');
+  $('apiVivo').innerHTML   = lista(API_VIVO);
+  $('apiTabela').innerHTML = lista(API_TABELA);
+
+  /* o que dá para construir: sai das sondas, então reflete o que respondeu */
+  const IDEIAS = {
+    descobrir: ['Tarifa certa produto a produto',
+      'Hoje o app usa uma comissão só para a planilha inteira. Com a categoria descoberta pelo título de cada item, cada linha passa a ser precificada com a tarifa real da sua categoria.',
+      'muda o preço de cada produto'],
+    atributos: ['Checagem antes de subir no Bling',
+      'A categoria diz o que é obrigatório. Dá para avisar quais produtos vão ser recusados por falta de Marca, Modelo ou ficha técnica — antes de você tentar importar.',
+      'evita importação recusada'],
+    tarifa: ['Tabela de comissão sempre atualizada',
+      'Quando o Mercado Livre mexer nas tarifas, o app passa a usar o valor novo sem você editar nada.',
+      'some a manutenção manual'],
+    categorias: ['Escolher a categoria na tela',
+      'Uma busca de categoria no precificador, para você fixar a categoria certa quando não quiser confiar na descoberta automática.',
+      'controle fino'],
+    tendencias: ['O que está sendo procurado',
+      'As buscas em alta no site, para escolher o que vale a pena colocar no catálogo.',
+      'ajuda a garimpar produto'],
+    envios: ['Modalidades de envio',
+      'As opções de envio do site, para conferir o que se aplica ao seu tipo de operação.',
+      'apoio ao frete'],
+    busca: ['Preço da concorrência',
+      'Ver por quanto o mesmo produto está sendo anunciado. Exige autorização de uma conta de vendedor — a chave da aplicação sozinha não abre.',
+      'precisa de login do vendedor'],
+  };
+
+  const sondas = st.sondas || [];
+  if(!sondas.length){
+    $('apiIdeias').innerHTML = '<div class="api-ok-d">Sem verificação disponível agora.</div>';
+    $('apiIdeiasPill').textContent = '—';
+    return;
+  }
+  const liberados = sondas.filter(x => x.ok).length;
+  $('apiIdeiasPill').textContent = `${liberados} de ${sondas.length} liberados`;
+
+  $('apiIdeias').innerHTML = sondas.map(sd => {
+    const i = IDEIAS[sd.chave] || [sd.nome, sd.usa, ''];
+    return `<div class="api-ideia ${sd.ok ? '' : 'bloq'}">
+      <div class="api-ideia-h">
+        <b>${esc(i[0])}</b>
+        ${apiChip(sd.ok, sd.ok ? `respondeu em ${sd.ms} ms` : `HTTP ${sd.status || 'sem resposta'}`)}
+      </div>
+      <p>${esc(i[1])}</p>
+      ${i[2] ? `<span class="api-tag">${esc(i[2])}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* consulta ao vivo, para você conferir a tarifa de um preço e categoria */
+async function apiTestar(){
+  const alvo = $('apiResultado');
+  const preco = ML.parseNumero($('apiPreco').value);
+  if(!isFinite(preco) || preco <= 0){
+    alvo.innerHTML = '<div class="api-erro"><div class="api-ok-d">Informe um preço maior que zero.</div></div>';
+    return;
+  }
+  const cat = ($('apiCat').value || '').trim();
+  $('apiBtn').disabled = true;
+  alvo.innerHTML = '<div class="api-ok-d">Consultando o Mercado Livre…</div>';
+  try{
+    const q = new URLSearchParams({preco: String(preco)});
+    if(cat) q.set('categoria', cat);
+    const r = await fetch('/api/ml-tarifa?' + q);
+    const d = await r.json();
+    if(d.erro){
+      alvo.innerHTML = `<div class="api-erro"><div class="api-ok-d">${esc(d.erro)}</div></div>`;
+    }else{
+      const linha = (nome, t) => t ? `
+        <div class="api-linha">
+          <span>${nome}</span>
+          <b>${t.percentual}%</b>
+          <span>${ML.brl(t.valor)}</span>
+        </div>` : '';
+      /* o mesmo preço pela tabela do app, para comparar lado a lado */
+      const doApp = tipo => (pml[tipo === 'classico' ? 'comissaoClassico' : 'comissaoPremium'] * 100);
+      alvo.innerHTML = `
+        <div class="api-res">
+          <div class="api-res-t">Resposta do Mercado Livre para ${ML.brl(preco)}${cat ? ' na categoria ' + esc(cat) : ' <i>sem categoria informada</i>'}</div>
+          ${linha('Clássico', d.tarifas.classico)}
+          ${linha('Premium',  d.tarifas.premium)}
+          <div class="api-res-d">
+            ${cat
+              ? 'Esta é a tarifa real dessa categoria.'
+              : 'Sem categoria, o Mercado Livre devolve o <b>piso</b> da tarifa. A comissão de verdade depende da categoria do produto.'}
+            O app está usando ${doApp('classico').toFixed(0)}% e ${doApp('premium').toFixed(0)}% nos parâmetros.
+          </div>
+        </div>`;
+    }
+  }catch(e){
+    alvo.innerHTML = `<div class="api-erro"><div class="api-ok-d">Falhou: ${esc(e.message)}</div></div>`;
+  }
+  $('apiBtn').disabled = false;
+}
+
 function montarTaxas(){
   if(taxasProntas) return;
   taxasProntas = true;

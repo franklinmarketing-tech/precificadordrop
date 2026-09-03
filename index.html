@@ -506,6 +506,47 @@ if (!window.XLSX) {
 
     <!-- ── custos oficiais ── -->
     <div id="ml-taxas" class="hide">
+
+      <!-- Integração: o que vem do Mercado Livre ao vivo e o que vem de tabela -->
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Integração com o Mercado Livre</div>
+          <span class="pill" id="apiPill">verificando…</span>
+        </div>
+        <div class="api-topo" id="apiTopo"></div>
+        <div class="api-cols">
+          <div class="api-col">
+            <div class="api-col-t"><span class="api-marca viva"></span>Vem da API, ao vivo</div>
+            <div id="apiVivo" class="api-lista"></div>
+          </div>
+          <div class="api-col">
+            <div class="api-col-t"><span class="api-marca tabela"></span>Vem de tabela no app</div>
+            <div id="apiTabela" class="api-lista"></div>
+          </div>
+        </div>
+        <div class="api-teste">
+          <label>Testar agora com um preço
+            <input type="text" id="apiPreco" value="188,19" inputmode="decimal"/>
+          </label>
+          <label>Categoria (opcional)
+            <input type="text" id="apiCat" placeholder="MLB1051" spellcheck="false"/>
+          </label>
+          <button class="btn btn-primary" id="apiBtn" onclick="apiTestar()">Consultar o ML</button>
+        </div>
+        <div id="apiResultado"></div>
+      </div>
+
+      <!-- O que ainda dá para construir com esta credencial -->
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">O que dá para construir com esta API</div>
+          <span class="pill" id="apiIdeiasPill">7 verificados</span>
+        </div>
+        <p class="api-nota">Cada item abaixo foi testado com a credencial que está
+          configurada agora. O que aparece como disponível já pode virar ferramenta no hub.</p>
+        <div id="apiIdeias" class="api-ideias"></div>
+      </div>
+
       <div class="panel">
         <div class="panel-h">
           <div class="panel-t verde">Como o preço é formado</div>
