@@ -909,3 +909,18 @@ button.ctx-agora .ctx-lbl::after{content:' ›';font-size:13px;opacity:.6}
 .ctx-ver::after{content:'›';font-size:12px;line-height:1}
 button.ctx-agora:hover .ctx-ver{background:rgba(79,124,255,.24)}
 button.ctx-agora .ctx-lbl::after{content:none}
+
+/* ═══ AÇÕES DA BARRA — cada uma com a sua cor ═════════════
+   Três destinos diferentes: as tabelas do ML, os seus parâmetros e o manual.
+   Com a mesma cor, viravam três botões iguais e ninguém lia o rótulo. */
+.ctx-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn-custos,.btn-params,.btn-manual{color:#fff;border:none}
+.btn-custos{background:linear-gradient(180deg,#3ec99a,#0e8f63);
+  box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 8px 18px -6px rgba(14,143,99,.65)}
+.btn-params{background:linear-gradient(180deg,#5d87ff,#2145c9);
+  box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 8px 18px -6px rgba(47,90,224,.65)}
+.btn-manual{background:linear-gradient(180deg,#8f7bf0,#5b3fc4);
+  box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 8px 18px -6px rgba(91,63,196,.6)}
+.btn-custos:hover,.btn-params:hover,.btn-manual:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.btn-custos svg,.btn-params svg,.btn-manual svg{stroke:#fff}
+@media(max-width:620px){.ctx-acoes{width:100%}.ctx-acoes .btn{flex:1;justify-content:center}}

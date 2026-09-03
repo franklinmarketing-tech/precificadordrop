@@ -339,6 +339,15 @@ function fecharPop(pop, scrim){
     document.body.classList.remove('sem-rolagem');
 }
 
+/* abre o manual já na seção que interessa a quem estava naquela tela */
+function irManual(secao){
+  ir('manual');
+  setTimeout(() => {
+    const alvo = document.getElementById(secao);
+    if(alvo) alvo.scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
+  }, 260);
+}
+
 function abrirCalc(){ abrirPop('popCalc', 'scrimCalc', () => recalcularTudo()); }
 function fecharCalc(){ fecharPop('popCalc', 'scrimCalc'); }
 

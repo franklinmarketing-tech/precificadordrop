@@ -323,14 +323,20 @@ if (!window.XLSX) {
       <button class="ctx-agora" id="ctxAgora" onclick="abrirCustos()"
            title="Ver todos os custos oficiais"></button>
 
-      <button class="btn btn-ghost" onclick="abrirCustos()">
+      <div class="ctx-acoes">
+      <button class="btn btn-custos" onclick="abrirCustos()">
         <svg viewBox="0 0 24 24"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>
         Custos oficiais
       </button>
-      <button class="btn btn-primary" onclick="abrirParamsML()">
+      <button class="btn btn-params" onclick="abrirParamsML()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Editar parâmetros
       </button>
+      <button class="btn btn-manual" onclick="irManual('m-ml')" title="Como o preço é calculado">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Manual
+      </button>
+      </div>
     </div>
 
     
@@ -590,11 +596,13 @@ if (!window.XLSX) {
         <a href="#m-inicio">Por onde começar</a>
         <a href="#m-planilha">1 · Planilha de produtos</a>
         <a href="#m-ml">2 · Precificar Mercado Livre</a>
-        <a href="#m-conta">3 · A conta do preço</a>
-        <a href="#m-frete">4 · Frete e peso volumétrico</a>
-        <a href="#m-conferencia">5 · A conferência</a>
-        <a href="#m-bling">6 · Importar no Bling</a>
-        <a href="#m-duvidas">7 · Perguntas frequentes</a>
+        <a href="#m-categoria">3 · Tarifa real por categoria</a>
+        <a href="#m-pesquisa">4 · Pesquisa de mercado</a>
+        <a href="#m-conta">5 · A conta do preço</a>
+        <a href="#m-frete">6 · Frete e peso volumétrico</a>
+        <a href="#m-conferencia">7 · A conferência</a>
+        <a href="#m-bling">8 · Importar no Bling</a>
+        <a href="#m-duvidas">9 · Perguntas frequentes</a>
       </nav>
 
       <article class="man-txt">
@@ -651,8 +659,62 @@ if (!window.XLSX) {
             de lucro por unidade.</p>
         </section>
 
+
+        <section id="m-categoria">
+          <h2>3 · Tarifa real por categoria</h2>
+          <p>A comissão do Mercado Livre <b>não é a mesma para todo produto</b> — ela
+            depende da categoria. Enquanto o parâmetro fixo assume um valor só para a
+            planilha inteira, a comissão de verdade varia.</p>
+          <p>Na planilha de 47 produtos que serviu de teste, as tarifas foram de
+            <b>10,5% a 13%</b>: 29 produtos em 11,5%, 10 em 10,5%, e só 2 nos 13% que o
+            parâmetro assumia. Com a comissão superestimada, o preço sai mais alto do que
+            precisa — num custo de R$ 100 com 20% de margem, a diferença chega a
+            <b>R$ 6,54 por produto</b>.</p>
+          <h3>Como ligar</h3>
+          <p>Na planilha em massa, escolha a coluna do título do produto e ligue a chave
+            <b>“Usar a tarifa real de cada categoria”</b>. Ao calcular, o hub manda os
+            títulos ao Mercado Livre, que devolve a categoria de cada um, e usa a comissão
+            daquela categoria.</p>
+          <h3>O que aparece</h3>
+          <ul>
+            <li>Uma coluna <b>Categoria no ML</b> na tabela, com a tarifa aplicada.</li>
+            <li>Aviso de quantos produtos ficaram <b>sem categoria</b> — esses usam a
+              tarifa dos parâmetros, e vale conferir se o título está descritivo.</li>
+            <li>O que as categorias <b>exigem no anúncio</b>, quase sempre Marca e Modelo.</li>
+            <li>No arquivo exportado, três colunas novas: categoria, código e tarifa
+              aplicada — para conferir depois de onde veio cada preço.</li>
+          </ul>
+          <h3>Uma sutileza</h3>
+          <p>Dentro da mesma categoria o percentual pode mudar com o preço: em Cofrinhos
+            é 11,5% até R$ 60, cai para 10,5% entre R$ 150 e R$ 700 e volta a 11,5% acima
+            disso — é a redução por faixa. O hub consulta por categoria <b>e</b> faixa, com
+            o preço de um produto real de cada faixa, então o percentual vem sempre do
+            Mercado Livre e nunca de suposição.</p>
+          <p>Se a consulta falhar, o cálculo continua pela tarifa dos parâmetros e a tela
+            avisa que foi isso que aconteceu.</p>
+        </section>
+
+        <section id="m-pesquisa">
+          <h2>4 · Pesquisa de mercado</h2>
+          <p>O que dá para saber <b>antes</b> de fechar com o fornecedor. Nenhuma dessas
+            consultas exige conectar a sua conta de vendedor.</p>
+          <h3>Consultar um produto</h3>
+          <p>Você escreve o título como ele iria para o anúncio e o Mercado Livre responde
+            a categoria, a comissão que se paga ali e os campos que o anúncio vai exigir.
+            “Cofrinho Eletrônico Infantil Elefante com Senha” a R$ 159,90 cai em Cofrinhos,
+            10,5% no Clássico, exigindo Marca e Modelo.</p>
+          <h3>Em alta agora</h3>
+          <p>Os 40 termos mais buscados no site, em ordem. Clicar em um leva direto para a
+            consulta já preenchida — dá para ir de “isso está em alta” até “essa categoria
+            cobra tanto” em dois cliques.</p>
+          <h3>Categorias e envios</h3>
+          <p>A árvore inteira de categorias, com o código de cada uma, e as modalidades de
+            envio ativas no site. O custo do envio continua vindo das tabelas por
+            reputação — o que está aqui são as modalidades, não os preços.</p>
+        </section>
+
         <section id="m-conta">
-          <h2>3 · A conta do preço</h2>
+          <h2>5 · A conta do preço</h2>
           <p>É a mesma conta da planilha de referência, célula por célula. Do preço de
             venda saem, nesta ordem:</p>
           <ol>
@@ -672,7 +734,7 @@ if (!window.XLSX) {
         </section>
 
         <section id="m-frete">
-          <h2>4 · Frete e peso volumétrico</h2>
+          <h2>6 · Frete e peso volumétrico</h2>
           <p>O frete não depende só do peso da balança. O Mercado Livre cobra pelo
             <b>maior</b> entre o peso real e o <b>peso volumétrico</b>:</p>
           <p class="man-form">peso volumétrico (kg) = altura × largura × comprimento ÷ 6.000</p>
@@ -689,7 +751,7 @@ if (!window.XLSX) {
         </section>
 
         <section id="m-conferencia">
-          <h2>5 · A conferência</h2>
+          <h2>7 · A conferência</h2>
           <p>Antes de baixar o arquivo, o precificador mostra o que pode fazer você perder
             dinheiro. Cada aviso tem um botão que filtra a tabela nas linhas afetadas —
             inclusive além das cem primeiras.</p>
@@ -705,7 +767,7 @@ if (!window.XLSX) {
         </section>
 
         <section id="m-bling">
-          <h2>6 · Importar no Bling</h2>
+          <h2>8 · Importar no Bling</h2>
           <p>O arquivo sai no formato de produtos do Bling, com todas as colunas na ordem
             certa e o preço como número.</p>
           <p>No Bling: <b>Cadastros → Produtos → Mais ações → Importar produtos</b>.
@@ -714,7 +776,7 @@ if (!window.XLSX) {
         </section>
 
         <section id="m-duvidas">
-          <h2>7 · Perguntas frequentes</h2>
+          <h2>9 · Perguntas frequentes</h2>
           <h3>Por que o preço mudou depois que troquei a reputação?</h3>
           <p>Porque o frete muda. A tabela vermelha chega a custar o dobro da verde no
             mesmo peso, e isso entra inteiro no preço.</p>
@@ -724,6 +786,14 @@ if (!window.XLSX) {
           <h3>Posso mudar a taxa de devolução?</h3>
           <p>Pode. Vem zerada por padrão; se você tem histórico de devolução, coloque o
             percentual real nos parâmetros e o preço passa a cobrir essa perda.</p>
+          <h3>Onde ficam os custos oficiais?</h3>
+          <p>No precificador, no botão verde <b>Custos oficiais</b>, ao lado de Editar
+            parâmetros — ou clicando no resumo “Está valendo”. Abre a fórmula do preço, as
+            faixas de custo fixo, as regras de frete em vigor e o estado da integração.</p>
+          <h3>A integração aparece como “fora do ar”. E agora?</h3>
+          <p>Se você estiver abrindo o app localmente, é esperado: as funções de servidor
+            só existem no site publicado. Os preços continuam corretos de qualquer forma,
+            porque saem das tabelas oficiais embutidas, que não dependem de internet.</p>
           <h3>Onde vejo as tabelas que o sistema usa?</h3>
           <p>Nos parâmetros do precificador, no painel de custos oficiais. Todos os
             valores ficam à vista e podem ser corrigidos se o Mercado Livre mudar a tabela.</p>
