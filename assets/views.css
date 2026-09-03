@@ -25,7 +25,7 @@ body.view-hub{overflow-x:hidden}
 @media(max-width:620px){.bento{grid-template-columns:1fr}}
 
 /* cabeçalho do hub: título à esquerda, três números de prova à direita */
-.hub-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;
+.hub-head{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;
   flex-wrap:wrap;margin-bottom:16px}
 .hub-prova{display:flex;gap:26px;padding-bottom:3px}
 .prv{display:flex;flex-direction:column;gap:2px}
@@ -1195,3 +1195,9 @@ body.sem-rolagem{overflow:hidden}
 .man-txt.legal{max-width:760px}
 .man-txt.legal section{padding:22px 0}
 .man-txt.legal h2{font-size:18px}
+
+/* o selo passou para o hero, na altura do título: ali sobrava espaço, e no
+   cabeçalho ele empurrava o menu para uma segunda linha */
+.hub-lado{display:flex;flex-direction:column;align-items:flex-end;gap:18px;
+  padding-top:4px}          /* alinha o selo com a primeira linha do título */
+@media(max-width:820px){.hub-lado{align-items:flex-start}}

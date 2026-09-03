@@ -48,16 +48,11 @@ function ir(v, semHash){
   document.body.classList.toggle('view-hub', v === 'hub');
   const SIMPLES = ['hub','manual','mercado','termos','privacidade'];
   mostrar('topoTool', !SIMPLES.includes(v));
-  mostrar('topoHub',  SIMPLES.includes(v));
   
   mostrar('btnParams', v === 'planilha');
   mostrar('passos', v === 'ml');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
   mostrar('btnVoltar', v !== 'hub');
-  /* a assinatura é da home: nas outras telas ela só empurraria o menu para
-     uma segunda linha, agora que o botão de voltar ocupa a esquerda */
-  const selo = document.querySelector('.badge');
-  if(selo) selo.classList.toggle('hide', v !== 'hub');
 
   /* marca no menu o marketplace da tela atual */
   const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', manual:'guia'};

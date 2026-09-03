@@ -33,18 +33,20 @@ if (!window.XLSX) {
   <div class="topbar">
     <!-- Leva para a home. Fica à esquerda de tudo, onde se procura por ele, e
          só aparece fora dela. -->
-    <button class="voltar hide" id="btnVoltar" onclick="ir('hub')" aria-label="Voltar para a home"
-            title="Voltar para a home">
-      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
+    <div class="topo-esq">
+      <button class="voltar hide" id="btnVoltar" onclick="ir('hub')" aria-label="Voltar para a home"
+              title="Voltar para a home">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
 
-    <button class="logo" onclick="ir('hub')">
-      <div class="logo-mark"><img src="assets/img/logo3d.webp" alt="" width="46" height="46"/></div>
-      <div>
-        <div class="logo-title">PRECIFICADOR<span>DROP</span></div>
-        <div class="logo-sub" id="logoSub">HUB DO ECOSSISTEMA</div>
-      </div>
-    </button>
+      <button class="logo" onclick="ir('hub')">
+        <div class="logo-mark"><img src="assets/img/logo3d.webp" alt="" width="46" height="46"/></div>
+        <div>
+          <div class="logo-title">PRECIFICADOR<span>DROP</span></div>
+          <div class="logo-sub" id="logoSub">HUB DO ECOSSISTEMA</div>
+        </div>
+      </button>
+    </div>
 
     <!-- Menu do topo: abre passando o mouse. Cada grupo lista as ferramentas
          daquela família; conforme o projeto crescer, entram novas linhas aqui
@@ -189,10 +191,6 @@ if (!window.XLSX) {
       </div>
     </nav>
 
-    <div id="topoHub">
-      <div class="badge"><span class="dot"></span><span>ECOSSISTEMA DO DROPSHIPPING NO BRASIL</span></div>
-    </div>
-
     <div id="topoTool" class="hide" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div class="steps hide" id="passos"></div>
       <button class="btn btn-led hide" id="btnParams" onclick="abrirParams()">
@@ -212,10 +210,13 @@ if (!window.XLSX) {
         <h1>O preço certo,<br><span class="grad">antes de anunciar.</span></h1>
         <div class="h-sub">Comissão, custo fixo e frete do Mercado Livre já descontados. Você diz a margem que quer — o hub devolve a planilha pronta para o Bling.</div>
       </div>
-      <div class="hub-prova">
+      <div class="hub-lado">
+        <div class="badge"><span class="dot"></span><span>ECOSSISTEMA DO DROPSHIPPING NO BRASIL</span></div>
+        <div class="hub-prova">
         <div class="prv"><b>3</b><span>ferramentas no ar</span></div>
         <div class="prv"><b id="liveChecks">0/8</b><span>validações por planilha</span></div>
         <div class="prv"><b>3</b><span>chegando</span></div>
+        </div>
       </div>
     </div>
 
