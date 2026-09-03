@@ -139,46 +139,100 @@ document.querySelectorAll('.man-sum a').forEach(a => {
 });
 
 /* ══ LÂMPADA "SAIBA MAIS" ══════════════════════════════════════════════════
-   O painel abre no hover pelo CSS. Aqui ficam os dois casos que o CSS não
-   cobre: a lâmpada está DENTRO do botão do cartão, então clicar nela abriria a
-   ferramenta; e no celular não existe hover, então o toque precisa abrir. */
-document.querySelectorAll('.dica').forEach(lamp => {
-  const painel = lamp.parentElement.querySelector('.saibamais');
+   O balão abre FORA do cartão, ancorado na lâmpada. Ele é movido para o fim do
+   <body> no início: dentro do cartão ficaria recortado, porque o cartão tem
+   overflow escondido e ganha transform no tilt 3D — e um ancestral com
+   transform recorta até quem é position:fixed.                              */
+const FOLGA = 12;          // distância entre a lâmpada e o balão
+let dicaAberta = null, fecharTimer = null;
 
-  const marcar = aberto => {
-    lamp.setAttribute('aria-expanded', aberto);
-    if(painel) painel.setAttribute('aria-hidden', !aberto);
-  };
+document.querySelectorAll('.dica').forEach(lamp => {
+  const balao = lamp.parentElement.querySelector('.saibamais');
+  if(!balao) return;
+  document.body.appendChild(balao);            // sai de dentro do cartão
+  lamp._balao = balao;
+  balao._lamp = lamp;
+
+  const abrir  = () => abrirDica(lamp);
+  const agenda = () => { clearTimeout(fecharTimer); fecharTimer = setTimeout(fecharDica, 180); };
+
+  lamp.addEventListener('mouseenter', () => { clearTimeout(fecharTimer); abrir(); });
+  lamp.addEventListener('mouseleave', agenda);
+  lamp.addEventListener('focus', abrir);
+  lamp.addEventListener('blur', () => { if(!lamp.classList.contains('presa')) fecharDica(); });
+  // o ponteiro pode atravessar do botão até o balão sem que ele feche
+  balao.addEventListener('mouseenter', () => clearTimeout(fecharTimer));
+  balao.addEventListener('mouseleave', agenda);
 
   lamp.addEventListener('click', e => {
-    e.stopPropagation();          // não abre a ferramenta
+    e.stopPropagation();          // não abre a ferramenta do cartão
     e.preventDefault();
-    const abrindo = !lamp.classList.contains('aberta');
-    document.querySelectorAll('.dica.aberta').forEach(o => {
-      o.classList.remove('aberta');
-      o.setAttribute('aria-expanded', 'false');
-    });
-    lamp.classList.toggle('aberta', abrindo);
-    marcar(abrindo);
+    const prendendo = !lamp.classList.contains('presa');
+    document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
+    lamp.classList.toggle('presa', prendendo);
+    prendendo ? abrirDica(lamp) : fecharDica();
   });
-
-  // teclado: Enter e espaço abrem, como em qualquer botão
   lamp.addEventListener('keydown', e => {
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); lamp.click(); }
+    if(e.key === 'Escape'){ lamp.classList.remove('presa'); fecharDica(); }
   });
-  lamp.addEventListener('mouseenter', () => marcar(true));
-  lamp.addEventListener('mouseleave', () => { if(!lamp.classList.contains('aberta')) marcar(false); });
 });
 
-/* toque fora fecha o painel que ficou aberto */
+function posicionarDica(lamp, balao){
+  const l = lamp.getBoundingClientRect();
+  const b = balao.getBoundingClientRect();
+  const vw = innerWidth, vh = innerHeight;
+
+  // abre para baixo; se não couber, abre para cima
+  const paraBaixo = l.bottom + FOLGA + b.height <= vh - 8;
+  balao.classList.toggle('p-baixo', paraBaixo);
+  balao.classList.toggle('p-cima', !paraBaixo);
+  const topo = paraBaixo ? l.bottom + FOLGA : l.top - FOLGA - b.height;
+
+  // centraliza na lâmpada e traz de volta para dentro da janela
+  let esq = l.left + l.width/2 - b.width/2;
+  esq = Math.max(10, Math.min(esq, vw - b.width - 10));
+
+  balao.style.top  = Math.round(topo) + 'px';
+  balao.style.left = Math.round(esq) + 'px';
+  // a seta aponta para a lâmpada, mesmo com o balão deslocado pela borda
+  const seta = Math.max(16, Math.min(l.left + l.width/2 - esq, b.width - 16));
+  balao.style.setProperty('--seta', Math.round(seta) + 'px');
+  balao.style.setProperty('--org', `${Math.round(seta)}px ${paraBaixo ? '0' : '100%'}`);
+}
+
+function abrirDica(lamp){
+  const balao = lamp._balao;
+  if(dicaAberta && dicaAberta !== balao) fecharDica();
+  balao.classList.add('aberto');
+  balao.setAttribute('aria-hidden', 'false');
+  lamp.setAttribute('aria-expanded', 'true');
+  posicionarDica(lamp, balao);      // medir só depois de visível, senão dá 0
+  dicaAberta = balao;
+}
+
+function fecharDica(){
+  if(!dicaAberta) return;
+  const lamp = dicaAberta._lamp;
+  if(lamp && lamp.classList.contains('presa')) return;   // preso pelo clique
+  dicaAberta.classList.remove('aberto');
+  dicaAberta.setAttribute('aria-hidden', 'true');
+  if(lamp) lamp.setAttribute('aria-expanded', 'false');
+  dicaAberta = null;
+}
+
+/* clicar fora, rolar ou redimensionar solta o balão preso */
 document.addEventListener('click', () => {
-  document.querySelectorAll('.dica.aberta').forEach(o => {
-    o.classList.remove('aberta');
-    o.setAttribute('aria-expanded', 'false');
-    const p = o.parentElement.querySelector('.saibamais');
-    if(p) p.setAttribute('aria-hidden', 'true');
-  });
+  document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
+  fecharDica();
 });
+addEventListener('resize', () => {
+  document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
+  fecharDica();
+});
+addEventListener('scroll', () => {
+  if(dicaAberta && dicaAberta._lamp) posicionarDica(dicaAberta._lamp, dicaAberta);
+}, {passive:true});
 
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: PRECIFICADOR MERCADO LIVRE
