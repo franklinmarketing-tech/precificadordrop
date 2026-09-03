@@ -50,6 +50,11 @@ function ir(v, semHash){
   mostrar('btnParams', v === 'planilha');
   mostrar('passos', v === 'ml');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
+  /* marca no menu o marketplace da tela atual */
+  const MKT = {ml:'ml', planilha:'ml', mercado:'ml', manual:'guia'};
+  document.querySelectorAll('.mn-t[data-mkt]').forEach(bt =>
+    bt.classList.toggle('aqui', bt.dataset.mkt === MKT[v]));
+
   $('logoSub').textContent = VIEWS[v].sub;
   document.title = VIEWS[v].titulo;
 

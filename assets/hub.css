@@ -253,16 +253,43 @@ tbody tr:hover td{background:#f8faff}
    Abre passando o mouse (e por teclado, via foco). A lista das ferramentas
    mora aqui: quando entrar uma ferramenta nova, é uma linha a mais no grupo
    certo, sem tocar em mais nada. */
-.menu{display:flex;align-items:center;gap:4px;margin-left:6px}
+/* O menu era texto solto no topo — não se lia como menu. Agora é uma barra
+   com moldura, os itens separados por fios, e o marketplace da tela atual fica
+   marcado. */
+.menu{display:flex;align-items:center;gap:2px;margin-left:10px;padding:4px;
+  border-radius:100px;
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(244,247,253,.75));
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(20,30,60,.04) inset,
+             0 4px 14px -6px rgba(20,30,60,.2)}
 .mn{position:relative}
-.mn-t{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:11px;
+/* fio separando um marketplace do outro */
+.mn + .mn::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);
+  width:1px;height:16px;background:rgba(20,30,60,.1)}
+.mn:hover + .mn::before,.mn:hover::before{opacity:0}
+
+.mn-t{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:100px;
   background:none;border:none;font-family:inherit;font-size:12.5px;font-weight:600;
-  color:var(--sub);cursor:pointer;transition:background .25s ease,color .25s ease}
+  color:var(--sub);cursor:pointer;position:relative;white-space:nowrap;
+  transition:background .25s ease,color .25s ease,box-shadow .25s ease}
 .mn-t svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
-.mn-v{width:12px!important;height:12px!important;opacity:.6;transition:transform .3s ease}
-.mn-t:hover,.mn:hover .mn-t,.mn-t:focus-visible{background:rgba(255,255,255,.85);color:var(--ink);outline:none}
-.mn:hover .mn-v{transform:rotate(180deg)}
+.mn-v{width:11px!important;height:11px!important;opacity:.45;margin-left:-2px;
+  transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .25s ease}
+.mn-t:hover,.mn:hover .mn-t,.mn-t:focus-visible{
+  background:#fff;color:var(--ink);outline:none;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 3px 10px -4px rgba(20,30,60,.25)}
+.mn:hover .mn-v{transform:rotate(180deg);opacity:.75}
+
+/* o marketplace da tela em que você está fica marcado */
+.mn-t.aqui{background:#fff;color:var(--ink);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 4px 12px -4px rgba(20,30,60,.28)}
+.mn-t.aqui::after{content:'';position:absolute;left:50%;bottom:3px;transform:translateX(-50%);
+  width:14px;height:2px;border-radius:100px;background:var(--marca,var(--blue))}
+.mn-t[data-mkt="ml"]{--marca:#f5cb00}
+.mn-t[data-mkt="shopee"]{--marca:#ee4d2d}
+.mn-t[data-mkt="amazon"]{--marca:#ff9900}
+.mn-t[data-mkt="guia"]{--marca:#6d3fe0}
 
 .mn-drop{position:absolute;top:calc(100% + 8px);left:0;width:288px;padding:8px;
   border-radius:16px;z-index:60;
