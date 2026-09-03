@@ -31,6 +31,13 @@ if (!window.XLSX) {
 
   <!-- ═══ TOPO (compartilhado) ═══ -->
   <div class="topbar">
+    <!-- Leva para a home. Fica à esquerda de tudo, onde se procura por ele, e
+         só aparece fora dela. -->
+    <button class="voltar hide" id="btnVoltar" onclick="ir('hub')" aria-label="Voltar para a home"
+            title="Voltar para a home">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+
     <button class="logo" onclick="ir('hub')">
       <div class="logo-mark"><img src="assets/img/logo3d.webp" alt="" width="46" height="46"/></div>
       <div>
@@ -51,6 +58,13 @@ if (!window.XLSX) {
         <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         Ferramentas
       </span>
+
+      <!-- Home é destino, não um menu que abre: entra como botão direto. -->
+      <button class="mn-t mn-home" data-mkt="hub" onclick="ir('hub')">
+        <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        Home
+      </button>
+
       <div class="mn">
         <button class="mn-t" data-mkt="ml" aria-haspopup="true" aria-expanded="false">
           <span class="mn-selo ml"></span>Mercado Livre
@@ -1043,10 +1057,148 @@ if (!window.XLSX) {
     </div>
   </div>
 
-  <div class="rodape" id="rodape">Precificador Drop · o ecossistema do dropshipping no Brasil</div>
+
+  <!-- ═══════════════ VIEW: TERMOS ═══════════════ -->
+  <div id="view-termos" class="view hide">
+    <div class="man-head">
+      <div>
+        <h1>Termos de <span class="grad">uso.</span></h1>
+        <div class="h-sub">O que o Precificador Drop faz, o que ele não faz, e o que fica
+          sob sua responsabilidade.</div>
+      </div>
+    </div>
+    <article class="man-txt legal">
+      <section>
+        <h2>O que é este serviço</h2>
+        <p>O Precificador Drop é uma ferramenta de apoio para quem revende em marketplace.
+          Ele calcula preços de venda a partir do custo que você informa, trata planilhas de
+          catálogo e consulta dados públicos do Mercado Livre.</p>
+      </section>
+      <section>
+        <h2>Os cálculos são uma estimativa</h2>
+        <p>As contas usam as tabelas oficiais do Mercado Livre e a tarifa que a própria API
+          do marketplace devolve. Ainda assim, <b>o preço final é de sua responsabilidade</b>:
+          marketplaces mudam tarifas, promoções e regras de frete sem aviso, e casos
+          particulares — campanhas, acordos comerciais, categorias com regra própria — podem
+          não estar refletidos.</p>
+        <p>Confira os valores antes de publicar. A ferramenta mostra a memória de cálculo
+          justamente para isso.</p>
+      </section>
+      <section>
+        <h2>Seus arquivos</h2>
+        <p>As planilhas que você carrega são lidas <b>dentro do seu navegador</b>. Elas não
+          são enviadas para nenhum servidor nosso e não ficam guardadas em lugar nenhum
+          depois que você fecha a página.</p>
+        <p>Os parâmetros que você define ficam salvos apenas no seu navegador, no
+          armazenamento local do próprio aparelho.</p>
+      </section>
+      <section>
+        <h2>Uso aceitável</h2>
+        <p>Você se compromete a não usar o serviço para publicar informação falsa, violar
+          direitos de marca de terceiros ou descumprir as regras dos marketplaces em que
+          anuncia. As fichas de referência exibidas pela ferramenta pertencem a outros
+          vendedores e servem de exemplo de formato — não para cópia.</p>
+      </section>
+      <section>
+        <h2>Disponibilidade</h2>
+        <p>As consultas ao Mercado Livre dependem da API dele. Quando ela não responde, o
+          cálculo continua funcionando pelas tabelas embutidas, e a tela avisa quando isso
+          acontece.</p>
+      </section>
+      <section>
+        <h2>Mudanças</h2>
+        <p>Estes termos podem ser atualizados conforme a ferramenta evolui. A versão em
+          vigor é sempre a que está publicada aqui.</p>
+      </section>
+      <div class="man-fim">
+        <b>Castriani Digital</b>
+        <span>Atualizado em setembro de 2026</span>
+      </div>
+    </article>
+  </div>
+
+  <!-- ═══════════════ VIEW: PRIVACIDADE ═══════════════ -->
+  <div id="view-privacidade" class="view hide">
+    <div class="man-head">
+      <div>
+        <h1>Política de <span class="grad">privacidade.</span></h1>
+        <div class="h-sub">O resumo é curto: seus dados de produto não saem do seu
+          navegador.</div>
+      </div>
+    </div>
+    <article class="man-txt legal">
+      <section>
+        <h2>O que não coletamos</h2>
+        <p>Não pedimos cadastro, não pedimos e-mail e não temos login. <b>Não coletamos
+          dados pessoais.</b></p>
+      </section>
+      <section>
+        <h2>Suas planilhas</h2>
+        <p>Os arquivos que você carrega são abertos e processados <b>no seu próprio
+          navegador</b>. Nenhum produto, preço, custo ou fornecedor é enviado para servidores
+          nossos, e nada é armazenado depois que a página é fechada.</p>
+      </section>
+      <section>
+        <h2>O que fica salvo no seu aparelho</h2>
+        <p>Ficam no armazenamento local do navegador apenas as suas preferências de
+          cálculo — margem, reputação, tarifas, termos a remover da descrição. Isso não sai
+          do aparelho e você pode apagar limpando os dados do site.</p>
+      </section>
+      <section>
+        <h2>Consultas ao Mercado Livre</h2>
+        <p>Quando você usa a tarifa por categoria ou a pesquisa de mercado, o servidor faz
+          consultas à API pública do Mercado Livre. O que trafega nessas consultas é o
+          <b>título do produto e o preço</b>, necessários para descobrir a categoria e a
+          comissão. Essas consultas não são gravadas por nós.</p>
+        <p>A credencial de acesso ao Mercado Livre fica somente no servidor e nunca é
+          exposta ao navegador.</p>
+      </section>
+      <section>
+        <h2>Terceiros</h2>
+        <p>A hospedagem é feita pela Vercel, que mantém registros técnicos de acesso — como
+          endereço de IP e horário — pelo período da política dela. Não usamos ferramentas
+          de rastreamento nem de publicidade.</p>
+      </section>
+      <section>
+        <h2>Contato</h2>
+        <p>Dúvidas sobre privacidade podem ser tratadas com a Castriani Digital, responsável
+          pelo desenvolvimento e pela operação da ferramenta.</p>
+      </section>
+      <div class="man-fim">
+        <b>Castriani Digital</b>
+        <span>Atualizado em setembro de 2026</span>
+      </div>
+    </article>
+  </div>
+
 </div>
 </div>
 
+
+
+<footer class="pe">
+  <div class="pe-in">
+    <div class="pe-marca">
+      <img src="assets/img/logo3d.webp" alt="" width="30" height="30"/>
+      <div>
+        <b>Precificador Drop</b>
+        <span>Ecossistema do dropshipping no Brasil</span>
+      </div>
+    </div>
+
+    <nav class="pe-links" aria-label="Links do rodapé">
+      <button onclick="ir('manual')">Guia do Drop</button>
+      <button onclick="ir('termos')">Termos de uso</button>
+      <button onclick="ir('privacidade')">Privacidade</button>
+    </nav>
+
+    <div class="pe-fim">
+      <a href="https://castrianidigital.com.br" target="_blank" rel="noopener noreferrer">
+        Desenvolvido por Castriani Digital</a>
+      <span>&copy; 2026 · todos os direitos reservados</span>
+    </div>
+  </div>
+</footer>
 
 <!-- ═══ POP-UP: CALCULADORA DE UM PRODUTO ═══ -->
 <div class="scrim" id="scrimCalc" onclick="fecharCalc()"></div>

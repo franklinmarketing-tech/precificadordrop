@@ -51,7 +51,18 @@ body.awake .spot{opacity:1}
 .wrap{max-width:1300px;width:100%;margin:0 auto;padding:22px 32px 16px;flex:1;display:flex;flex-direction:column;min-height:0}
 .wrap-narrow{max-width:1080px}
 
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+/* O cabeçalho acompanha a rolagem e tem faixa própria — mais escura que a
+   página — para se ler como cabeçalho e não como o começo do conteúdo. */
+.topbar{position:sticky;top:0;z-index:150;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin:-22px -32px 18px;padding:11px 32px;
+  background:linear-gradient(180deg,rgba(232,236,248,.94),rgba(226,231,246,.9));
+  backdrop-filter:blur(16px) saturate(1.3);
+  border-bottom:1px solid rgba(20,30,60,.09);
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset}
+/* ganha profundidade só depois que a página desce */
+.topbar.rolou{box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 26px -14px rgba(20,30,60,.45)}
+@media(max-width:700px){.topbar{margin:-22px -18px 16px;padding:10px 18px}}
 .logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;background:none;border:none;font-family:inherit;cursor:pointer;padding:0;text-align:left}
 /* A gota 3D não fica dentro de uma pastilha: ela flutua solta, com o próprio
    halo por baixo. É o recorte transparente do render, então o vidro e o cromo
@@ -341,3 +352,50 @@ tbody tr:hover td{background:#f8faff}
   stroke-linecap:round}
 @media(max-width:1180px){.menu-rot{display:none}}
 @media(prefers-reduced-motion:reduce){.mn-v{animation:none!important}}
+
+/* ═══ RODAPÉ ══════════════════════════════════════════════ */
+/* fica acima do fundo decorativo: sem isso o véu do .bg passa por cima e o
+   rodapé some, mesmo com o texto na cor certa */
+.pe{position:relative;z-index:1;margin-top:auto;padding:26px 32px 22px;
+  background:linear-gradient(180deg,rgba(232,236,248,.5),rgba(224,229,245,.85));
+  border-top:1px solid rgba(20,30,60,.09)}
+.pe-in{max-width:1300px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;gap:22px;flex-wrap:wrap}
+.pe-marca{display:flex;align-items:center;gap:10px}
+.pe-marca img{width:30px;height:30px;object-fit:contain;
+  filter:drop-shadow(0 3px 6px rgba(20,30,60,.2))}
+.pe-marca div{display:flex;flex-direction:column;gap:1px}
+.pe-marca b{font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:-.2px}
+.pe-marca span{font-size:9.5px;letter-spacing:1.1px;color:var(--faint);text-transform:uppercase}
+.pe-links{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.pe-links button{background:none;border:none;font-family:inherit;font-size:11.5px;
+  color:var(--sub);cursor:pointer;padding:6px 11px;border-radius:9px;
+  transition:background .2s ease,color .2s ease}
+.pe-links button:hover{background:rgba(255,255,255,.8);color:var(--ink)}
+.pe-fim{display:flex;flex-direction:column;gap:2px;text-align:right}
+.pe-fim a{font-size:11.5px;color:var(--sub);text-decoration:none;font-weight:600;
+  transition:color .2s ease}
+.pe-fim a:hover{color:var(--blue-dk)}
+.pe-fim span{font-size:10px;color:var(--faint)}
+@media(max-width:760px){
+  .pe-in{flex-direction:column;align-items:flex-start;gap:14px}
+  .pe-fim{text-align:left}
+}
+
+/* botão de voltar, no canto esquerdo do cabeçalho */
+.voltar{width:36px;height:36px;flex:none;border-radius:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#fff,#f1f4fb);border:1px solid rgba(20,30,60,.1);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px -2px rgba(20,30,60,.2);
+  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .25s ease,border-color .25s ease}
+.voltar svg{width:17px;height:17px;fill:none;stroke:var(--sub);stroke-width:2.1;
+  stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.voltar:hover{transform:translateX(-2px);border-color:rgba(79,124,255,.45);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 6px 16px -6px rgba(47,90,224,.5)}
+.voltar:hover svg{stroke:var(--blue-dk);transform:translateX(-2px)}
+.voltar:focus-visible{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(79,124,255,.28)}
+
+/* Home é destino direto, sem menu para abrir — por isso não tem seta */
+.mn-home{--marca:var(--blue)}
+.mn-home svg{width:14px;height:14px}

@@ -35,6 +35,8 @@ const VIEWS = {
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
   manual:   {sub:'GUIA DO DROP',                   titulo:'Guia do Drop — Precificador Drop'},
   mercado:  {sub:'PESQUISA DE MERCADO',            titulo:'Pesquisa de Mercado — Precificador Drop'},
+  termos:      {sub:'TERMOS DE USO',                titulo:'Termos de uso — Precificador Drop'},
+  privacidade: {sub:'POLÍTICA DE PRIVACIDADE',       titulo:'Privacidade — Precificador Drop'},
 };
 let viewAtual = 'hub';
 
@@ -44,14 +46,21 @@ function ir(v, semHash){
   Object.keys(VIEWS).forEach(k => mostrar('view-' + k, k === v));
 
   document.body.classList.toggle('view-hub', v === 'hub');
-  mostrar('topoTool', v !== 'hub' && v !== 'manual' && v !== 'mercado');
-  mostrar('topoHub',  v === 'hub' || v === 'manual' || v === 'mercado');
-  mostrar('rodape', v !== 'hub' && v !== 'manual' && v !== 'mercado');
+  const SIMPLES = ['hub','manual','mercado','termos','privacidade'];
+  mostrar('topoTool', !SIMPLES.includes(v));
+  mostrar('topoHub',  SIMPLES.includes(v));
+  
   mostrar('btnParams', v === 'planilha');
   mostrar('passos', v === 'ml');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
+  mostrar('btnVoltar', v !== 'hub');
+  /* a assinatura é da home: nas outras telas ela só empurraria o menu para
+     uma segunda linha, agora que o botão de voltar ocupa a esquerda */
+  const selo = document.querySelector('.badge');
+  if(selo) selo.classList.toggle('hide', v !== 'hub');
+
   /* marca no menu o marketplace da tela atual */
-  const MKT = {ml:'ml', planilha:'ml', mercado:'ml', manual:'guia'};
+  const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', manual:'guia'};
   document.querySelectorAll('.mn-t[data-mkt]').forEach(bt =>
     bt.classList.toggle('aqui', bt.dataset.mkt === MKT[v]));
 
@@ -125,6 +134,12 @@ function contarPreco(){
     rafContador = p < 1 ? requestAnimationFrame(passo) : null;
   })(t0);
 }
+/* o cabeçalho ganha sombra assim que a página desce, para descolar do conteúdo */
+addEventListener('scroll', () => {
+  const t = document.querySelector('.topbar');
+  if(t) t.classList.toggle('rolou', scrollY > 6);
+}, {passive:true});
+
 /* quem dispara é o roteador, sempre que o hub entra em cena */
 
 /* ══ MANUAL ════════════════════════════════════════════════════════════════

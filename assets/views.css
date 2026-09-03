@@ -1190,3 +1190,8 @@ body.sem-rolagem{overflow:hidden}
   -webkit-mask-composite:xor;mask-composite:exclude;
   animation:ledGira 2.6s linear infinite}
 @media(prefers-reduced-motion:reduce){.cfg-params::before{animation:none;opacity:.5}}
+
+/* páginas legais: o mesmo texto do guia, numa coluna só */
+.man-txt.legal{max-width:760px}
+.man-txt.legal section{padding:22px 0}
+.man-txt.legal h2{font-size:18px}
