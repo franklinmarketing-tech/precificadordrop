@@ -2,10 +2,32 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Precificador Drop — Hub do Ecossistema</title>
-<link rel="icon" type="image/webp" href="assets/img/favicon.webp"/>
 <meta name="description" content="O ecossistema de precificação para dropshipping no Brasil: Mercado Livre, Shopee e gestão de catálogo em um só hub."/>
+
+<!-- ═══ PWA — instalável no iPad, iOS, Android e PC ═══
+     O manifesto e os ícones cobrem Android/Chrome/Edge/PC. As tags
+     apple-* cobrem o Safari do iPhone e do iPad, que não lê o manifesto
+     para exibir o app instalado — precisa das próprias meta tags. -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#18213e"/>
+<meta name="background-color" content="#eef1f8"/>
+
+<link rel="icon" type="image/webp" href="assets/img/favicon.webp"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-72.png"/>
+<link rel="shortcut icon" href="/favicon.ico"/>
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"/>
+
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Precificador Drop"/>
+<meta name="application-name" content="Precificador Drop"/>
+<meta name="msapplication-TileColor" content="#18213e"/>
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144.png"/>
+<meta name="format-detection" content="telephone=no"/>
+
 <link rel="stylesheet" href="assets/hub.css"/>
 <link rel="stylesheet" href="assets/views.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -47,6 +69,13 @@ if (!window.XLSX) {
         </div>
       </button>
     </div>
+
+    <!-- Abaixo de 880px o menu de hover não cabe e some — sem isso não
+         sobrava nenhum jeito de chegar em Shopee, Amazon ou no Guia a partir
+         de outra tela que não a home. O hambúrguer só existe nessa faixa. -->
+    <button class="mn-hamb" id="mnHamb" onclick="menuMobileAbrir()" aria-label="Abrir menu" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
 
     <!-- Menu do topo: abre passando o mouse. Cada grupo lista as ferramentas
          daquela família; conforme o projeto crescer, entram novas linhas aqui
@@ -202,6 +231,25 @@ if (!window.XLSX) {
       </button>
     </div>
   </div>
+
+  <!-- ═══ MENU MOBILE (abaixo de 880px) ═══
+       Não duplica os itens do menu: quando abre, o JS move a própria
+       <nav class="menu"> para dentro deste painel — ela é a mesma marcação
+       que o desktop usa, só que aqui os submenus abrem por toque, em coluna,
+       em vez de por hover. Ao fechar, volta para o lugar original. -->
+  <div class="scrim" id="scrimMenu" onclick="menuMobileFechar()"></div>
+  <aside class="drawer menu-mobile" id="menuMobile">
+    <div class="drawer-h">
+      <div>
+        <div class="drawer-t">Navegar</div>
+        <div class="drawer-s">PRECIFICADOR DROP</div>
+      </div>
+      <button class="x" onclick="menuMobileFechar()" aria-label="Fechar">
+        <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="drawer-b" id="menuMobileBody"></div>
+  </aside>
 
   <!-- ═══════════════ VIEW: HUB ═══════════════ -->
   <div id="view-hub" class="view" style="flex:1;display:flex;flex-direction:column;min-height:0">
@@ -1191,6 +1239,11 @@ if (!window.XLSX) {
       <button onclick="ir('manual')">Guia do Drop</button>
       <button onclick="ir('termos')">Termos de uso</button>
       <button onclick="ir('privacidade')">Privacidade</button>
+      <button id="peInstalar" class="hide" onclick="pwaAbrirInstalacao()">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        Instalar app
+      </button>
     </nav>
 
     <div class="pe-fim">
@@ -1614,10 +1667,60 @@ if (!window.XLSX) {
   </div>
 </aside>
 
+<!-- ═══ PWA: banner de instalação ═══
+     Some sozinho quando o app já está instalado. No Android/Chrome/Edge/PC o
+     botão dispara o prompt nativo do sistema; no iPhone e iPad — que não têm
+     esse prompt — abre o passo a passo do Safari. -->
+<div class="pwa-banner hide" id="pwaBanner" role="dialog" aria-label="Instalar aplicativo">
+  <button class="pwa-x" onclick="pwaFechar()" aria-label="Fechar">
+    <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <img src="assets/icons/icon-96.png" alt="" width="44" height="44"/>
+  <div class="pwa-tx">
+    <b>Instalar o Precificador Drop</b>
+    <i>Abre como app, com ícone na tela e sem a barra do navegador.</i>
+  </div>
+  <button class="pwa-btn" id="pwaBtn" onclick="pwaInstalar()">Instalar</button>
+</div>
+
+<!-- passo a passo para iPhone/iPad, que instala pelo Safari, não por um prompt -->
+<div class="scrim" id="scrimIOS" onclick="pwaFecharIOS()"></div>
+<div class="pop" id="popIOS" role="dialog" aria-modal="true" aria-label="Instalar no iPhone ou iPad">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t">Instalar no iPhone ou iPad</div>
+      <div class="pop-s">TRÊS TOQUES, PELO SAFARI</div>
+    </div>
+    <button class="x" onclick="pwaFecharIOS()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b">
+    <div class="ios-passo">
+      <span class="ios-n">1</span>
+      <div>Toque no ícone <b>Compartilhar</b>
+        <svg viewBox="0 0 24 24" class="ios-ic"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+        na barra do Safari — o quadrado com a seta para cima.</div>
+    </div>
+    <div class="ios-passo">
+      <span class="ios-n">2</span>
+      <div>Role a lista e toque em <b>Adicionar à Tela de Início</b>.</div>
+    </div>
+    <div class="ios-passo">
+      <span class="ios-n">3</span>
+      <div>Toque em <b>Adicionar</b>, no canto superior. Pronto — o ícone aparece
+        na tela como qualquer outro app.</div>
+    </div>
+    <p class="ios-nota">Precisa ser feito pelo Safari — em outro navegador do iPhone
+      essa opção não aparece, mesmo abrindo o mesmo endereço.</p>
+  </div>
+</div>
+
 <script src="assets/xlsx-utils.js"></script>
 <script src="assets/ml-fretes.js"></script>
 <script src="assets/ml-engine.js"></script>
 <script src="assets/planilha-engine.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/pwa.js"></script>
 </body>
 </html>

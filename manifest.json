@@ -1,0 +1,44 @@
+{
+  "id": "/",
+  "name": "Precificador Drop — Hub do Ecossistema",
+  "short_name": "Precificador Drop",
+  "description": "Precificação e catálogo para quem revende em marketplace com fornecedor externo. Comissão, custo fixo e frete do Mercado Livre já descontados.",
+  "start_url": "/?fonte=pwa#/hub",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "background_color": "#eef1f8",
+  "theme_color": "#18213e",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "shopping"],
+  "icons": [
+    {"src": "assets/icons/icon-72.png",  "sizes": "72x72",  "type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-96.png",  "sizes": "96x96",  "type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-128.png", "sizes": "128x128","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-144.png", "sizes": "144x144","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-152.png", "sizes": "152x152","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-192.png", "sizes": "192x192","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-384.png", "sizes": "384x384","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-512.png", "sizes": "512x512","type": "image/png", "purpose": "any"},
+    {"src": "assets/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+    {"src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {
+      "name": "Precificar Mercado Livre",
+      "short_name": "Precificar",
+      "description": "Calculadora de preço com as taxas oficiais do ML",
+      "url": "/?fonte=atalho#/ml",
+      "icons": [{"src": "assets/img/ic-ml.webp", "sizes": "240x240", "type": "image/webp"}]
+    },
+    {
+      "name": "Planilha de produtos",
+      "short_name": "Planilha",
+      "description": "Trata o catálogo do fornecedor para o marketplace",
+      "url": "/?fonte=atalho#/planilha",
+      "icons": [{"src": "assets/img/ic-planilha.webp", "sizes": "240x240", "type": "image/webp"}]
+    }
+  ]
+}

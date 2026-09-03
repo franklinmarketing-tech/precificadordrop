@@ -2011,6 +2011,75 @@ function mostrarTextoModelo(){
 }
 function abrirParams(){ preencherForm(params); $('scrim').classList.add('open'); $('drawer').classList.add('open'); }
 function fecharParams(){ $('scrim').classList.remove('open'); $('drawer').classList.remove('open'); }
+
+/* ══ MENU MOBILE ═════════════════════════════════════════════════════════
+   Abaixo de 880px o <nav class="menu"> de hover desaparece — não cabe, e
+   hover não existe em touch mesmo. Em vez de duplicar os itens de navegação
+   num segundo bloco de HTML (que viraria uma segunda fonte para manter toda
+   vez que entrar uma ferramenta), o menu real é MOVIDO para dentro do drawer
+   quando abre, e devolvido ao lugar de origem quando fecha. O CSS
+   (.menu-mobile .menu) só troca a aparência de pílula-com-hover para
+   lista-com-acordeão; a marcação é a mesma dos dois lados. */
+let menuOrigPai = null, menuOrigProx = null;
+
+function menuMobileAbrir(){
+  const nav = document.querySelector('nav.menu');
+  const corpo = $('menuMobileBody');
+  if(nav && corpo && !corpo.contains(nav)){
+    menuOrigPai = nav.parentElement;
+    menuOrigProx = nav.nextElementSibling;
+    corpo.appendChild(nav);
+  }
+  $('scrimMenu').classList.add('open');
+  $('menuMobile').classList.add('open');
+  $('mnHamb').setAttribute('aria-expanded', 'true');
+  document.body.classList.add('sem-rolagem');
+}
+
+function menuMobileFechar(){
+  $('scrimMenu').classList.remove('open');
+  $('menuMobile').classList.remove('open');
+  $('mnHamb').setAttribute('aria-expanded', 'false');
+  if(!document.querySelector('.pop.open, .drawer.open:not(#menuMobile)'))
+    document.body.classList.remove('sem-rolagem');
+
+  /* devolve a nav para o cabeçalho — sem isso o menu de desktop sumiria
+     se a tela for redimensionada ou girada (iPad) para uma largura maior */
+  const nav = document.querySelector('nav.menu');
+  if(nav && menuOrigPai){
+    if(menuOrigProx) menuOrigPai.insertBefore(nav, menuOrigProx);
+    else menuOrigPai.appendChild(nav);
+  }
+  document.querySelectorAll('.mn.aberto').forEach(m => m.classList.remove('aberto'));
+}
+
+/* No modo mobile, tocar no cabeçalho de um marketplace expande o acordeão em
+   vez de tentar um hover que não existe. Delegado no documento porque a nav
+   só existe dentro do drawer enquanto ele está aberto. */
+document.addEventListener('click', e => {
+  const alvo = e.target.closest('.mn-t[data-mkt]');
+  if(!alvo || alvo.classList.contains('mn-home')) return;
+  if(!alvo.closest('.menu-mobile')) return;      // no desktop isso é hover, não clique
+  e.preventDefault();
+  const grupo = alvo.closest('.mn');
+  const abrindo = !grupo.classList.contains('aberto');
+  document.querySelectorAll('.menu-mobile .mn.aberto').forEach(m => m.classList.remove('aberto'));
+  grupo.classList.toggle('aberto', abrindo);
+});
+
+/* qualquer item que realmente navega (Home, uma ferramenta, um capítulo do
+   guia) fecha o drawer depois — sem isso a próxima tela abriria atrás dele */
+document.addEventListener('click', e => {
+  if(!e.target.closest('.menu-mobile')) return;
+  const item = e.target.closest('.mn-home, .mn-i:not(.mn-off), .mn-g');
+  if(item) setTimeout(menuMobileFechar, 160);
+});
+
+/* girar o iPad ou redimensionar a janela para desktop fecha o menu mobile —
+   ele ficaria preso "aberto" atrás de um hambúrguer que já sumiu */
+addEventListener('resize', () => {
+  if(innerWidth > 879 && $('menuMobile').classList.contains('open')) menuMobileFechar();
+});
 function salvarParams(){
   params = Object.assign({}, PE.DEFAULT_PARAMS, lerForm());
   try{ localStorage.setItem(CHAVE, JSON.stringify(params)); }catch(e){}
@@ -2023,7 +2092,11 @@ function restaurarPadrao(){
   preencherForm(params);
   if(plAoa) plProcessar();
 }
-addEventListener('keydown', e => { if(e.key === 'Escape') fecharParams(); });
+addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  fecharParams();
+  if($('menuMobile').classList.contains('open')) menuMobileFechar();
+});
 
 function plDrop(e){
   e.preventDefault();
