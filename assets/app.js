@@ -102,7 +102,7 @@ if(preciso && !reduzido){
   });
 }
 
-/* contador das validações no cartão em destaque */
+/* contador das validações, no cabeçalho do hub */
 let rafContador = null;
 function contarPreco(){
   const el = $('liveChecks');
@@ -117,7 +117,7 @@ function contarPreco(){
     rafContador = p < 1 ? requestAnimationFrame(passo) : null;
   })(t0);
 }
-document.querySelector('.tool-1').addEventListener('mouseenter', contarPreco);
+/* quem dispara é o roteador, sempre que o hub entra em cena */
 
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: PRECIFICADOR MERCADO LIVRE
