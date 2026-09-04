@@ -393,7 +393,7 @@ const AVISOS = {
   tarifa_suspeita: {gravidade:'alerta', titulo:'Tarifa da categoria fora do esperado',
     descricao:'A coluna de tarifa trouxe mais de 50%. Foi ignorada — confira se é mesmo a coluna certa.'},
   markup_alto: {gravidade:'alerta', titulo:'Preço muito acima do custo',
-    descricao:'O preço passou de 5x o custo, quase sempre por causa do frete. Confira se o produto vende nesse valor.'},
+    descricao:'O preço ficou bem acima do que as taxas e o frete explicam. Confira se o produto vende nesse valor.'},
 };
 
 /* Precifica uma linha e devolve, junto, o que há de errado com ela.
@@ -441,7 +441,12 @@ function precificarLinha(entrada, params) {
   // frete zero com cálculo automático ligado significa que faltou dado de peso
   if (pl.freteAutomatico && r.frete === 0) avisos.push('frete_zero');
   if (r.lucroLiquido <= 0) avisos.push('lucro_negativo');
-  if (r.markup > 5) avisos.push('markup_alto');
+  /* Markup alto sozinho não é defeito: num produto de R$ 2,29 o Mercado Livre
+     cobra ~R$ 16 fixos (comissão + taxa fixa + frete), então qualquer preço com
+     margem dá 10× o custo — é aritmética, não erro. O que merece atenção é o
+     preço subir muito ALÉM do que as taxas explicam. */
+  const explicado = custo + r.comissao + r.taxaFixa + r.frete;
+  if (r.markup > 5 && preco > explicado * 1.6) avisos.push('markup_alto');
 
   return Object.assign({linha, avisos}, r);
 }

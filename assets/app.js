@@ -1692,7 +1692,7 @@ function mlRenderChecks(){
   }
 
   $('mlChecks').innerHTML = c.grupos.map(g => `
-    <div class="chk ${g.gravidade === 'erro' ? 'bad' : 'ok'}">
+    <div class="chk ${g.gravidade === 'erro' ? 'bad' : 'alerta'}">
       <div class="chk-i">${g.gravidade === 'erro'
         ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
         : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'}</div>
