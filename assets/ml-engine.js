@@ -76,12 +76,43 @@ function parseNumero(v) {
       : s.replace(/,/g, '');
   } else if (temVirgula) {
     s = s.replace(',', '.');
-  } else if (temPonto && /^\d{1,3}(\.\d{3})+$/.test(s)) {
+  } else if (temPonto && /^[+-]?\d{1,3}(\.\d{3})+$/.test(s)) {
     s = s.replace(/\./g, '');
   }
   const n = parseFloat(s);
   return isFinite(n) ? n : NaN;
 }
+
+/* Peso em quilos, aceitando a unidade escrita junto: "500 g", "1,5kg",
+   "800mg". Sem unidade, assume kg — é o que o Bling exporta e o que a
+   coluna "Peso bruto (Kg)" promete.
+
+   Existe separado de parseNumero porque unidade só faz sentido em peso:
+   deixar "mg" passar num campo de preço esconderia um erro de coluna. */
+const UNIDADES_PESO = {kg:1, quilo:1, quilos:1, k:1, g:.001, grama:.001, gramas:.001, mg:.000001, t:1000, ton:1000};
+function parsePeso(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : NaN;
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return NaN;
+  const m = s.match(/^(.*?)\s*([a-zA-Zçã]+)\.?$/);
+  const fator = m ? UNIDADES_PESO[m[2].toLowerCase()] : 1;
+  if (fator === undefined) return NaN;          // sufixo desconhecido: não adivinha
+  const corpo = m ? m[1] : s;
+
+  /* "1.091" é ambíguo: em preço parseNumero lê milhar (1091), o que em peso
+     viraria 1091 kg e jogaria o produto na última faixa de frete. Num campo
+     de peso, um ponto com um único grupo de 3 dígitos é decimal. */
+  if (/^[+-]?\d{1,3}\.\d{3}$/.test(corpo)) {
+    const n = parseFloat(corpo);
+    return isFinite(n) ? n * fator : NaN;
+  }
+  const n = parseNumero(corpo);
+  return isNaN(n) ? NaN : n * fator;
+}
+
+/* Peso arredondado a 4 casas: 1 mg = 0,000001 kg sumiria em 3 casas, e
+   produtos muito leves (brinco, adesivo) vivem nessa escala. */
+const arredPeso = kg => isNaN(kg) ? kg : Math.round(kg * 1e4) / 1e4;
 
 /* ── componentes do custo de venda ───────────────────────────────────────── */
 /* A tarifa de venda varia por categoria (Clássico 10%–14%, Premium 15%–19%),
@@ -279,8 +310,12 @@ const AVISOS = {
     descricao:'O frete usou as medidas ou o peso padrão. Confira a coluna de peso.'},
   sem_dimensoes: {gravidade:'alerta', titulo:'Sem as três medidas',
     descricao:'Sem altura, largura e comprimento não dá para calcular o peso volumétrico — o frete pode sair menor que o real.'},
+  peso_invalido: {gravidade:'erro', titulo:'Peso não é um número',
+    descricao:'Há texto onde deveria haver peso. Aceito: 1,5 / 1,5 kg / 500 g / 800 mg.'},
   peso_suspeito: {gravidade:'alerta', titulo:'Peso parece errado',
-    descricao:'Peso abaixo de 10 g. Se estiver em gramas em vez de quilos, o frete sai muito abaixo do real.'},
+    descricao:'Peso abaixo de meio grama. Confira se o valor está em quilos.'},
+  peso_alto: {gravidade:'alerta', titulo:'Peso acima de 150 kg',
+    descricao:'Acima do limite das faixas do Mercado Livre. Confira se gramas entraram como quilos.'},
   tarifa_suspeita: {gravidade:'alerta', titulo:'Tarifa da categoria fora do esperado',
     descricao:'A coluna de tarifa trouxe mais de 50%. Foi ignorada — confira se é mesmo a coluna certa.'},
   markup_alto: {gravidade:'alerta', titulo:'Preço muito acima do custo',
@@ -302,12 +337,16 @@ function precificarLinha(entrada, params) {
   if (vazio || custo === 0) { avisos.push('sem_custo'); return {linha, custo:null, preco:null, avisos}; }
   if (isNaN(custo) || custo < 0) { avisos.push('custo_invalido'); return {linha, custo:null, preco:null, avisos}; }
 
-  // peso e medidas
-  const peso = parseNumero(entrada.peso);
+  // peso e medidas — aceita "500 g" e "1,5kg", sempre convertendo para quilos
+  const pesoCru = entrada.peso;
+  const pesoVazio = pesoCru === '' || pesoCru == null;
+  const peso = pesoVazio ? NaN : arredPeso(parsePeso(pesoCru));
   const kg = isNaN(peso) ? 0 : peso;
   const dims = entrada.dimensoes || null;
-  if (!kg) avisos.push('sem_peso');
-  else if (kg < 0.01) avisos.push('peso_suspeito');
+  if (!pesoVazio && isNaN(peso)) avisos.push('peso_invalido');
+  else if (!kg) avisos.push('sem_peso');
+  else if (kg < 0.0005) avisos.push('peso_suspeito');
+  else if (kg > 150) avisos.push('peso_alto');
   if (p.usarPesoVolumetrico && !dims) avisos.push('sem_dimensoes');
 
   /* Tarifa própria da categoria: aceita 13 ou 0,13. Acima de 50% é quase
@@ -369,7 +408,7 @@ function precificarLote(entradas, params) {
   return {linhas, conferencia: conferir(linhas)};
 }
 
-return {PADRAO, AVISOS, brl, parseNumero, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+return {PADRAO, AVISOS, brl, parseNumero, parsePeso, arredPeso, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
         precificarLinha, precificarLote, conferir};

@@ -111,6 +111,25 @@ secao('5. Leitura de números');
 [['12unidades'], ['5 anos'], ['abc'], ['']].forEach(([txt]) =>
   ok(isNaN(ML.parseNumero(txt)), `"${txt}" não vira número`));
 
+/* ── 5b. Peso com unidade escrita junto ───────────────────────────────────── */
+secao('5b. Leitura de peso (sempre em kg)');
+[
+  ['1,5', 1.5], ['1,5 kg', 1.5], ['1,5kg', 1.5], ['2,200 KG', 2.2],
+  ['500g', 0.5], ['500 g', 0.5], ['800mg', 0.0008], ['0,001', 0.001],
+].forEach(([txt, esperado]) => perto(ML.arredPeso(ML.parsePeso(txt)), esperado, `"${txt}"`, 1e-9));
+
+/* Um ponto com três casas é decimal em peso, mesmo que em preço seja milhar:
+   ler 1,091 kg como 1091 kg jogaria o produto na última faixa de frete. */
+perto(ML.parsePeso('1.091'), 1.091, '"1.091" em peso é 1,091 kg', 1e-9);
+perto(ML.parseNumero('1.365'), 1365, '"1.365" em preço continua milhar', 1e-9);
+perto(ML.parsePeso('1.234.567'), 1234567, '"1.234.567" ainda é milhar', 1e-9);
+
+[['1,5 libras'], ['abc'], ['']].forEach(([txt]) =>
+  ok(isNaN(ML.parsePeso(txt)), `peso "${txt}" não vira número`));
+
+// 4 casas: um miligrama precisa sobreviver ao arredondamento
+perto(ML.arredPeso(0.0008), 0.0008, 'peso guarda 4 casas decimais', 1e-9);
+
 /* ── 6. A margem pedida é sempre entregue ─────────────────────────────────── */
 secao('6. Varredura: a margem alvo é cumprida?');
 {

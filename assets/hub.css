@@ -210,7 +210,11 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── tabelas ────────────────────────────────────────────── */
-.tbl-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:360px}
+/* Cresce com a tela em vez de travar em 360px: conferir centenas de produtos
+   numa janelinha rolante era o que mais atrapalhava. */
+.tbl-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;
+  max-height:min(72vh,900px)}
+@media(max-width:880px){.tbl-wrap{max-height:min(62vh,600px)}}
 table{border-collapse:collapse;width:100%;font-size:12px}
 thead{position:sticky;top:0;background:#f7f9fd;z-index:2}
 th{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:9.5px;font-weight:600;

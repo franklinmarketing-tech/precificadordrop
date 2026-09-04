@@ -288,11 +288,17 @@ addEventListener('scroll', () => {
 const CHAVE_ML = 'precificador-drop:params-ml';
 let modo = 'a';
 let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
-let mlConferencia = null, mlFiltro = null, mlPagina = 0;
+let mlConferencia = null, mlFiltro = null, mlPagina = 0, mlBusca = '';
 /* categoria descoberta no Mercado Livre, por linha da planilha */
 let mlCategorias = null;        // Map linha → {categoria, nome, classico, premium, obrigatorios}
 let mlUsandoCategoria = false;
-const ML_POR_PAGINA = 100;
+/* Correções feitas na tela: linha → {peso, custo}. Ficam separadas de mlAoa
+   para o "desfazer tudo" ser possível e para o export saber o que mudou. */
+let mlEdicoes = new Map();
+/* true quando não havia coluna de custo e caímos no "Preço" (provável venda) */
+let mlCustoIncerto = false;
+let ML_POR_PAGINA = 100;
+const ML_PAGINAS = [100, 200, 600];
 let pml = carregarParamsML();
 
 function carregarParamsML(){
@@ -909,7 +915,12 @@ async function mlCarregar(f){
         return !isNaN(n) && n > 0;
       });
       const acha = re => mlCabecalho.findIndex(h => re.test(String(h)));
-      const iCusto = [acha(/custo/i), acha(/^pre[çc]o$/i)].find(temValores);
+      /* Sem coluna de custo preenchida, sobra o "Preço" — que costuma ser o
+         preço de VENDA. Marcamos para avisar: aplicar margem sobre o preço de
+         venda gera um valor alto e plausível, e o erro passa despercebido. */
+      const iCustoReal = [acha(/custo/i)].find(temValores);
+      const iCusto = iCustoReal !== undefined ? iCustoReal : [acha(/^pre[çc]o$/i)].find(temValores);
+      mlCustoIncerto = iCustoReal === undefined && iCusto !== undefined;
       const iPeso  = [acha(/peso\s*bruto/i), acha(/peso\s*l[íi]quido/i), acha(/peso/i)].find(temValores);
       const iPreco = acha(/^pre[çc]o$/i);
       if(iCusto !== undefined) $('mlCusto').value = iCusto;
@@ -1389,10 +1400,12 @@ async function mlProcessar(){
       if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0)
         dims = {altura:a, largura:l, comprimento:c};
     }
+    /* correção feita na tela vence o valor da planilha */
+    const ed = mlEdicoes.get(i + 1) || {};
     return {
       linha: i + 1,
-      custo: linha[ic],
-      peso: ip >= 0 ? linha[ip] : '',
+      custo: ed.custo != null ? ed.custo : linha[ic],
+      peso: ed.peso != null ? ed.peso : (ip >= 0 ? linha[ip] : ''),
       dimensoes: dims,
       comissaoProduto: im >= 0 ? linha[im] : '',
     };
@@ -1466,8 +1479,19 @@ function mlRenderChecks(){
   badge.textContent = c.ok ? (c.revisar ? 'CONFIRA' : 'TUDO CERTO') : 'REVISAR';
   badge.className = 'pill ' + (c.ok ? 'pill-ok' : 'pill-bad');
 
+  /* A coluna de custo é a entrada mais perigosa: se vier o preço de venda, o
+     resultado sai alto e plausível, sem erro visível em lugar nenhum. */
+  const avisoCusto = !mlCustoIncerto ? '' : `<div class="chk bad">
+      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
+      <div><div class="chk-t">Confira qual coluna é o custo</div>
+        <div class="chk-d">Não achei uma coluna de custo preenchida, então usei
+          <b>${esc(String(mlCabecalho[parseInt($('mlCusto').value)] || ''))}</b> — que costuma ser o preço de
+          <b>venda</b>. Se for, os preços saem calculados por cima da venda, não do custo.
+          Volte ao passo anterior e escolha a coluna certa.</div></div>
+    </div>`;
+
   if(!c.grupos.length){
-    $('mlChecks').innerHTML = `<div class="chk ok">
+    $('mlChecks').innerHTML = avisoCusto + `<div class="chk ok">
       <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
       <div><div class="chk-t">Nada a revisar</div>
       <div class="chk-d">Os ${c.total} produtos têm custo, peso e medidas — os preços podem ser usados como estão.</div></div>
@@ -1475,7 +1499,7 @@ function mlRenderChecks(){
     return;
   }
 
-  $('mlChecks').innerHTML = c.grupos.map(g => `
+  $('mlChecks').innerHTML = avisoCusto + c.grupos.map(g => `
     <div class="chk ${g.gravidade === 'erro' ? 'bad' : 'ok'}">
       <div class="chk-i">${g.gravidade === 'erro'
         ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
@@ -1532,12 +1556,56 @@ function mlVerLinhas(id){
 }
 function mlIrPagina(n){ mlPagina = n; mlRenderTabela(); }
 
-/* ── tabela de conferência, com filtro e paginação ── */
+function mlPorPagina(n){ ML_POR_PAGINA = n; mlPagina = 0; mlRenderTabela(); }
+
+function mlBuscar(txt){
+  mlBusca = String(txt || '').trim().toLowerCase();
+  mlPagina = 0;
+  mlRenderTabela();
+}
+
+/* ── correção direta na tabela ────────────────────────────────────────────────
+   O usuário digita o peso ou o custo certo, a linha é recalculada na hora e o
+   valor corrigido vai junto na exportação. Guardamos em mlEdicoes (e não em
+   mlAoa) para saber o que foi corrigido e poder desfazer.                    */
+function mlEditar(linha, campo, valor){
+  const txt = String(valor).trim();
+  const atual = mlEdicoes.get(linha) || {};
+  if(txt === '') delete atual[campo];
+  else atual[campo] = txt;
+
+  if(Object.keys(atual).length) mlEdicoes.set(linha, atual);
+  else mlEdicoes.delete(linha);
+}
+
+/* Recalcula só depois que o usuário sai do campo: refazer a tabela a cada
+   tecla faria o input perder o foco no meio da digitação. */
+function mlEditarPronto(){ mlProcessar(); }
+
+function mlDesfazerEdicoes(){
+  if(!mlEdicoes.size) return;
+  mlEdicoes.clear();
+  mlProcessar();
+}
+
+/* ── tabela de conferência, com filtro, busca e paginação ── */
 function mlRenderTabela(){
   const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
+  const iVar  = mlCabecalho.findIndex(h => /varia[çc][ãa]o/i.test(String(h)));
+  const iCod  = mlCabecalho.findIndex(h => /^c[óo]digo$/i.test(String(h)));
   const grupo = mlFiltro && mlConferencia
     ? mlConferencia.grupos.find(g => g.id === mlFiltro) : null;
-  const alvo = grupo ? grupo.linhas.map(i => mlLinhas[i]) : mlLinhas;
+  let alvo = grupo ? grupo.linhas.map(i => mlLinhas[i]) : mlLinhas;
+
+  /* busca por descrição ou código, para achar um produto no meio de centenas */
+  if(mlBusca){
+    alvo = alvo.filter(r => {
+      const l = mlAoa[r.linha] || [];
+      const d = iDesc >= 0 ? String(l[iDesc] || '') : '';
+      const c = iCod  >= 0 ? String(l[iCod]  || '') : '';
+      return (d + ' ' + c).toLowerCase().includes(mlBusca);
+    });
+  }
 
   const total = alvo.length;
   const paginas = Math.max(1, Math.ceil(total / ML_POR_PAGINA));
@@ -1550,12 +1618,30 @@ function mlRenderTabela(){
     return r.avisos.map(a => `<span class="tag ${ (ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
   };
 
+  /* peso na tela: até 4 casas, sem zeros à toa (0,0008 kg / 2,2 kg) */
+  const pesoTxt = kg => kg == null || !isFinite(kg) ? '' :
+    String(+Number(kg).toFixed(4)).replace('.', ',');
+
+  const campo = (r, nome, valor, prefixo) => {
+    const ed = mlEdicoes.get(r.linha) || {};
+    const mexido = ed[nome] != null;
+    return `<div class="cel-ed${mexido ? ' mexido' : ''}">${prefixo ? `<span>${prefixo}</span>` : ''}
+      <input type="text" inputmode="decimal" value="${esc(valor)}"
+        onchange="mlEditar(${r.linha},'${nome}',this.value); mlEditarPronto()"
+        title="${mexido ? 'Corrigido aqui — vai assim para o Excel' : 'Clique para corrigir'}"/></div>`;
+  };
+
+  const tdsVazios = mlUsandoCategoria ? 7 : 6;
+
   $('mlTabela').innerHTML =
-    `<thead><tr><th>Linha</th><th>Descrição</th>${mlUsandoCategoria ? '<th>Categoria no ML</th>' : ''}
-      <th>Custo</th><th>Peso</th><th>Preço de venda</th>
+    `<thead><tr><th>Linha</th><th>Descrição</th>${iVar >= 0 ? '<th>Variação</th>' : ''}${mlUsandoCategoria ? '<th>Categoria no ML</th>' : ''}
+      <th>Custo</th><th>Peso (kg)</th><th>Preço de venda</th>
       <th>Comissão</th><th>Envio</th><th>Lucro</th><th>Situação</th></tr></thead><tbody>` +
     pagina.map(r => {
-      const desc = iDesc >= 0 ? String((mlAoa[r.linha] || [])[iDesc] || '').slice(0, 40) : '';
+      const l = mlAoa[r.linha] || [];
+      const descCheia = iDesc >= 0 ? String(l[iDesc] || '') : '';
+      const desc = descCheia.slice(0, 60);
+      const ed = mlEdicoes.get(r.linha) || {};
       /* a categoria vem do Mercado Livre; sem ela a linha usou a tarifa dos parâmetros */
       const cat = mlUsandoCategoria && mlCategorias ? mlCategorias.get(r.linha) : null;
       const tipoAn = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
@@ -1563,16 +1649,35 @@ function mlRenderTabela(){
         ? `<td class="td-cat" title="${esc(cat.categoria)}">${esc(cat.nome || cat.categoria)}
              <b>${String(cat[tipoAn]).replace('.', ',')}%</b></td>`
         : '<td class="td-cat vazia">não encontrada</td>');
-      if(r.preco == null) return `<tr>
+      const tdVar = iVar < 0 ? '' :
+        `<td style="color:var(--faint)">${esc(String(l[iVar] || '')) || '—'}</td>`;
+
+      /* a linha inteira ganha cor quando tem problema: numa página de 600,
+         procurar a última coluna é inviável */
+      const grav = !r.avisos || !r.avisos.length ? '' :
+        (r.avisos.some(a => (ML.AVISOS[a] || {}).gravidade === 'erro') ? ' class="tr-erro"' : ' class="tr-alerta"');
+
+      const tdCusto = campo(r, 'custo', ed.custo != null ? ed.custo :
+        (r.custo != null ? r.custo.toFixed(2).replace('.', ',') : ''), 'R$');
+      /* No campo vai o peso da balança — é o que se corrige. Quando o frete
+         cobra o volumétrico (caixa grande e leve), avisamos ao lado, senão o
+         número editado não bate com o envio cobrado. */
+      const tdPeso = campo(r, 'peso', ed.peso != null ? ed.peso : (r.pesoReal ? pesoTxt(r.pesoReal) : '')) +
+        (r.pesoUsou === 'volumétrico' && r.peso
+          ? `<div class="vol" title="A caixa é grande para o peso: o Mercado Livre cobra o peso volumétrico (altura × largura × comprimento ÷ 6000)">frete cobra ${pesoTxt(r.peso)}</div>`
+          : '');
+
+      if(r.preco == null) return `<tr${grav}>
         <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(desc)}">${esc(desc) || '—'}</td>${tdCat}
-        <td colspan="6" style="color:var(--faint)">sem preço calculado</td>
+        <td title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
+        <td>${tdCusto}</td><td>${tdPeso}</td>
+        <td colspan="${tdsVazios - 2}" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
-      return `<tr>
+      return `<tr${grav}>
         <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(desc)}">${esc(desc) || '—'}</td>${tdCat}
-        <td style="color:var(--amber)">${ML.brl(r.custo)}</td>
-        <td style="color:var(--faint)">${r.peso ? String(r.peso).replace('.', ',') + ' kg' : '—'}</td>
+        <td title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
+        <td style="color:var(--amber)">${tdCusto}</td>
+        <td>${tdPeso}</td>
         <td style="font-weight:700">${ML.brl(r.preco)}</td>
         <td style="color:var(--red)">${ML.brl(-r.comissao)}</td>
         <td style="color:var(--red)">${ML.brl(-r.frete)}</td>
@@ -1581,20 +1686,43 @@ function mlRenderTabela(){
       </tr>`;
     }).join('') + '</tbody>';
 
-  // barra de filtro
-  $('mlFiltroBar').innerHTML = grupo
-    ? `<div class="filtro-bar">Mostrando só: <b>${esc(grupo.titulo)}</b> (${grupo.n})
-        <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button></div>`
-    : '';
-  mostrar('mlFiltroBar', !!grupo);
+  /* atalhos que ficam sempre à mão, mesmo quando o problema não existe:
+     "sem peso" precisa ser procurável, não só aparecer quando dá alerta */
+  const atalhos = [['sem_peso','sem peso'], ['peso_invalido','peso inválido'],
+                   ['peso_suspeito','peso suspeito'], ['sem_custo','sem custo'],
+                   ['lucro_negativo','no prejuízo']]
+    .map(([id, rot]) => {
+      const g = mlConferencia && mlConferencia.grupos.find(x => x.id === id);
+      const n = g ? g.n : 0;
+      return `<button class="f-atalho${mlFiltro === id ? ' on' : ''}${n ? '' : ' zero'}"
+        ${n ? `onclick="mlVerLinhas('${id}')"` : 'disabled'}>${rot} <b>${n}</b></button>`;
+    }).join('');
+
+  // barra de busca, filtro ativo e correções pendentes
+  const nEd = mlEdicoes.size;
+  $('mlFiltroBar').innerHTML = `<div class="filtro-bar">
+      <input type="search" class="busca" placeholder="Buscar por descrição ou código…"
+        value="${esc(mlBusca)}" oninput="mlBuscar(this.value)"/>
+      <span class="f-atalhos">${atalhos}</span>
+      ${grupo ? `<span>Mostrando só: <b>${esc(grupo.titulo)}</b> (${grupo.n})</span>
+        <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>` : ''}
+      ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}
+      ${nEd ? `<span class="ed-aviso"><b>${nEd}</b> linha${nEd === 1 ? '' : 's'} corrigida${nEd === 1 ? '' : 's'} aqui</span>
+        <button onclick="mlDesfazerEdicoes()">desfazer correções</button>` : ''}
+    </div>`;
+  mostrar('mlFiltroBar', true);
 
   // paginação
   const fim = Math.min(inicio + ML_POR_PAGINA, total);
-  $('mlPaginacao').innerHTML = paginas > 1
+  const seletorTam = `<span class="pag-tam">Mostrar
+      ${ML_PAGINAS.map(n => `<button class="${n === ML_POR_PAGINA ? 'on' : ''}" onclick="mlPorPagina(${n})">${n}</button>`).join('')}
+      por vez</span>`;
+  $('mlPaginacao').innerHTML = (paginas > 1 || total > ML_PAGINAS[0])
     ? `<div class="paginacao">
-        <button ${mlPagina === 0 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina - 1})">‹ Anterior</button>
+        ${paginas > 1 ? `<button ${mlPagina === 0 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina - 1})">‹ Anterior</button>
         <span>${inicio + 1}–${fim} de ${total}</span>
-        <button ${mlPagina >= paginas - 1 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina + 1})">Próximas ${ML_POR_PAGINA} ›</button>
+        <button ${mlPagina >= paginas - 1 ? 'disabled' : ''} onclick="mlIrPagina(${mlPagina + 1})">Próximas ${Math.min(ML_POR_PAGINA, total - fim)} ›</button>` : `<span>${total} linha${total === 1 ? '' : 's'}</span>`}
+        ${seletorTam}
       </div>` : '';
 
   const c = mlConferencia;
@@ -1610,6 +1738,16 @@ function mlBaixar(){
   /* Linha sem preço mantém o valor antigo na planilha. Avisamos antes de
      gerar, senão o arquivo vai para o Bling com preços novos e velhos
      misturados, sem como distinguir. */
+  /* Gravar o preço na mesma coluna de onde veio o custo apaga o custo: numa
+     segunda rodada o app leria o preço de venda como se fosse custo. */
+  if(id >= 0 && id === parseInt($('mlCusto').value)){
+    const ok = confirm(
+      `A coluna "${mlCabecalho[id]}" está sendo usada como CUSTO e também como destino do preço novo.\n\n`
+      + 'Gerando assim, o custo é substituído pelo preço de venda no arquivo — e uma nova precificação '
+      + 'em cima dele sairia errada.\n\nGerar mesmo assim?');
+    if(!ok) return;
+  }
+
   const semPreco = mlLinhas.filter(r => r.preco == null).length;
   if(semPreco && id >= 0){
     const ok = confirm(
@@ -1629,21 +1767,36 @@ function mlBaixar(){
     const ws = XU.clonarWs(wb.Sheets[nomeAba]);
     const base = mlCabecalho.length;
 
-    const NOVAS = ['Custo do produto','Peso (kg)','Preço de venda ML','Comissão','Custo fixo',
+    /* dois pesos: o da balança e o que o frete de fato cobrou (que pode ser o
+       volumétrico). Um só, ambíguo, não deixa conferir o custo de envio. */
+    const NOVAS = ['Custo do produto','Peso do produto (kg)','Peso cobrado no frete (kg)',
+                   'Preço de venda ML','Comissão','Custo fixo',
                    'Custo de envio','Receita líquida','Lucro líquido','Margem líquida','Conferência']
       /* quando a tarifa veio do ML, o arquivo registra de onde: sem isso não dá
          para saber depois se a linha usou a tarifa da categoria ou a do parâmetro */
       .concat(mlUsandoCategoria ? ['Categoria ML','Código da categoria','Tarifa aplicada (%)'] : []);
     if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
 
+    /* correções feitas na tela vão para a coluna original da planilha — é essa
+       que o Bling lê; as colunas de análise abaixo são só para conferência */
+    const icPeso  = parseInt($('mlPeso').value);
+    const icCusto = parseInt($('mlCusto').value);
+
     mlLinhas.forEach((r, i) => {
       const linha = i + 1;
+      const ed = mlEdicoes.get(r.linha);
+      if(ed){
+        /* r.peso pode ser o volumétrico (o que o frete cobra); na planilha vai
+           o peso da balança, que foi o valor digitado */
+        if(ed.peso != null && icPeso >= 0 && r.pesoReal != null) XU.escrever(ws, linha, icPeso, r.pesoReal);
+        if(ed.custo != null && icCusto >= 0 && r.custo != null) XU.escrever(ws, linha, icCusto, r.custo);
+      }
       if(id >= 0 && r.preco != null) XU.escrever(ws, linha, id, r.preco);
       if(comAnalise){
         const conf = (r.avisos || []).map(a => (ML.AVISOS[a] || {}).titulo || a).join(' · ');
         const vals = r.preco == null
-          ? [r.custo, r.peso, '', '', '', '', '', '', '', conf || 'sem preço calculado']
-          : [r.custo, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
+          ? [r.custo, r.pesoReal, r.peso, '', '', '', '', '', '', '', conf || 'sem preço calculado']
+          : [r.custo, r.pesoReal, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
              r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4), conf];
         if(mlUsandoCategoria){
           const c = mlCategorias ? mlCategorias.get(r.linha) : null;
