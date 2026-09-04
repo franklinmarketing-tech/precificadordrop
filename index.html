@@ -1357,22 +1357,23 @@
   </div>
 </div>
 
-<!-- ═══ POP-UP: CONFERIR A UNIDADE DO PESO ═══
-     Peso errado é o defeito mais caro do app: um produto de 2 kg lido como
-     2000 kg sai com frete de R$ 262,85 e preço irreal. Como a decisão é do
-     usuário, ela acontece aqui, com os números da planilha dele à vista. -->
-<div class="scrim" id="scrimPeso"></div>
-<div class="pop pop-peso" id="popPeso" role="dialog" aria-modal="true" aria-labelledby="pesoTitulo">
+<!-- ═══ POP-UP: COMO O APP LEU A PLANILHA ═══
+     Cada depósito manda um formato. O app detecta aba, cabeçalho, colunas e as
+     unidades de peso e medida — mas quem decide é o usuário, com os números da
+     planilha dele à vista. Uma tela só: quatro pop-ups em sequência treinariam
+     o hábito de clicar sem ler. -->
+<div class="scrim" id="scrimRevisar"></div>
+<div class="pop pop-largo" id="popRevisar" role="dialog" aria-modal="true" aria-labelledby="revisarTitulo">
   <div class="pop-h">
     <div>
-      <div class="pop-t" id="pesoTitulo">Confira a unidade do peso</div>
-      <div class="pop-s">ANTES DE CALCULAR O FRETE</div>
+      <div class="pop-t" id="revisarTitulo">Confira como o app leu a planilha</div>
+      <div class="pop-s">ANTES DE CALCULAR</div>
     </div>
-    <button class="x" onclick="pesoFechar()" aria-label="Fechar">
+    <button class="x" onclick="revisarFechar()" aria-label="Fechar">
       <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
-  <div class="pop-b" id="pesoCorpo"></div>
-  <div class="pop-f" id="pesoAcoes"></div>
+  <div class="pop-b" id="revisarCorpo"></div>
+  <div class="pop-f" id="revisarAcoes"></div>
 </div>
 
 <!-- ═══ POP-UP: PROGRESSO DO CÁLCULO ═══

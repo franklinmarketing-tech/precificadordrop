@@ -256,6 +256,106 @@ function freteDe(preco, peso, p, dimensoes) {
   return MLFretes ? MLFretes.custoEnvio(preco, kg, p.reputacao, p.freteRapidoAbaixo79) : 0;
 }
 
+/* ── as medidas estão em milímetros mesmo a coluna dizendo "cm"? ──────────────
+   O mesmo erro do peso, mas invisível: uma caixa 20×30×40 lida como mm dá
+   volumétrico de 4000 kg em vez de 4, o frete pula de R$ 20,75 para R$ 262,85 e
+   nenhum aviso dispara (peso_alto olha a balança, não o volumétrico).
+
+   A escala vem da mediana de TODOS os lados juntos — com três colunas, um
+   outlier não move nada. Mas a mediana sozinha erraria num catálogo de móveis,
+   então ela só vira suspeita se o volumétrico e o peso real concordarem. */
+/* O corte de 100 cm vem dos dados: numa planilha real de 5 mil produtos a
+   mediana dos lados é 20 cm e só 0,4% passa de 100 cm. Em milímetros essa mesma
+   mediana vira 200 — as duas escalas não se encostam. */
+const ESCALAS_DIM = [
+  {escala: 'mm', fator: 0.1,  min: 100, max: Infinity},
+  {escala: 'cm', fator: 1,    min: 2,   max: 100},
+  {escala: 'm',  fator: 100,  min: 0,   max: 2},
+];
+const escalaDoLado = n => ESCALAS_DIM.find(e => n >= e.min && n < e.max) || ESCALAS_DIM[1];
+
+const mediana = lista => {
+  if (!lista.length) return 0;
+  const o = lista.slice().sort((a, b) => a - b);
+  return o[Math.floor(o.length / 2)];
+};
+
+function detectarEscalaDimensao(alturas, larguras, comprimentos, pesos, params) {
+  const p = Object.assign({}, PADRAO, params || {});
+  const caixas = [], lados = [];
+  const n = Math.max(alturas ? alturas.length : 0, larguras ? larguras.length : 0);
+  for (let i = 0; i < n; i++) {
+    const a = parseNumero(alturas[i]), l = parseNumero(larguras[i]), c = parseNumero(comprimentos[i]);
+    if (isNaN(a) || isNaN(l) || isNaN(c) || a <= 0 || l <= 0 || c <= 0) continue;
+    caixas.push({altura: a, largura: l, comprimento: c});
+    lados.push(a, l, c);
+  }
+
+  const vazio = {suspeita: false, escala: 'cm', fator: 1, n: caixas.length, misturado: false};
+  if (caixas.length < 20) return vazio;          // amostra pequena não sustenta conclusão
+
+  const med = mediana(lados);
+  const alvo = escalaDoLado(med);
+
+  /* Coerência: metade em mm e metade em cm não é escala errada, é bagunça —
+     e converter em bloco estragaria uma das metades. */
+  const coerentes = lados.filter(x => escalaDoLado(x).escala === alvo.escala).length / lados.length;
+  if (coerentes < 0.8) return Object.assign({}, vazio, {misturado: true, medianaLado: med});
+  if (alvo.escala === 'cm') return Object.assign({}, vazio, {medianaLado: med});
+
+  const caixaMed = caixas[Math.floor(caixas.length / 2)];
+  const volAntes = pesoVolumetrico(caixaMed, p);
+  const volDepois = pesoVolumetrico({
+    altura: caixaMed.altura * alvo.fator,
+    largura: caixaMed.largura * alvo.fator,
+    comprimento: caixaMed.comprimento * alvo.fator,
+  }, p);
+
+  /* Se o volumétrico atual já é plausível para um produto de e-commerce, não há
+     o que corrigir — a mediana pode ter enganado. */
+  if (volAntes >= 0.05 && volAntes <= 30) return Object.assign({}, vazio, {medianaLado: med});
+
+  /* Sinal mais forte: o volumétrico tem que ficar na mesma ordem de grandeza do
+     peso da balança. Em mm essa razão vira ~1000. */
+  const kgs = (pesos || []).map(parsePeso).filter(x => !isNaN(x) && x > 0);
+  const razaoPeso = kgs.length >= 10 ? volAntes / mediana(kgs) : null;
+  if (razaoPeso != null && razaoPeso >= 0.1 && razaoPeso <= 10)
+    return Object.assign({}, vazio, {medianaLado: med, razaoPeso});
+
+  const precoRef = 100;
+  return {
+    suspeita: true, escala: alvo.escala, fator: alvo.fator, n: caixas.length,
+    misturado: false, medianaLado: med, razaoPeso,
+    volumetricoAntes: volAntes, volumetricoDepois: volDepois,
+    /* em reais: é o número que o usuário julga sozinho */
+    freteAntes: MLFretes ? MLFretes.custoEnvio(precoRef, volAntes, p.reputacao, p.freteRapidoAbaixo79) : 0,
+    freteDepois: MLFretes ? MLFretes.custoEnvio(precoRef, volDepois, p.reputacao, p.freteRapidoAbaixo79) : 0,
+    exemplos: caixas.slice(0, 3).map(c => ({
+      de: c,
+      para: {
+        altura: arredPeso(c.altura * alvo.fator),
+        largura: arredPeso(c.largura * alvo.fator),
+        comprimento: arredPeso(c.comprimento * alvo.fator),
+      },
+    })),
+  };
+}
+
+/* A conversão é da COLUNA inteira, não por linha: altura e largura do mesmo
+   produto estão sempre na mesma unidade. */
+function normalizarDimensaoLinha(a, l, c, fator) {
+  const f = Number(fator) || 1;
+  const na = parseNumero(a), nl = parseNumero(l), nc = parseNumero(c);
+  if (isNaN(na) || isNaN(nl) || isNaN(nc) || na <= 0 || nl <= 0 || nc <= 0)
+    return {dimensoes: null, convertido: false};
+  return {
+    dimensoes: {
+      altura: arredPeso(na * f), largura: arredPeso(nl * f), comprimento: arredPeso(nc * f),
+    },
+    convertido: f !== 1,
+  };
+}
+
 /* ── conta completa a partir de um preço ─────────────────────────────────── */
 function analisar(preco, custo, peso, params, dimensoes) {
   const p = Object.assign({}, PADRAO, params || {});
@@ -488,7 +588,8 @@ function precificarLote(entradas, params) {
 }
 
 return {PADRAO, AVISOS, LIMITE_ML, PISO_GRAMAS, brl, parseNumero, parsePeso, arredPeso,
-        detectarEscalaPeso, normalizarPesoLinha, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+        detectarEscalaPeso, normalizarPesoLinha,
+        detectarEscalaDimensao, normalizarDimensaoLinha, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
         precificarLinha, precificarLote, conferir};

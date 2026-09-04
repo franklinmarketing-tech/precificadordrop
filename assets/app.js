@@ -288,6 +288,10 @@ addEventListener('scroll', () => {
 const CHAVE_ML = 'precificador-drop:params-ml';
 let modo = 'a';
 let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], mlNome = '', mlMargem = 0.20;
+/* De onde a tabela foi lida. O export reabre o arquivo e escreve por posição
+   física, então precisa saber a aba e em que linha está o cabeçalho — senão
+   grava os preços nas linhas erradas de um arquivo com cara de certo. */
+let mlAbaNome = '', mlLinhaCab = 0;
 let mlConferencia = null, mlFiltro = null, mlPagina = 0, mlBusca = '';
 /* categoria descoberta no Mercado Livre, por linha da planilha */
 let mlCategorias = null;        // Map linha → {categoria, nome, classico, premium, obrigatorios}
@@ -297,6 +301,9 @@ let mlUsandoCategoria = false;
 let mlEdicoes = new Map();
 /* a coluna de peso parece estar em gramas e ninguém decidiu ainda */
 let mlPesoSuspeito = false, mlPesoConfirmadoKg = false, mlPesoInfo = null;
+/* medidas em mm/m numa coluna que diz cm — mesmo problema do peso, mas sem
+   nenhum aviso que o denuncie: o frete infla até 12x em silêncio */
+let mlDimSuspeita = false, mlDimConfirmada = false, mlDimInfo = null, mlDimFator = 1;
 /* linhas cujo peso foi convertido de gramas para quilos no cálculo */
 let mlPesosConvertidos = new Set();
 let ML_POR_PAGINA = 100;
@@ -491,7 +498,7 @@ addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if($('popCalc').classList.contains('open')) fecharCalc();
   if($('popCustos').classList.contains('open')) fecharCustos();
-  if($('popPeso').classList.contains('open')) pesoFechar();
+  if($('popRevisar').classList.contains('open')) revisarFechar();
 });
 
 /* ── editor visual das faixas de custo fixo ─────────────────────────────── */
@@ -935,6 +942,7 @@ async function mlCarregar(f){
   mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
   mlCategorias = null; mlUsandoCategoria = false;
   mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
+  mlDimSuspeita = false; mlDimConfirmada = false; mlDimInfo = null; mlDimFator = 1;
   $('mlPesoUnidade').value = 'kg';
   mlNome = f.name;
   const rd = new FileReader();
@@ -943,7 +951,9 @@ async function mlCarregar(f){
     try{
       mlBytes = ev.target.result;
       mlWb = XLSX.read(mlBytes, {type:'array'});
-      const ws = XU.normalizarRef(mlWb.Sheets[mlWb.SheetNames[0]]);
+      mlAbaNome = mlWb.SheetNames[0];
+      mlLinhaCab = 0;
+      const ws = XU.normalizarRef(mlWb.Sheets[mlAbaNome]);
       mlAoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
       if(mlAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
       mlCabecalho = mlAoa[0].map(String);
@@ -1019,24 +1029,42 @@ function mlChecarUnidadePeso(ip){
   const n = r.suspeitos;
   caixa.innerHTML = `<b>${n} peso${n === 1 ? '' : 's'} ${n === 1 ? 'parece' : 'parecem'} estar em gramas.</b>
     Precisa de uma conferência antes de calcular o frete.
-    <div class="uni-btns"><button type="button" class="sim" onclick="pesoAbrir()">Conferir agora</button></div>`;
+    <div class="uni-btns"><button type="button" class="sim" onclick="revisarAbrir()">Conferir agora</button></div>`;
   mostrar('mlUniAlerta', true);
-  pesoAbrir();
 }
 
-/* ── pop-up: conferir a unidade do peso ──────────────────────────────────────
-   Mostra o que foi encontrado, com valores reais da planilha e o antes/depois,
-   para a decisão ser informada em vez de um "sim" no escuro.               */
-function pesoAbrir(){
+/* Medidas em milímetros numa coluna que diz cm inflam o volumétrico 1000x e o
+   frete até 12x — sem nenhum aviso, porque peso_alto olha a balança e o frete
+   inflado entra no que markup_alto considera "explicado". */
+function mlChecarEscalaDimensao(iA, iL, iC, ip){
+  if(iA < 0 || iL < 0 || iC < 0){ mlDimSuspeita = false; mlDimInfo = null; return; }
+  const linhas = mlAoa.slice(1);
+  const r = ML.detectarEscalaDimensao(
+    linhas.map(l => l[iA]), linhas.map(l => l[iL]), linhas.map(l => l[iC]),
+    ip >= 0 ? linhas.map(l => l[ip]) : [], pml);
+  mlDimInfo = r;
+  mlDimSuspeita = r.suspeita && !mlDimConfirmada && mlDimFator === 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TELA DE REVISÃO — como o app leu a planilha
+
+   Cada depósito manda um formato diferente. O app detecta o que consegue, mas
+   quem decide é o usuário: aqui ele vê o que foi encontrado, com os números da
+   planilha dele à vista, e aprova ou ajusta. Uma tela só — quatro pop-ups em
+   sequência ensinariam a clicar sem ler.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const numBr = v => String(v).replace('.', ',');
+
+/* Peso em gramas numa coluna que diz "kg". */
+function revisarSecaoPeso(){
   const r = mlPesoInfo;
-  if(!r) return;
-  const num = v => String(v).replace('.', ',');
+  if(!r || !mlPesoSuspeito) return '';
   const n = r.suspeitos, outros = r.n - n;
-
   const linhasEx = r.exemplosGrandes.map(e =>
-    `<tr><td>${num(e.de)}</td><td class="seta">→</td><td><b>${num(e.para)} kg</b></td></tr>`).join('');
+    `<tr><td>${numBr(e.de)}</td><td class="seta">→</td><td><b>${numBr(e.para)} kg</b></td></tr>`).join('');
 
-  $('pesoCorpo').innerHTML = `
+  return `
     <div class="pz-alerta">
       <div class="pz-num">${n}</div>
       <div><b>peso${n === 1 ? '' : 's'} que ${n === 1 ? 'parece' : 'parecem'} estar em gramas</b>
@@ -1044,8 +1072,8 @@ function pesoAbrir(){
     </div>
 
     <p class="pz-p"><b>Como o app identifica.</b> São os pesos que aparecem como número
-    redondo e acima de ${ML.PISO_GRAMAS} — como <b>${num(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b>
-    ou <b>${num(r.maior)}</b>. Peso em quilo de produto de dropshipping tem casa decimal
+    redondo e acima de ${ML.PISO_GRAMAS} — como <b>${numBr(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b>
+    ou <b>${numBr(r.maior)}</b>. Peso em quilo de produto de dropshipping tem casa decimal
     (0,9 · 2,575) e dificilmente passa de ${ML.PISO_GRAMAS} kg; peso em grama vem redondo.
     O Mercado Livre nem entrega acima de ${ML.LIMITE_ML} kg.</p>
 
@@ -1065,41 +1093,99 @@ function pesoAbrir(){
       <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
       <div><b>Os outros ${outros} produtos não serão tocados.</b>
         <div class="pz-sub">Já estão em quilos${r.exemplosNormais.length
-          ? ` (${r.exemplosNormais.map(num).join(' · ')} kg)` : ''} e continuam como estão.</div></div>
+          ? ` (${r.exemplosNormais.map(numBr).join(' · ')} kg)` : ''} e continuam como estão.</div></div>
     </div>` : `<div class="pz-ok aviso">
       <div><b>Toda a coluna está nessa escala.</b>
         <div class="pz-sub">Todos os pesos serão divididos por mil.</div></div>
-    </div>`}
-
-    <p class="pz-p pz-nota">Se os seus produtos pesam isso mesmo, escolha "Manter como
-    está". Depois de corrigir, cada linha convertida fica marcada na tabela e pode ser
-    ajustada na mão — o preço recalcula só naquele produto.</p>`;
-
-  $('pesoAcoes').innerHTML = `
-    <button class="btn btn-ghost" onclick="pesoManter()">Manter como está</button>
-    <button class="btn btn-green" onclick="pesoCorrigir()">
-      Corrigir ${n === 1 ? 'o produto' : `os ${n} produtos`} e calcular</button>`;
-
-  abrirPop('popPeso', 'scrimPeso');
+    </div>`}`;
 }
 
-function pesoFechar(){ fecharPop('popPeso', 'scrimPeso'); }
+/* Medidas em milimetros ou metros numa coluna que diz cm. */
+function revisarSecaoDimensao(){
+  const r = mlDimInfo;
+  if(!r || !mlDimSuspeita) return '';
+  const emMm = r.escala === 'mm';
+  const ex = r.exemplos.map(e =>
+    `<tr><td>${numBr(e.de.altura)} × ${numBr(e.de.largura)} × ${numBr(e.de.comprimento)}</td>
+       <td class="seta">→</td>
+       <td><b>${numBr(e.para.altura)} × ${numBr(e.para.largura)} × ${numBr(e.para.comprimento)} cm</b></td></tr>`).join('');
 
-function pesoCorrigir(){
+  return `
+    <div class="pz-alerta">
+      <div class="pz-num">${r.escala}</div>
+      <div><b>as medidas parecem estar em ${emMm ? 'milímetros' : 'metros'}, não em centímetros</b>
+        <div class="pz-sub">medida típica da planilha: ${numBr(r.medianaLado)} — em centímetros isso seria
+          ${emMm ? 'uma caixa maior que uma geladeira' : 'menor que uma moeda'}</div></div>
+    </div>
+
+    <p class="pz-p"><b>Por que importa.</b> O Mercado Livre cobra o frete pelo maior valor
+    entre o peso da balança e o <b>peso volumétrico</b> (altura × largura × comprimento ÷ 6000).
+    ${emMm ? 'Em milímetros esse cálculo dá mil vezes mais, e o frete estoura'
+           : 'Em metros ele quase zera, e o frete sai abaixo do que você vai pagar de verdade'}.</p>
+
+    <div class="pz-tab">
+      <div class="pz-tab-t">O que muda no frete de um produto típico</div>
+      <table><thead><tr><th>como está</th><th></th><th>corrigido</th></tr></thead><tbody>
+        <tr><td>peso volumétrico ${numBr(r.volumetricoAntes)} kg</td><td class="seta">→</td>
+            <td><b>${numBr(r.volumetricoDepois)} kg</b></td></tr>
+        <tr><td>frete ${ML.brl(r.freteAntes)}</td><td class="seta">→</td>
+            <td><b>${ML.brl(r.freteDepois)}</b></td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="pz-tab">
+      <div class="pz-tab-t">Exemplos das medidas da sua planilha</div>
+      <table><thead><tr><th>na planilha</th><th></th><th>vira</th></tr></thead><tbody>${ex}</tbody></table>
+    </div>
+
+    <div class="pz-ok aviso">
+      <div><b>A conversão vale para as três colunas de medida.</b>
+        <div class="pz-sub">Altura, largura e comprimento de um produto estão sempre na mesma unidade.</div></div>
+    </div>`;
+}
+
+function revisarMontar(){
+  const partes = [revisarSecaoPeso(), revisarSecaoDimensao()].filter(Boolean);
+  const pendencias = partes.length;
+
+  $('revisarCorpo').innerHTML = (pendencias
+    ? partes.join('<div style="height:20px"></div>')
+    : `<div class="pz-ok"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        <div><b>Nada a ajustar.</b>
+          <div class="pz-sub">Peso e medidas estão em escalas coerentes.</div></div></div>`)
+    + `<p class="pz-p pz-nota">Se os seus produtos são assim mesmo, escolha "Usar como está".
+       Depois de corrigir, cada linha alterada fica marcada na tabela e pode ser ajustada na
+       mão — o preço recalcula só naquele produto.</p>`;
+
+  $('revisarAcoes').innerHTML = pendencias
+    ? `<button class="btn btn-ghost" onclick="revisarIgnorar()">Usar como está</button>
+       <button class="btn btn-green" onclick="revisarAplicar()">
+         Aplicar ${pendencias === 1 ? 'a correção' : `as ${pendencias} correções`} e calcular</button>`
+    : `<button class="btn btn-green" onclick="revisarIgnorar()">Entendi</button>`;
+}
+
+function revisarAbrir(){ revisarMontar(); abrirPop('popRevisar', 'scrimRevisar'); }
+function revisarFechar(){ fecharPop('popRevisar', 'scrimRevisar'); }
+
+function revisarAplicar(){
   /* toda a coluna em gramas divide tudo; planilha misturada corrige só as
-     linhas impossíveis, para não estragar quem já está em quilos */
-  $('mlPesoUnidade').value = mlPesoInfo && mlPesoInfo.todosGrandes ? 'g' : 'auto';
-  pesoFechar();
+     linhas suspeitas, para não estragar quem já está em quilos */
+  if(mlPesoSuspeito)
+    $('mlPesoUnidade').value = mlPesoInfo && mlPesoInfo.todosGrandes ? 'g' : 'auto';
+  if(mlDimSuspeita && mlDimInfo) mlDimFator = mlDimInfo.fator;
+  revisarFechar();
   mlValidaCol();
   mlProcessar();
 }
 
-function pesoManter(){
+/* Mantém os valores como estão. A confirmação vale só para esta planilha:
+   carregar outro arquivo volta a perguntar. */
+function revisarIgnorar(){
   mlPesoConfirmadoKg = true;
-  pesoFechar();
+  mlDimConfirmada = true;
+  revisarFechar();
   mlValidaCol();
 }
-
 
 function mlValidaCol(){
   const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value);
@@ -1109,6 +1195,8 @@ function mlValidaCol(){
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   mostrar('mlUniBox', ip >= 0);
   mlChecarUnidadePeso(ip);
+  mlChecarEscalaDimensao(parseInt($('mlAltura').value), parseInt($('mlLargura').value),
+                         parseInt($('mlComprimento').value), ip);
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
   /* como a opção já vem ligada, o aviso precisa acompanhar a coluna de título
      escolhida — inclusive para pedir que ela seja selecionada */
@@ -1549,7 +1637,7 @@ async function mlProcessar(){
 
   /* Sem responder a unidade do peso, todo o frete sai errado. Melhor parar aqui
      do que entregar uma planilha inteira com preço inflado. */
-  if(mlPesoSuspeito){ pesoAbrir(); return; }
+  if(mlPesoSuspeito || mlDimSuspeita){ revisarAbrir(); return; }
 
   progAbrir();
   try{
@@ -1580,12 +1668,11 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
 
   // monta as entradas e deixa o motor precificar e conferir tudo de uma vez
   const entradas = mlAoa.slice(1).map((linha, i) => {
-    let dims = null;
-    if(iAlt >= 0 && iLarg >= 0 && iComp >= 0){
-      const a = ML.parseNumero(linha[iAlt]), l = ML.parseNumero(linha[iLarg]), c = ML.parseNumero(linha[iComp]);
-      if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0)
-        dims = {altura:a, largura:l, comprimento:c};
-    }
+    /* mlDimFator converte a coluna inteira quando as medidas vêm em mm ou m;
+       vale 1 no caso normal, em que nada muda */
+    const dims = (iAlt >= 0 && iLarg >= 0 && iComp >= 0)
+      ? ML.normalizarDimensaoLinha(linha[iAlt], linha[iLarg], linha[iComp], mlDimFator).dimensoes
+      : null;
     /* correção feita na tela vence o valor da planilha */
     const ed = mlEdicoes.get(i + 1) || {};
     return {
@@ -1787,11 +1874,9 @@ function mlEditarPronto(linha){
   const original = mlAoa[linha] || [];
   const ed = mlEdicoes.get(linha) || {};
 
-  let dims = null;
-  if(iAlt >= 0 && iLarg >= 0 && iComp >= 0){
-    const a = ML.parseNumero(original[iAlt]), l = ML.parseNumero(original[iLarg]), c = ML.parseNumero(original[iComp]);
-    if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0) dims = {altura:a, largura:l, comprimento:c};
-  }
+  const dims = (iAlt >= 0 && iLarg >= 0 && iComp >= 0)
+    ? ML.normalizarDimensaoLinha(original[iAlt], original[iLarg], original[iComp], mlDimFator).dimensoes
+    : null;
 
   /* o que o usuário digita é sempre kg; a conversão de gramas vale só para o
      valor que veio da planilha */
@@ -2012,7 +2097,7 @@ function mlBaixar(){
   try{
     // relê o arquivo enviado e troca só o que muda, preservando tipos e formato
     const wb = XLSX.read(mlBytes, {type:'array'});
-    const nomeAba = wb.SheetNames[0];
+    const nomeAba = mlAbaNome || wb.SheetNames[0];
     XU.normalizarRef(wb.Sheets[nomeAba]);
     const ws = XU.clonarWs(wb.Sheets[nomeAba]);
     const base = mlCabecalho.length;
@@ -2025,7 +2110,7 @@ function mlBaixar(){
       /* quando a tarifa veio do ML, o arquivo registra de onde: sem isso não dá
          para saber depois se a linha usou a tarifa da categoria ou a do parâmetro */
       .concat(mlUsandoCategoria ? ['Categoria ML','Código da categoria','Tarifa aplicada (%)'] : []);
-    if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, 0, base + k, t));
+    if(comAnalise) NOVAS.forEach((t, k) => XU.escrever(ws, mlLinhaCab, base + k, t));
 
     /* correções feitas na tela vão para a coluna original da planilha — é essa
        que o Bling lê; as colunas de análise abaixo são só para conferência */
@@ -2033,7 +2118,7 @@ function mlBaixar(){
     const icCusto = parseInt($('mlCusto').value);
 
     mlLinhas.forEach((r, i) => {
-      const linha = i + 1;
+      const linha = mlLinhaCab + 1 + i;   // posição real na aba, não no recorte lido
       const ed = mlEdicoes.get(r.linha);
       if(ed){
         /* r.peso pode ser o volumétrico (o que o frete cobra); na planilha vai
@@ -2098,6 +2183,7 @@ function mlReset(){
   mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
   mlCategorias = null; mlUsandoCategoria = false;
   mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
+  mlDimSuspeita = false; mlDimConfirmada = false; mlDimInfo = null; mlDimFator = 1;
   $('mlPesoUnidade').value = 'kg';
   $('mlFi').value = '';
   mlPasso(1);

@@ -173,6 +173,80 @@ secao('5d. Conversão linha a linha');
   ok(r.convertido === converteu, `${entrada} ${converteu ? 'é convertido' : 'fica como está'}`);
 });
 
+/* ── 5e. Medidas em mm/m numa coluna que diz cm ───────────────────────────────
+   O erro mais caro e mais invisível: em milímetros o peso volumétrico dá mil
+   vezes mais e o frete estoura, sem nenhum aviso disparar. */
+secao('5e. Escala das medidas (mm / cm / m)');
+{
+  // gera um catálogo plausível: caixas de 20-35 × 30-40 × 40-60
+  const catalogo = (n, fator, pesoKg) => {
+    const a = [], l = [], c = [], p = [];
+    for (let i = 0; i < n; i++) {
+      a.push((20 + i % 15) * fator);
+      l.push((30 + i % 10) * fator);
+      c.push((40 + i % 20) * fator);
+      p.push(pesoKg);
+    }
+    return {a, l, c, p};
+  };
+  const detectar = d => ML.detectarEscalaDimensao(d.a, d.l, d.c, d.p, {});
+
+  const cm = detectar(catalogo(500, 1, 2));
+  ok(!cm.suspeita, 'centímetros não disparam alarme falso');
+
+  const mm = detectar(catalogo(500, 10, 2));
+  ok(mm.suspeita, 'milímetros são detectados');
+  ok(mm.escala === 'mm', 'e identificados como mm', `veio ${mm.escala}`);
+  perto(mm.fator, 0.1, 'com fator 0,1 para virar cm', 1e-9);
+  ok(mm.freteAntes > mm.freteDepois, 'o frete cai depois da correção',
+     `${mm.freteAntes} → ${mm.freteDepois}`);
+
+  const m = detectar(catalogo(500, 0.01, 2));
+  ok(m.suspeita && m.escala === 'm', 'metros são detectados', `veio ${m.escala}`);
+  perto(m.fator, 100, 'com fator 100', 1e-9);
+
+  // amostra pequena não sustenta conclusão nenhuma
+  ok(!detectar(catalogo(10, 10, 2)).suspeita, 'menos de 20 produtos não bastam');
+
+  /* o falso positivo mais provável: quem vende móveis tem lados de 80-200 cm,
+     e isso NÃO pode ser confundido com milímetros */
+  const moveis = {a: [], l: [], c: [], p: []};
+  for (let i = 0; i < 200; i++) {
+    moveis.a.push(80 + i % 120); moveis.l.push(90 + i % 100);
+    moveis.c.push(100 + i % 80); moveis.p.push(40);
+  }
+  ok(!detectar(moveis).suspeita, 'catálogo de móveis grandes não vira falso positivo');
+
+  // metade numa escala, metade noutra: não dá para converter em bloco
+  const mix = {a: [], l: [], c: [], p: []};
+  for (let i = 0; i < 100; i++) {
+    const f = i % 2 ? 1 : 10;
+    mix.a.push(20 * f); mix.l.push(30 * f); mix.c.push(40 * f); mix.p.push(2);
+  }
+  const bagunca = detectar(mix);
+  ok(bagunca.misturado, 'planilha com escalas misturadas é reconhecida');
+  ok(!bagunca.suspeita, 'e não oferece conversão em bloco, que estragaria metade');
+}
+
+secao('5f. Conversão das medidas');
+{
+  const r = ML.normalizarDimensaoLinha(200, 300, 400, 0.1);
+  perto(r.dimensoes.altura, 20, '200 mm → 20 cm', 1e-9);
+  perto(r.dimensoes.largura, 30, '300 mm → 30 cm', 1e-9);
+  perto(r.dimensoes.comprimento, 40, '400 mm → 40 cm', 1e-9);
+  ok(r.convertido, 'marca que houve conversão');
+
+  // fecha o círculo com a seção 4: o volumétrico corrigido bate com o esperado
+  perto(ML.pesoVolumetrico(r.dimensoes, {}), 4, 'e o peso volumétrico volta a 4 kg', 1e-9);
+
+  const igual = ML.normalizarDimensaoLinha(20, 30, 40, 1);
+  ok(!igual.convertido, 'fator 1 não altera nada');
+  perto(igual.dimensoes.altura, 20, 'e mantém a medida', 1e-9);
+
+  ok(ML.normalizarDimensaoLinha('', 30, 40, 1).dimensoes === null,
+     'medida faltando devolve dimensões nulas');
+}
+
 /* ── 6. A margem pedida é sempre entregue ─────────────────────────────────── */
 secao('6. Varredura: a margem alvo é cumprida?');
 {
