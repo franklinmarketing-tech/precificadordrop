@@ -295,6 +295,8 @@ let mlUsandoCategoria = false;
 /* Correções feitas na tela: linha → {peso, custo}. Ficam separadas de mlAoa
    para o "desfazer tudo" ser possível e para o export saber o que mudou. */
 let mlEdicoes = new Map();
+/* a coluna de peso parece estar em gramas e ninguém decidiu ainda */
+let mlPesoSuspeito = false, mlPesoConfirmadoKg = false;
 let ML_POR_PAGINA = 100;
 const ML_PAGINAS = [100, 200, 600];
 let pml = carregarParamsML();
@@ -929,6 +931,8 @@ async function mlCarregar(f){
   mlEdicoes.clear();
   mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
   mlCategorias = null; mlUsandoCategoria = false;
+  mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
+  $('mlPesoUnidade').value = 'kg';
   mlNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
@@ -998,18 +1002,31 @@ async function mlCarregar(f){
    própria, porque um catálogo de itens pesados de verdade existe. */
 function mlChecarUnidadePeso(ip){
   const caixa = $('mlUniAlerta');
-  if(ip < 0){ mostrar('mlUniAlerta', false); return; }
+  if(ip < 0){ mlPesoSuspeito = false; mostrar('mlUniAlerta', false); return; }
 
   const r = ML.detectarEscalaPeso(mlAoa.slice(1).map(l => l[ip]));
   const jaEmGramas = $('mlPesoUnidade').value === 'g';
-  if(!r.suspeita || jaEmGramas){ mostrar('mlUniAlerta', false); return; }
+  /* enquanto ninguém responder, o cálculo fica bloqueado: deixar passar produz
+     frete de centenas de reais em toda a planilha, e o usuário só descobre
+     olhando a coluna Situação linha a linha */
+  mlPesoSuspeito = r.suspeita && !jaEmGramas && !mlPesoConfirmadoKg;
+  if(!mlPesoSuspeito){ mostrar('mlUniAlerta', false); return; }
 
-  caixa.innerHTML = `<b>Esses números parecem estar em gramas.</b>
+  caixa.innerHTML = `<b>Esses números parecem estar em gramas, não em quilos.</b>
     O peso do meio da planilha é <b>${String(r.mediana).replace('.', ',')}</b>, que como quilo daria
     ${r.acima150 ? `${r.acima150} produto${r.acima150 === 1 ? '' : 's'} acima de 150 kg e ` : ''}frete
     fora da realidade. Em gramas, seriam <b>${String(r.medianaConvertida).replace('.', ',')} kg</b>.
-    <button type="button" onclick="mlUsarGramas()">Sim, estão em gramas</button>`;
+    <div class="uni-btns">
+      <button type="button" class="sim" onclick="mlUsarGramas()">São gramas — converter</button>
+      <button type="button" class="nao" onclick="mlConfirmarKg()">São quilos mesmo</button>
+    </div>`;
   mostrar('mlUniAlerta', true);
+}
+
+/* o usuário afirmou que são quilos: paramos de perguntar por esta planilha */
+function mlConfirmarKg(){
+  mlPesoConfirmadoKg = true;
+  mlValidaCol();
 }
 
 function mlUsarGramas(){
@@ -1462,6 +1479,15 @@ async function mlProcessar(){
   const iLarg = parseInt($('mlLargura').value);
   const iComp = parseInt($('mlComprimento').value);
   if(ic < 0) return;
+
+  /* Sem responder a unidade do peso, todo o frete sai errado. Melhor parar aqui
+     do que entregar uma planilha inteira com preço inflado. */
+  if(mlPesoSuspeito){
+    $('mlUniAlerta').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'center'});
+    $('mlUniAlerta').classList.add('pisca');
+    setTimeout(() => $('mlUniAlerta').classList.remove('pisca'), 1400);
+    return;
+  }
 
   progAbrir();
   try{
@@ -1942,6 +1968,8 @@ function mlReset(){
   mlEdicoes.clear();
   mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
   mlCategorias = null; mlUsandoCategoria = false;
+  mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
+  $('mlPesoUnidade').value = 'kg';
   $('mlFi').value = '';
   mlPasso(1);
 }

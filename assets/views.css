@@ -628,10 +628,16 @@ body.view-hub{overflow-x:hidden}
 .uni-alerta{margin-top:9px;padding:11px 13px;border-radius:10px;font-size:11.5px;line-height:1.5;
   background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:var(--ink)}
 .uni-alerta b{font-weight:700}
-.uni-alerta button{display:block;margin-top:9px;border:none;cursor:pointer;font-family:inherit;
-  font-size:11px;font-weight:700;color:#fff;background:var(--amber-dk,#b45309);
-  padding:8px 14px;border-radius:8px}
-.uni-alerta button:hover{filter:brightness(1.1)}
+.uni-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.uni-alerta button{border:none;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:700;padding:10px 15px;border-radius:9px;min-height:38px}
+.uni-alerta button.sim{color:#fff;background:var(--amber-dk,#b45309)}
+.uni-alerta button.nao{color:var(--sub);background:#fff;border:1px solid var(--line)}
+.uni-alerta button:hover{filter:brightness(1.06)}
+/* o cálculo fica bloqueado até a resposta: o alerta chama atenção para si */
+.uni-alerta.pisca{animation:uniPisca .45s ease-in-out 3}
+@keyframes uniPisca{50%{background:rgba(245,158,11,.3);
+  box-shadow:0 0 0 5px rgba(245,158,11,.22);transform:scale(1.015)}}
 
 /* Filtros: alvo grande e com cara de botão. Antes eram pastilhas de 10px que
    não pareciam clicáveis — e são o caminho para achar o que está errado. */
