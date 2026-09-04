@@ -1016,8 +1016,8 @@ function mlChecarUnidadePeso(ip){
   if(!mlPesoSuspeito){ mostrar('mlUniAlerta', false); return; }
 
   mlPesoInfo = r;
-  const n = r.acima150;
-  caixa.innerHTML = `<b>${n} produto${n === 1 ? '' : 's'} com peso acima de 150 kg.</b>
+  const n = r.suspeitos;
+  caixa.innerHTML = `<b>${n} peso${n === 1 ? '' : 's'} ${n === 1 ? 'parece' : 'parecem'} estar em gramas.</b>
     Precisa de uma conferência antes de calcular o frete.
     <div class="uni-btns"><button type="button" class="sim" onclick="pesoAbrir()">Conferir agora</button></div>`;
   mostrar('mlUniAlerta', true);
@@ -1031,7 +1031,7 @@ function pesoAbrir(){
   const r = mlPesoInfo;
   if(!r) return;
   const num = v => String(v).replace('.', ',');
-  const n = r.acima150, outros = r.n - n;
+  const n = r.suspeitos, outros = r.n - n;
 
   const linhasEx = r.exemplosGrandes.map(e =>
     `<tr><td>${num(e.de)}</td><td class="seta">→</td><td><b>${num(e.para)} kg</b></td></tr>`).join('');
@@ -1039,19 +1039,20 @@ function pesoAbrir(){
   $('pesoCorpo').innerHTML = `
     <div class="pz-alerta">
       <div class="pz-num">${n}</div>
-      <div><b>produto${n === 1 ? '' : 's'} com peso acima de 150 kg</b>
-        <div class="pz-sub">de ${r.n} com peso preenchido</div></div>
+      <div><b>peso${n === 1 ? '' : 's'} que ${n === 1 ? 'parece' : 'parecem'} estar em gramas</b>
+        <div class="pz-sub">de ${r.n} produtos com peso preenchido</div></div>
     </div>
 
-    <p class="pz-p"><b>O que isso significa.</b> O Mercado Livre não entrega encomendas
-    acima de 150 kg — não existe faixa de frete para esse peso. Um valor como
-    <b>${num(r.maior)}</b> numa coluna chamada "quilos" quase sempre é o peso em
-    <b>gramas</b>: ${num(r.maior)} g = ${num(r.maiorConvertido)} kg.</p>
+    <p class="pz-p"><b>Como o app identifica.</b> São os pesos que aparecem como número
+    redondo e acima de ${ML.PISO_GRAMAS} — como <b>${num(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b>
+    ou <b>${num(r.maior)}</b>. Peso em quilo de produto de dropshipping tem casa decimal
+    (0,9 · 2,575) e dificilmente passa de ${ML.PISO_GRAMAS} kg; peso em grama vem redondo.
+    O Mercado Livre nem entrega acima de ${ML.LIMITE_ML} kg.</p>
 
-    <p class="pz-p"><b>Por que importa.</b> Lido como quilo, o produto cai na última faixa
-    da tabela e o frete sai em centenas de reais. Esse valor entra no preço final,
-    que fica irreal — e o erro não aparece em lugar nenhum, a não ser olhando produto
-    por produto.</p>
+    <p class="pz-p"><b>Por que importa.</b> Lido como quilo, o produto cai nas últimas faixas
+    da tabela e o frete sai em dezenas ou centenas de reais. Esse valor entra no preço
+    final, que fica irreal — e o erro não aparece em lugar nenhum, a não ser olhando
+    produto por produto.</p>
 
     <div class="pz-tab">
       <div class="pz-tab-t">Como ${n === 1 ? 'esse produto ficaria' : 'esses produtos ficariam'} depois da correção</div>
@@ -1070,9 +1071,9 @@ function pesoAbrir(){
         <div class="pz-sub">Todos os pesos serão divididos por mil.</div></div>
     </div>`}
 
-    <p class="pz-p pz-nota">Se você vende itens que realmente pesam mais de 150 kg,
-    escolha "Manter como está" — o app mantém os valores e marca essas linhas para
-    você conferir uma a uma.</p>`;
+    <p class="pz-p pz-nota">Se os seus produtos pesam isso mesmo, escolha "Manter como
+    está". Depois de corrigir, cada linha convertida fica marcada na tabela e pode ser
+    ajustada na mão — o preço recalcula só naquele produto.</p>`;
 
   $('pesoAcoes').innerHTML = `
     <button class="btn btn-ghost" onclick="pesoManter()">Manter como está</button>
@@ -1771,7 +1772,67 @@ function mlEditar(linha, campo, valor){
 
 /* Recalcula só depois que o usuário sai do campo: refazer a tabela a cada
    tecla faria o input perder o foco no meio da digitação. */
-function mlEditarPronto(){ mlProcessar(); }
+/* Recalcula SÓ a linha corrigida. Antes isso chamava mlProcessar(), que
+   reprocessa a planilha inteira e reconsulta o Mercado Livre — em 5 mil
+   produtos, cada correção custava dezenas de segundos e a tabela voltava para
+   o topo, perdendo o lugar onde o usuário estava. */
+function mlEditarPronto(linha){
+  const r = mlLinhas.find(x => x.linha === linha);
+  if(!r){ mlProcessar(); return; }
+
+  const ip = parseInt($('mlPeso').value), ic = parseInt($('mlCusto').value);
+  const im = parseInt($('mlComissao').value);
+  const iAlt = parseInt($('mlAltura').value), iLarg = parseInt($('mlLargura').value);
+  const iComp = parseInt($('mlComprimento').value);
+  const original = mlAoa[linha] || [];
+  const ed = mlEdicoes.get(linha) || {};
+
+  let dims = null;
+  if(iAlt >= 0 && iLarg >= 0 && iComp >= 0){
+    const a = ML.parseNumero(original[iAlt]), l = ML.parseNumero(original[iLarg]), c = ML.parseNumero(original[iComp]);
+    if(!isNaN(a) && !isNaN(l) && !isNaN(c) && a > 0 && l > 0 && c > 0) dims = {altura:a, largura:l, comprimento:c};
+  }
+
+  /* o que o usuário digita é sempre kg; a conversão de gramas vale só para o
+     valor que veio da planilha */
+  let peso = ed.peso;
+  if(peso == null && ip >= 0){
+    peso = original[ip];
+    if($('mlPesoUnidade').value === 'auto'){
+      const conv = ML.normalizarPesoLinha(peso, true);
+      if(conv.convertido){ peso = conv.kg; mlPesosConvertidos.add(linha); }
+    }else if($('mlPesoUnidade').value === 'g' && peso !== '' && peso != null && !/[a-z]/i.test(String(peso))){
+      peso = String(peso) + ' g';
+    }
+  }
+  if(ed.peso != null) mlPesosConvertidos.delete(linha);
+
+  const params = Object.assign({}, pml, {margemAlvo: mlMargem});
+  let comissao = im >= 0 ? original[im] : '';
+  if(mlUsandoCategoria && mlCategorias){
+    const c = mlCategorias.get(linha);
+    const tipo = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
+    if(c && c[tipo] != null) comissao = c[tipo];
+  }
+
+  const novo = ML.precificarLinha({
+    linha, custo: ed.custo != null ? ed.custo : original[ic],
+    peso, dimensoes: dims, comissaoProduto: comissao,
+  }, params);
+
+  mlLinhas[mlLinhas.indexOf(r)] = novo;
+  mlConferencia = ML.conferir(mlLinhas);
+  mlRenderStats();
+  mlRenderChecks();
+
+  /* redesenhar a tabela joga a rolagem para o topo; guardamos a posição para o
+     usuário continuar exatamente onde estava, corrigindo uma linha atrás da
+     outra sem se perder */
+  const caixa = document.querySelector('#mlStep3 .tbl-wrap');
+  const y = caixa ? caixa.scrollTop : 0;
+  mlRenderTabela();
+  if(caixa) caixa.scrollTop = y;
+}
 
 
 /* ── tabela de conferência, com filtro, busca e paginação ── */
@@ -1813,7 +1874,7 @@ function mlRenderTabela(){
     const mexido = ed[nome] != null;
     return `<div class="cel-ed${mexido ? ' mexido' : ''}">${prefixo ? `<span>${prefixo}</span>` : ''}
       <input type="text" inputmode="decimal" value="${esc(valor)}"
-        onchange="mlEditar(${r.linha},'${nome}',this.value); mlEditarPronto()"
+        onchange="mlEditar(${r.linha},'${nome}',this.value); mlEditarPronto(${r.linha})"
         title="${mexido ? 'Corrigido aqui — vai assim para o Excel' : 'Clique para corrigir'}"/></div>`;
   };
 
@@ -1850,7 +1911,7 @@ function mlRenderTabela(){
          número editado não bate com o envio cobrado. */
       const tdPeso = campo(r, 'peso', ed.peso != null ? ed.peso : (r.pesoReal ? pesoTxt(r.pesoReal) : '')) +
         (mlPesosConvertidos.has(r.linha)
-          ? `<div class="vol conv" title="A planilha trazia esse peso em gramas: acima de 150 kg o Mercado Livre não entrega">convertido de gramas</div>` : '') +
+          ? `<div class="vol conv" title="A planilha trazia esse peso como número redondo acima de 20 — padrão de peso em gramas. Corrija aqui se estiver errado.">convertido de gramas</div>` : '') +
         (r.pesoUsou === 'volumétrico' && r.peso
           ? `<div class="vol" title="A caixa é grande para o peso: o Mercado Livre cobra o peso volumétrico (altura × largura × comprimento ÷ 6000)">frete cobra ${pesoTxt(r.peso)}</div>`
           : '');

@@ -149,16 +149,24 @@ secao('5c. Peso em gramas rotulado como kg');
   const mista = ML.detectarEscalaPeso(['0,9','2000','0,01','1091','13','2200','4,6']);
   ok(mista.suspeita, 'planilha misturada dispara');
   ok(!mista.todosGrandes, 'e é reconhecida como misturada, não como toda em gramas');
-  ok(mista.acima150 === 3, 'conta só as linhas impossíveis', `contou ${mista.acima150}`);
+  ok(mista.suspeitos === 3, 'conta só as linhas suspeitas', `contou ${mista.suspeitos}`);
   perto(mista.maiorConvertido, 2.2, 'mostra o maior valor já convertido', 1e-9);
+
+  /* 80, 82 e 117 numa coluna "kg" são gramas: 211 produtos da planilha real
+     caíam nessa faixa e passavam batido quando o corte era só 150 kg */
+  const medios = ML.detectarEscalaPeso(['80','82','117','0,9','2,575','1,2']);
+  ok(medios.suspeitos === 3, 'pega inteiros de 20 a 150 kg', `contou ${medios.suspeitos}`);
 }
 
 secao('5d. Conversão linha a linha');
 [
   [2000, 2, true], [1091, 1.091, true], [131000, 131, true],
-  [0.9, 0.9, false], [13, 13, false], [4.6, 4.6, false], [150, 150, false],
-  // decimal logo acima do limite é quilo mal cadastrado, não grama
-  [150.5, 150.5, false],
+  // a faixa que passava batido antes
+  [80, 0.08, true], [82, 0.082, true], [117, 0.117, true], [20, 0.02, true],
+  // inteiros pequenos são pesos plausíveis de verdade
+  [19, 19, false], [16, 16, false], [5, 5, false], [1, 1, false],
+  // decimais nunca são gramas: gramas vêm redondas
+  [0.9, 0.9, false], [4.6, 4.6, false], [2.575, 2.575, false], [199.999, 199.999, false],
 ].forEach(([entrada, esperado, converteu]) => {
   const r = ML.normalizarPesoLinha(entrada, true);
   perto(r.kg, esperado, `${entrada} → ${esperado} kg`, 1e-9);

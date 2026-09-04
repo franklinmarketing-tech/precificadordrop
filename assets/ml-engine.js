@@ -114,15 +114,25 @@ function parsePeso(v) {
    produtos muito leves (brinco, adesivo) vivem nessa escala. */
 const arredPeso = kg => isNaN(kg) ? kg : Math.round(kg * 1e4) / 1e4;
 
-/* ── a coluna está em gramas mesmo dizendo "kg"? ──────────────────────────────
+/* ── a linha está em gramas mesmo a coluna dizendo "kg"? ──────────────────────
    Acontece o tempo todo: a planilha traz 2000 para um produto de 2 kg. Lido
    como quilo, o frete vai para a última faixa e o preço sai irreal.
 
-   Não dá para decidir linha a linha (2000 kg é uma carga possível), mas a
-   coluna inteira entrega o padrão: se quase nada tem casa decimal e a mediana
-   está na casa das centenas, são gramas. Devolvemos a suspeita para a tela
-   perguntar — converter sozinho seria pior que o erro que corrige. */
-const LIMITE_ML = 150;   // acima disso o Mercado Livre não tem faixa de frete
+   A planilha real mistura as escalas na mesma coluna, então a decisão é por
+   linha. Duas condições, e as duas precisam valer:
+
+   • acima de PISO_GRAMAS — peso de dropshipping (roupa, brinquedo, panela)
+     raramente passa disso;
+   • número inteiro — peso em gramas vem redondo (2000, 80, 117), enquanto
+     quilo de verdade tem casa decimal (0,9 / 2,575 / 199,999).
+
+   Só o limite de 150 kg não bastava: a planilha do usuário tinha 211 produtos
+   entre 20 e 150 kg (80, 82, 117…), todos inteiros e todos gramas, que
+   passavam batido e saíam com frete de centenas de reais. */
+const LIMITE_ML = 150;    // acima disso o Mercado Livre não tem faixa de frete
+const PISO_GRAMAS = 20;   // acima disso, um inteiro é quase certamente grama
+
+const pareceGramas = n => Number.isInteger(n) && n >= PISO_GRAMAS;
 
 function detectarEscalaPeso(valores) {
   const kg = [];
@@ -131,33 +141,37 @@ function detectarEscalaPeso(valores) {
     const n = parsePeso(v);
     if (!isNaN(n) && n > 0) kg.push(n);
   }
-  if (!kg.length) return {suspeita: false, n: 0, acima150: 0};
+  if (!kg.length) return {suspeita: false, n: 0, acima150: 0, suspeitos: 0};
 
   const ordenado = kg.slice().sort((a, b) => a - b);
   const mediana = ordenado[Math.floor(ordenado.length / 2)];
-  const grandes = kg.filter(n => n > LIMITE_ML);
+  const grandes = ordenado.filter(pareceGramas);
 
-  /* Nenhum produto vendido no Mercado Livre pesa mais de 150 kg: cada valor
-     acima disso é grama escrita numa coluna que diz "kg". A planilha real do
-     usuário mistura as duas escalas (0,9 kg e 2000 g na mesma coluna), então a
-     decisão é POR LINHA — converter a coluna inteira estragaria os 63% que já
-     estavam certos. */
   return {
     suspeita: grandes.length > 0,
     n: kg.length,
     mediana,
-    acima150: grandes.length,
+    suspeitos: grandes.length,
+    acima150: kg.filter(n => n > LIMITE_ML).length,
     /* o maior de todos, para a mensagem mostrar o caso mais gritante */
     maior: ordenado[ordenado.length - 1],
     maiorConvertido: arredPeso(ordenado[ordenado.length - 1] / 1000),
     todosGrandes: grandes.length === kg.length,
-    /* amostras para a tela mostrar o antes e depois com dados reais, em vez
-       de pedir uma decisão sobre números que o usuário não está vendo */
-    exemplosGrandes: grandes.slice(0, 4).map(n => ({de: n, para: arredPeso(n / 1000)})),
+    /* Amostras para a tela mostrar o antes e depois com dados reais, em vez de
+       pedir uma decisão sobre números que o usuário não está vendo. Valores
+       distintos e espalhados pela faixa: quatro linhas repetindo "20 → 0,02"
+       não mostram o que está acontecendo na planilha. */
+    exemplosGrandes: (() => {
+      const unicos = [...new Set(grandes)];
+      const passo = Math.max(1, Math.floor(unicos.length / 4));
+      const amostra = [];
+      for (let i = 0; i < unicos.length && amostra.length < 4; i += passo) amostra.push(unicos[i]);
+      return amostra.map(n => ({de: n, para: arredPeso(n / 1000)}));
+    })(),
     /* em torno da mediana: os extremos da lista ordenada dariam exemplos
        atípicos (0,01 kg ou 150 kg) e não representam o catálogo */
     exemplosNormais: (() => {
-      const bons = ordenado.filter(n => n <= LIMITE_ML);
+      const bons = ordenado.filter(n => !pareceGramas(n));
       if (!bons.length) return [];
       const meio = Math.floor(bons.length / 2);
       return bons.slice(Math.max(0, meio - 2), Math.max(0, meio - 2) + 4);
@@ -170,11 +184,7 @@ function detectarEscalaPeso(valores) {
 function normalizarPesoLinha(v, converterGrandes) {
   const n = parsePeso(v);
   if (isNaN(n) || n <= 0) return {kg: n, convertido: false};
-  /* Exigimos inteiro: um peso gravado em gramas não tem casa decimal (2000,
-     1091). Já "150,5" é quilo mal cadastrado, e dividir por mil o transformaria
-     em 0,15 kg — trocaríamos um erro visível por um invisível. */
-  if (converterGrandes && n > LIMITE_ML && Number.isInteger(n))
-    return {kg: arredPeso(n / 1000), convertido: true};
+  if (converterGrandes && pareceGramas(n)) return {kg: arredPeso(n / 1000), convertido: true};
   return {kg: n, convertido: false};
 }
 
@@ -472,7 +482,7 @@ function precificarLote(entradas, params) {
   return {linhas, conferencia: conferir(linhas)};
 }
 
-return {PADRAO, AVISOS, LIMITE_ML, brl, parseNumero, parsePeso, arredPeso,
+return {PADRAO, AVISOS, LIMITE_ML, PISO_GRAMAS, brl, parseNumero, parsePeso, arredPeso,
         detectarEscalaPeso, normalizarPesoLinha, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
