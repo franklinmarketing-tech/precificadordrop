@@ -151,6 +151,17 @@ function detectarEscalaPeso(valores) {
     maior: ordenado[ordenado.length - 1],
     maiorConvertido: arredPeso(ordenado[ordenado.length - 1] / 1000),
     todosGrandes: grandes.length === kg.length,
+    /* amostras para a tela mostrar o antes e depois com dados reais, em vez
+       de pedir uma decisão sobre números que o usuário não está vendo */
+    exemplosGrandes: grandes.slice(0, 4).map(n => ({de: n, para: arredPeso(n / 1000)})),
+    /* em torno da mediana: os extremos da lista ordenada dariam exemplos
+       atípicos (0,01 kg ou 150 kg) e não representam o catálogo */
+    exemplosNormais: (() => {
+      const bons = ordenado.filter(n => n <= LIMITE_ML);
+      if (!bons.length) return [];
+      const meio = Math.floor(bons.length / 2);
+      return bons.slice(Math.max(0, meio - 2), Math.max(0, meio - 2) + 4);
+    })(),
   };
 }
 

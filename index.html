@@ -1357,6 +1357,24 @@
   </div>
 </div>
 
+<!-- ═══ POP-UP: CONFERIR A UNIDADE DO PESO ═══
+     Peso errado é o defeito mais caro do app: um produto de 2 kg lido como
+     2000 kg sai com frete de R$ 262,85 e preço irreal. Como a decisão é do
+     usuário, ela acontece aqui, com os números da planilha dele à vista. -->
+<div class="scrim" id="scrimPeso"></div>
+<div class="pop pop-peso" id="popPeso" role="dialog" aria-modal="true" aria-labelledby="pesoTitulo">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t" id="pesoTitulo">Confira a unidade do peso</div>
+      <div class="pop-s">ANTES DE CALCULAR O FRETE</div>
+    </div>
+    <button class="x" onclick="pesoFechar()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="pop-b" id="pesoCorpo"></div>
+  <div class="pop-f" id="pesoAcoes"></div>
+</div>
+
 <!-- ═══ POP-UP: PROGRESSO DO CÁLCULO ═══
      Sem ele, uma planilha grande deixa a tela parada por dezenas de segundos
      (a consulta de categoria vai de 20 em 20 produtos) e parece travada. -->

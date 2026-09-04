@@ -296,7 +296,7 @@ let mlUsandoCategoria = false;
    para o "desfazer tudo" ser possível e para o export saber o que mudou. */
 let mlEdicoes = new Map();
 /* a coluna de peso parece estar em gramas e ninguém decidiu ainda */
-let mlPesoSuspeito = false, mlPesoConfirmadoKg = false;
+let mlPesoSuspeito = false, mlPesoConfirmadoKg = false, mlPesoInfo = null;
 /* linhas cujo peso foi convertido de gramas para quilos no cálculo */
 let mlPesosConvertidos = new Set();
 let ML_POR_PAGINA = 100;
@@ -491,6 +491,7 @@ addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if($('popCalc').classList.contains('open')) fecharCalc();
   if($('popCustos').classList.contains('open')) fecharCustos();
+  if($('popPeso').classList.contains('open')) pesoFechar();
 });
 
 /* ── editor visual das faixas de custo fixo ─────────────────────────────── */
@@ -1014,46 +1015,90 @@ function mlChecarUnidadePeso(ip){
   mlPesoSuspeito = r.suspeita && !jaResolvido && !mlPesoConfirmadoKg;
   if(!mlPesoSuspeito){ mostrar('mlUniAlerta', false); return; }
 
+  mlPesoInfo = r;
   const n = r.acima150;
-  const num = v => String(v).replace('.', ',');
-  /* Duas situações diferentes: a coluna inteira em gramas, ou uma planilha que
-     mistura as escalas — nesta última, converter tudo estragaria quem já está
-     certo, então só as linhas impossíveis são corrigidas. */
-  caixa.innerHTML = r.todosGrandes
-    ? `<b>Esses números parecem estar em gramas, não em quilos.</b>
-       O peso do meio da planilha é <b>${num(r.mediana)}</b>, e ${n === 1 ? 'ele daria' : `${n} produtos dariam`}
-       mais de 150 kg — acima do limite do Mercado Livre, com frete fora da realidade.
-       <div class="uni-btns">
-         <button type="button" class="sim" onclick="mlUsarGramas()">São gramas — converter tudo</button>
-         <button type="button" class="nao" onclick="mlConfirmarKg()">São quilos mesmo</button>
-       </div>`
-    : `<b>${n} produto${n === 1 ? '' : 's'} com peso acima de 150 kg.</b>
-       O Mercado Livre não entrega acima disso, então esses valores estão em gramas
-       (o maior é <b>${num(r.maior)}</b>, que daria <b>${num(r.maiorConvertido)} kg</b>).
-       Os outros ${r.n - n} produtos já estão em quilos e não serão tocados.
-       <div class="uni-btns">
-         <button type="button" class="sim" onclick="mlCorrigirGrandes()">Corrigir ${n === 1 ? 'esse' : `esses ${n}`} e manter o resto</button>
-         <button type="button" class="nao" onclick="mlConfirmarKg()">Deixar como está</button>
-       </div>`;
+  caixa.innerHTML = `<b>${n} produto${n === 1 ? '' : 's'} com peso acima de 150 kg.</b>
+    Precisa de uma conferência antes de calcular o frete.
+    <div class="uni-btns"><button type="button" class="sim" onclick="pesoAbrir()">Conferir agora</button></div>`;
   mostrar('mlUniAlerta', true);
+  pesoAbrir();
 }
 
-/* corrige só as linhas impossíveis, preservando as que já estão em quilos */
-function mlCorrigirGrandes(){
-  $('mlPesoUnidade').value = 'auto';
+/* ── pop-up: conferir a unidade do peso ──────────────────────────────────────
+   Mostra o que foi encontrado, com valores reais da planilha e o antes/depois,
+   para a decisão ser informada em vez de um "sim" no escuro.               */
+function pesoAbrir(){
+  const r = mlPesoInfo;
+  if(!r) return;
+  const num = v => String(v).replace('.', ',');
+  const n = r.acima150, outros = r.n - n;
+
+  const linhasEx = r.exemplosGrandes.map(e =>
+    `<tr><td>${num(e.de)}</td><td class="seta">→</td><td><b>${num(e.para)} kg</b></td></tr>`).join('');
+
+  $('pesoCorpo').innerHTML = `
+    <div class="pz-alerta">
+      <div class="pz-num">${n}</div>
+      <div><b>produto${n === 1 ? '' : 's'} com peso acima de 150 kg</b>
+        <div class="pz-sub">de ${r.n} com peso preenchido</div></div>
+    </div>
+
+    <p class="pz-p"><b>O que isso significa.</b> O Mercado Livre não entrega encomendas
+    acima de 150 kg — não existe faixa de frete para esse peso. Um valor como
+    <b>${num(r.maior)}</b> numa coluna chamada "quilos" quase sempre é o peso em
+    <b>gramas</b>: ${num(r.maior)} g = ${num(r.maiorConvertido)} kg.</p>
+
+    <p class="pz-p"><b>Por que importa.</b> Lido como quilo, o produto cai na última faixa
+    da tabela e o frete sai em centenas de reais. Esse valor entra no preço final,
+    que fica irreal — e o erro não aparece em lugar nenhum, a não ser olhando produto
+    por produto.</p>
+
+    <div class="pz-tab">
+      <div class="pz-tab-t">Como ${n === 1 ? 'esse produto ficaria' : 'esses produtos ficariam'} depois da correção</div>
+      <table><thead><tr><th>na planilha</th><th></th><th>vira</th></tr></thead>
+        <tbody>${linhasEx}${n > r.exemplosGrandes.length
+          ? `<tr class="pz-mais"><td colspan="3">e mais ${n - r.exemplosGrandes.length} produto${n - r.exemplosGrandes.length === 1 ? '' : 's'}</td></tr>` : ''}</tbody></table>
+    </div>
+
+    ${outros > 0 ? `<div class="pz-ok">
+      <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      <div><b>Os outros ${outros} produtos não serão tocados.</b>
+        <div class="pz-sub">Já estão em quilos${r.exemplosNormais.length
+          ? ` (${r.exemplosNormais.map(num).join(' · ')} kg)` : ''} e continuam como estão.</div></div>
+    </div>` : `<div class="pz-ok aviso">
+      <div><b>Toda a coluna está nessa escala.</b>
+        <div class="pz-sub">Todos os pesos serão divididos por mil.</div></div>
+    </div>`}
+
+    <p class="pz-p pz-nota">Se você vende itens que realmente pesam mais de 150 kg,
+    escolha "Manter como está" — o app mantém os valores e marca essas linhas para
+    você conferir uma a uma.</p>`;
+
+  $('pesoAcoes').innerHTML = `
+    <button class="btn btn-ghost" onclick="pesoManter()">Manter como está</button>
+    <button class="btn btn-green" onclick="pesoCorrigir()">
+      Corrigir ${n === 1 ? 'o produto' : `os ${n} produtos`} e calcular</button>`;
+
+  abrirPop('popPeso', 'scrimPeso');
+}
+
+function pesoFechar(){ fecharPop('popPeso', 'scrimPeso'); }
+
+function pesoCorrigir(){
+  /* toda a coluna em gramas divide tudo; planilha misturada corrige só as
+     linhas impossíveis, para não estragar quem já está em quilos */
+  $('mlPesoUnidade').value = mlPesoInfo && mlPesoInfo.todosGrandes ? 'g' : 'auto';
+  pesoFechar();
   mlValidaCol();
+  mlProcessar();
 }
 
-/* o usuário afirmou que são quilos: paramos de perguntar por esta planilha */
-function mlConfirmarKg(){
+function pesoManter(){
   mlPesoConfirmadoKg = true;
+  pesoFechar();
   mlValidaCol();
 }
 
-function mlUsarGramas(){
-  $('mlPesoUnidade').value = 'g';
-  mlValidaCol();
-}
 
 function mlValidaCol(){
   const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value);
@@ -1503,12 +1548,7 @@ async function mlProcessar(){
 
   /* Sem responder a unidade do peso, todo o frete sai errado. Melhor parar aqui
      do que entregar uma planilha inteira com preço inflado. */
-  if(mlPesoSuspeito){
-    $('mlUniAlerta').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'center'});
-    $('mlUniAlerta').classList.add('pisca');
-    setTimeout(() => $('mlUniAlerta').classList.remove('pisca'), 1400);
-    return;
-  }
+  if(mlPesoSuspeito){ pesoAbrir(); return; }
 
   progAbrir();
   try{

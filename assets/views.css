@@ -940,6 +940,43 @@ body.view-hub{overflow-x:hidden}
 .pop-s{font-size:9px;font-weight:600;letter-spacing:1.3px;color:var(--faint);margin-top:3px}
 .pop-b{padding:20px 22px 24px;overflow:auto;flex:1;min-height:0}
 .pop-b > div > .panel:first-child{margin-top:0}
+/* ── pop-up: conferir a unidade do peso ───────────────────────────────────── */
+.pop-peso{width:min(560px,calc(100vw - 32px))}
+.pop-f{padding:16px 22px;border-top:1px solid var(--line);flex:none;
+  display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;background:rgba(246,249,255,.7)}
+.pop-f .btn{flex:0 1 auto}
+.pz-alerta{display:flex;align-items:center;gap:14px;padding:15px 17px;border-radius:13px;
+  background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.34);margin-bottom:17px}
+.pz-num{font-family:var(--display);font-size:30px;font-weight:800;line-height:1;
+  color:var(--amber-dk,#b45309);font-variant-numeric:tabular-nums}
+.pz-sub{font-size:11.5px;color:var(--sub);margin-top:2px;line-height:1.45}
+.pz-p{font-size:12.5px;line-height:1.62;color:var(--sub);margin:0 0 13px}
+.pz-p b{color:var(--ink)}
+.pz-nota{font-size:11.5px;color:var(--faint);margin:16px 0 0;padding-top:14px;
+  border-top:1px dashed var(--line)}
+.pz-tab{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:16px 0}
+.pz-tab-t{padding:10px 14px;font-size:10.5px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--faint);background:rgba(246,249,255,.9);
+  border-bottom:1px solid var(--line)}
+.pz-tab table{width:100%;border-collapse:collapse;background:#fff}
+.pz-tab th{font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--faint);text-align:left;padding:8px 14px;border-bottom:1px solid var(--line)}
+.pz-tab td{padding:9px 14px;font-size:13px;color:var(--sub);border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums}
+.pz-tab tr:last-child td{border-bottom:none}
+.pz-tab td b{color:var(--green-dk)}
+.pz-tab .seta{width:26px;text-align:center;color:var(--faint)}
+.pz-mais td{font-size:11px;color:var(--faint);font-style:italic}
+.pz-ok{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:12px;
+  background:rgba(18,183,106,.09);border:1px solid rgba(18,183,106,.3);font-size:12.5px}
+.pz-ok.aviso{background:rgba(245,158,11,.09);border-color:rgba(245,158,11,.3)}
+.pz-ok svg{width:17px;height:17px;flex:none;margin-top:1px;fill:none;stroke:var(--green-dk);
+  stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:700px){
+  .pop-f{padding:14px 16px}
+  .pop-f .btn{flex:1 1 100%}
+}
+
 /* ── janela de progresso do cálculo ───────────────────────────────────────── */
 .pop-prog{width:min(430px,calc(100vw - 32px));padding:30px 30px 26px;text-align:center;
   align-items:center}
