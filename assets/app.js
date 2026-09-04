@@ -884,6 +884,11 @@ function mlDrop(e){
 async function mlCarregar(f){
   if(!f) return;
   if(!await garantirXLSX()) return;   /* baixa o SheetJS só agora, na hora de ler o arquivo */
+  /* Arquivo novo começa do zero: correções e filtros são guardados por número
+     de linha e, sobrando, cairiam sobre produtos diferentes. */
+  mlEdicoes.clear();
+  mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
+  mlCategorias = null; mlUsandoCategoria = false;
   mlNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
@@ -955,8 +960,9 @@ function mlValidaCol(){
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
-  const it = parseInt($('mlTitulo').value);
-  if(it >= 0 && $('mlUsarCategoria').checked) mlToggleCategoria();
+  /* como a opção já vem ligada, o aviso precisa acompanhar a coluna de título
+     escolhida — inclusive para pedir que ela seja selecionada */
+  if($('mlUsarCategoria').checked) mlToggleCategoria();
   /* A escolha manual também precisa ser conferida: escolher "Estoque" ou
      "Largura" como custo gera preços plausíveis e completamente errados. */
   const numeros = i => {
@@ -1567,11 +1573,6 @@ function mlEditar(linha, campo, valor){
    tecla faria o input perder o foco no meio da digitação. */
 function mlEditarPronto(){ mlProcessar(); }
 
-function mlDesfazerEdicoes(){
-  if(!mlEdicoes.size) return;
-  mlEdicoes.clear();
-  mlProcessar();
-}
 
 /* ── tabela de conferência, com filtro, busca e paginação ── */
 function mlRenderTabela(){
@@ -1693,7 +1694,7 @@ function mlRenderTabela(){
         <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>` : ''}
       ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}
       ${nEd ? `<span class="ed-aviso"><b>${nEd}</b> linha${nEd === 1 ? '' : 's'} corrigida${nEd === 1 ? '' : 's'} aqui</span>
-        <button onclick="mlDesfazerEdicoes()">desfazer correções</button>` : ''}
+        <button onclick="mlLimparCorrecoes()">limpar correções</button>` : ''}
     </div>`;
   mostrar('mlFiltroBar', true);
 
@@ -1825,10 +1826,25 @@ function mlBaixar(){
   mlPasso(4);
 }
 
+/* Limpa TUDO o que pertence à planilha anterior. As correções de peso e custo
+   são guardadas por número de linha: sobrando de um arquivo para o outro,
+   seriam aplicadas em produtos completamente diferentes. */
 function mlReset(){
   mlWb = mlBytes = null; mlAoa = []; mlCabecalho = []; mlLinhas = []; mlNome = '';
+  mlEdicoes.clear();
+  mlConferencia = null; mlFiltro = null; mlBusca = ''; mlPagina = 0;
+  mlCategorias = null; mlUsandoCategoria = false;
   $('mlFi').value = '';
   mlPasso(1);
+}
+
+/* Descarta só as correções feitas na tela, mantendo a planilha carregada. */
+function mlLimparCorrecoes(){
+  if(!mlEdicoes.size) return;
+  const n = mlEdicoes.size;
+  if(!confirm(`Descartar ${n} ${n === 1 ? 'correção feita' : 'correções feitas'} aqui e voltar aos valores da planilha?`)) return;
+  mlEdicoes.clear();
+  mlProcessar();
 }
 
 /* ── custos oficiais ── */
