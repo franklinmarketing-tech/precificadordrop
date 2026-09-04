@@ -624,7 +624,7 @@ const AVISOS = {
     descricao:'As taxas somadas à margem desejada passam de 100% do preço. Reduza a margem.',
     comoResolver:'Volte ao passo 2 e escolha uma margem menor. Produto barato tem taxa fixa alta em proporção e não sustenta margens grandes.'},
   frete_zero: {gravidade:'erro', titulo:'Preço calculado com frete zero',
-    descricao:'Sem peso, sem medidas e sem frete manual, o envio entrou como R$ 0,00 — o lucro real será menor.',
+    descricao:'Sem peso, sem medidas, sem peso padrão e sem frete manual, o envio entrou como R$ 0,00 — o lucro real será menor.',
     comoResolver:'Clique em "ver as linhas" e digite o peso de cada produto na coluna Peso. O preço recalcula na hora, só naquela linha.'},
   lucro_negativo: {gravidade:'erro', titulo:'Prejuízo no preço sugerido',
     descricao:'Mesmo no preço calculado, esses produtos não cobrem os custos.',
