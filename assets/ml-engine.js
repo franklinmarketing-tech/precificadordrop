@@ -610,31 +610,46 @@ const custoTotal = (fornecedor, extra) => {
    do que é — por isso cada linha volta com a lista de problemas encontrados.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Cada aviso diz o problema (`descricao`) E o que fazer (`comoResolver`).
+   Saber que 4 produtos estão com frete zero não adianta sem saber que basta
+   digitar o peso na própria tabela. */
 const AVISOS = {
   sem_custo: {gravidade:'erro', titulo:'Sem custo na planilha',
-    descricao:'A coluna de custo está vazia nessas linhas — sem custo não há preço.'},
+    descricao:'A coluna de custo está vazia nessas linhas — sem custo não há preço.',
+    comoResolver:'Clique em "ver as linhas" e digite o custo na coluna Custo. Se a planilha inteira estiver vazia, volte ao passo 2 e escolha outra coluna.'},
   custo_invalido: {gravidade:'erro', titulo:'Custo não é um número',
-    descricao:'Há texto onde deveria haver valor. Confira se a coluna de custo está certa.'},
+    descricao:'Há texto onde deveria haver valor. Confira se a coluna de custo está certa.',
+    comoResolver:'Veja as linhas e corrija o valor na coluna Custo. Se todas estiverem assim, a coluna escolhida no passo 2 não é a de custo.'},
   margem_inalcancavel: {gravidade:'erro', titulo:'Margem não alcançável',
-    descricao:'As taxas somadas à margem desejada passam de 100% do preço. Reduza a margem.'},
+    descricao:'As taxas somadas à margem desejada passam de 100% do preço. Reduza a margem.',
+    comoResolver:'Volte ao passo 2 e escolha uma margem menor. Produto barato tem taxa fixa alta em proporção e não sustenta margens grandes.'},
   frete_zero: {gravidade:'erro', titulo:'Preço calculado com frete zero',
-    descricao:'Sem peso, sem medidas e sem frete manual, o envio entrou como R$ 0,00 — o lucro real será menor.'},
+    descricao:'Sem peso, sem medidas e sem frete manual, o envio entrou como R$ 0,00 — o lucro real será menor.',
+    comoResolver:'Clique em "ver as linhas" e digite o peso de cada produto na coluna Peso. O preço recalcula na hora, só naquela linha.'},
   lucro_negativo: {gravidade:'erro', titulo:'Prejuízo no preço sugerido',
-    descricao:'Mesmo no preço calculado, esses produtos não cobrem os custos.'},
+    descricao:'Mesmo no preço calculado, esses produtos não cobrem os custos.',
+    comoResolver:'Confira o custo e o peso dessas linhas — quase sempre um dos dois está errado. Se estiverem certos, o produto não fecha conta no Mercado Livre.'},
   sem_peso: {gravidade:'alerta', titulo:'Sem peso',
-    descricao:'O frete usou as medidas ou o peso padrão. Confira a coluna de peso.'},
+    descricao:'O frete usou as medidas ou o peso padrão. Confira a coluna de peso.',
+    comoResolver:'Digite o peso direto na tabela, na coluna Peso. Sem ele o frete sai por estimativa e o lucro pode ser menor do que aparece.'},
   sem_dimensoes: {gravidade:'alerta', titulo:'Sem as três medidas',
-    descricao:'Sem altura, largura e comprimento não dá para calcular o peso volumétrico — o frete pode sair menor que o real.'},
+    descricao:'Sem altura, largura e comprimento não dá para calcular o peso volumétrico — o frete pode sair menor que o real.',
+    comoResolver:'Preencha altura, largura e comprimento na planilha e carregue de novo. Caixa grande e leve é cobrada pelo volume, não pelo peso.'},
   peso_invalido: {gravidade:'erro', titulo:'Peso não é um número',
-    descricao:'Há texto onde deveria haver peso. Aceito: 1,5 / 1,5 kg / 500 g / 800 mg.'},
+    descricao:'Há texto onde deveria haver peso. Aceito: 1,5 / 1,5 kg / 500 g / 800 mg.',
+    comoResolver:'Veja as linhas e corrija o peso na tabela. Pode escrever a unidade junto: 500 g, 1,5 kg.'},
   peso_suspeito: {gravidade:'alerta', titulo:'Peso parece errado',
-    descricao:'Peso abaixo de meio grama. Confira se o valor está em quilos.'},
+    descricao:'Peso abaixo de meio grama. Confira se o valor está em quilos.',
+    comoResolver:'Veja as linhas e corrija o peso. Um produto de 500 g deve estar como 0,5 (ou escrito "500 g").'},
   peso_alto: {gravidade:'alerta', titulo:'Peso acima de 150 kg',
-    descricao:'Acima do limite das faixas do Mercado Livre. Confira se gramas entraram como quilos.'},
+    descricao:'Acima do limite das faixas do Mercado Livre. Confira se gramas entraram como quilos.',
+    comoResolver:'Veja as linhas e corrija o peso na tabela. O Mercado Livre não entrega acima de 150 kg, então o frete dessas linhas não é confiável.'},
   tarifa_suspeita: {gravidade:'alerta', titulo:'Tarifa da categoria fora do esperado',
-    descricao:'A coluna de tarifa trouxe mais de 50%. Foi ignorada — confira se é mesmo a coluna certa.'},
+    descricao:'A coluna de tarifa trouxe mais de 50%. Foi ignorada — confira se é mesmo a coluna certa.',
+    comoResolver:'Volte ao passo 2 e confira a coluna da tarifa. Enquanto isso, esses produtos usaram a tarifa dos parâmetros.'},
   markup_alto: {gravidade:'alerta', titulo:'Preço muito acima do custo',
-    descricao:'O preço ficou bem acima do que as taxas e o frete explicam. Confira se o produto vende nesse valor.'},
+    descricao:'O preço ficou bem acima do que as taxas e o frete explicam. Confira se o produto vende nesse valor.',
+    comoResolver:'Veja as linhas e compare com o preço de mercado. Se não vender por esse valor, reduza a margem no passo 2.'},
 };
 
 /* Precifica uma linha e devolve, junto, o que há de errado com ela.
@@ -707,7 +722,8 @@ function conferir(linhas) {
 
   const grupos = Array.from(mapa.entries()).map(([id, idx]) => {
     const a = AVISOS[id] || {gravidade:'info', titulo:id, descricao:''};
-    return {id, gravidade:a.gravidade, titulo:a.titulo, descricao:a.descricao, n:idx.length, linhas:idx};
+    return {id, gravidade:a.gravidade, titulo:a.titulo, descricao:a.descricao,
+            comoResolver:a.comoResolver || '', n:idx.length, linhas:idx};
   }).sort((x, y) => (ordem[x.gravidade] - ordem[y.gravidade]) || (y.n - x.n));
 
   const comErro   = linhas.filter(l => (l.avisos || []).some(id => (AVISOS[id] || {}).gravidade === 'erro')).length;

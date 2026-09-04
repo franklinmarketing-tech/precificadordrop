@@ -259,6 +259,10 @@ tbody tr:hover td{background:#f8faff}
 .chk-i svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .chk-t{font-size:12.5px;font-weight:600}
 .chk-d{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.5}
+/* o que fazer, não só o que houve */
+.chk-r{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.5;
+  padding-top:6px;border-top:1px dashed var(--line)}
+.chk-r b{color:var(--ink);font-weight:700}
 .pill{font-size:10px;font-weight:600;letter-spacing:1px;padding:6px 13px;border-radius:100px}
 .pill-ok{background:rgba(18,183,106,.12);color:var(--green-dk)}
 .pill-bad{background:rgba(229,72,77,.12);color:var(--red)}

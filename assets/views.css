@@ -642,6 +642,15 @@ body.view-hub{overflow-x:hidden}
 
 /* Filtros: alvo grande e com cara de botão. Antes eram pastilhas de 10px que
    não pareciam clicáveis — e são o caminho para achar o que está errado. */
+/* filtro ligado: além de dizer o que está filtrando, diz o que fazer com essas
+   linhas — é aqui que o usuário está olhando quando precisa da instrução */
+.f-ativo{display:flex;align-items:flex-start;gap:12px;width:100%;padding:11px 13px;
+  border-radius:10px;background:#fff;border:1px solid rgba(79,124,255,.28);font-size:12px}
+.f-ativo > div{flex:1;min-width:0}
+.f-ativo b{color:var(--ink)}
+.f-ajuda{font-size:11.5px;color:var(--sub);line-height:1.5;margin-top:4px}
+.f-ativo button{flex:none;align-self:center}
+
 .f-atalhos{display:flex;gap:8px;flex-wrap:wrap;width:100%}
 .filtro-bar .f-atalho{font-size:12px;font-weight:600;padding:10px 14px;min-height:40px;
   color:var(--sub);display:inline-flex;gap:8px;align-items:center;border-radius:10px;

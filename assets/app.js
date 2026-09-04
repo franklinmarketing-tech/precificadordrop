@@ -1065,6 +1065,10 @@ async function mlCarregar(f){
         + (mlLinhaCab > 0 ? ` · cabeçalho na linha ${mlLinhaCab + 1}` : '');
       mlValidaCol();
       mlPasso(2);
+      /* Achou algo para conferir? Abre já. O alerta na coluna é discreto e fica
+         acima do botão de calcular — quem não rolava a tela até ele calculava
+         com o peso errado sem saber. */
+      if(mlPesoSuspeito || mlDimSuspeita) revisarAbrir();
     }catch(err){ alert('Não consegui ler esse arquivo: ' + err.message); }
   };
   rd.readAsArrayBuffer(f);
@@ -1844,9 +1848,10 @@ function mlRenderChecks(){
         ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
         : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'}</div>
       <div><div class="chk-t">${esc(g.titulo)} <span class="tag">${g.n} ${g.n === 1 ? 'produto' : 'produtos'}</span></div>
-        <div class="chk-d">${esc(g.descricao)}</div></div>
+        <div class="chk-d">${esc(g.descricao)}</div>
+        ${g.comoResolver ? `<div class="chk-r"><b>Como resolver:</b> ${esc(g.comoResolver)}</div>` : ''}</div>
       <button class="chk-btn${mlFiltro === g.id ? ' on' : ''}" onclick="mlVerLinhas('${g.id}')">
-        ${mlFiltro === g.id ? 'ver todos' : 'ver as linhas'}</button>
+        ${mlFiltro === g.id ? 'ver todos' : `ver ${g.n === 1 ? 'a linha' : 'as linhas'}`}</button>
     </div>`).join('') + mlChecksCategoria();
 }
 
@@ -2098,8 +2103,11 @@ function mlRenderTabela(){
       <input type="search" class="busca" placeholder="Buscar por descrição ou código…"
         value="${esc(mlBusca)}" oninput="mlBuscar(this.value)"/>
       <div class="f-atalhos"><span class="f-titulo">Clique para ver só os produtos com problema</span>${atalhos}</div>
-      ${grupo ? `<span>Mostrando só: <b>${esc(grupo.titulo)}</b> (${grupo.n})</span>
-        <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>` : ''}
+      ${grupo ? `<div class="f-ativo">
+          <div><b>${esc(grupo.titulo)}</b> — ${grupo.n} produto${grupo.n === 1 ? '' : 's'}
+            ${grupo.comoResolver ? `<div class="f-ajuda">${esc(grupo.comoResolver)}</div>` : ''}</div>
+          <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>
+        </div>` : ''}
       ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}
       ${nEd ? `<span class="ed-aviso"><b>${nEd}</b> linha${nEd === 1 ? '' : 's'} corrigida${nEd === 1 ? '' : 's'} aqui</span>
         <button onclick="mlLimparCorrecoes()">limpar correções</button>` : ''}
