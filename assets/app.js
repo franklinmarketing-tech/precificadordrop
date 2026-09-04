@@ -295,8 +295,6 @@ let mlUsandoCategoria = false;
 /* Correções feitas na tela: linha → {peso, custo}. Ficam separadas de mlAoa
    para o "desfazer tudo" ser possível e para o export saber o que mudou. */
 let mlEdicoes = new Map();
-/* true quando não havia coluna de custo e caímos no "Preço" (provável venda) */
-let mlCustoIncerto = false;
 let ML_POR_PAGINA = 100;
 const ML_PAGINAS = [100, 200, 600];
 let pml = carregarParamsML();
@@ -915,12 +913,10 @@ async function mlCarregar(f){
         return !isNaN(n) && n > 0;
       });
       const acha = re => mlCabecalho.findIndex(h => re.test(String(h)));
-      /* Sem coluna de custo preenchida, sobra o "Preço" — que costuma ser o
-         preço de VENDA. Marcamos para avisar: aplicar margem sobre o preço de
-         venda gera um valor alto e plausível, e o erro passa despercebido. */
-      const iCustoReal = [acha(/custo/i)].find(temValores);
-      const iCusto = iCustoReal !== undefined ? iCustoReal : [acha(/^pre[çc]o$/i)].find(temValores);
-      mlCustoIncerto = iCustoReal === undefined && iCusto !== undefined;
+      /* "Preço de custo" do Bling costuma vir zerada; nessa planilha o custo
+         real mora na coluna "Preço". Preferimos uma coluna de custo com
+         valores e só então caímos no "Preço". */
+      const iCusto = [acha(/custo/i), acha(/^pre[çc]o$/i)].find(temValores);
       const iPeso  = [acha(/peso\s*bruto/i), acha(/peso\s*l[íi]quido/i), acha(/peso/i)].find(temValores);
       const iPreco = acha(/^pre[çc]o$/i);
       if(iCusto !== undefined) $('mlCusto').value = iCusto;
@@ -1479,19 +1475,8 @@ function mlRenderChecks(){
   badge.textContent = c.ok ? (c.revisar ? 'CONFIRA' : 'TUDO CERTO') : 'REVISAR';
   badge.className = 'pill ' + (c.ok ? 'pill-ok' : 'pill-bad');
 
-  /* A coluna de custo é a entrada mais perigosa: se vier o preço de venda, o
-     resultado sai alto e plausível, sem erro visível em lugar nenhum. */
-  const avisoCusto = !mlCustoIncerto ? '' : `<div class="chk bad">
-      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
-      <div><div class="chk-t">Confira qual coluna é o custo</div>
-        <div class="chk-d">Não achei uma coluna de custo preenchida, então usei
-          <b>${esc(String(mlCabecalho[parseInt($('mlCusto').value)] || ''))}</b> — que costuma ser o preço de
-          <b>venda</b>. Se for, os preços saem calculados por cima da venda, não do custo.
-          Volte ao passo anterior e escolha a coluna certa.</div></div>
-    </div>`;
-
   if(!c.grupos.length){
-    $('mlChecks').innerHTML = avisoCusto + `<div class="chk ok">
+    $('mlChecks').innerHTML = `<div class="chk ok">
       <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
       <div><div class="chk-t">Nada a revisar</div>
       <div class="chk-d">Os ${c.total} produtos têm custo, peso e medidas — os preços podem ser usados como estão.</div></div>
@@ -1499,7 +1484,7 @@ function mlRenderChecks(){
     return;
   }
 
-  $('mlChecks').innerHTML = avisoCusto + c.grupos.map(g => `
+  $('mlChecks').innerHTML = c.grupos.map(g => `
     <div class="chk ${g.gravidade === 'erro' ? 'bad' : 'ok'}">
       <div class="chk-i">${g.gravidade === 'erro'
         ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
@@ -1738,13 +1723,14 @@ function mlBaixar(){
   /* Linha sem preço mantém o valor antigo na planilha. Avisamos antes de
      gerar, senão o arquivo vai para o Bling com preços novos e velhos
      misturados, sem como distinguir. */
-  /* Gravar o preço na mesma coluna de onde veio o custo apaga o custo: numa
-     segunda rodada o app leria o preço de venda como se fosse custo. */
-  if(id >= 0 && id === parseInt($('mlCusto').value)){
+  /* O preço novo vai para a mesma coluna de onde veio o custo: no arquivo
+     gerado o custo deixa de existir. Precificar de novo por cima dele daria
+     preço sobre preço. Guardar o arquivo original resolve — por isso o aviso. */
+  if(id >= 0 && id === parseInt($('mlCusto').value) && !$('mlColunasAnalise').checked){
     const ok = confirm(
-      `A coluna "${mlCabecalho[id]}" está sendo usada como CUSTO e também como destino do preço novo.\n\n`
-      + 'Gerando assim, o custo é substituído pelo preço de venda no arquivo — e uma nova precificação '
-      + 'em cima dele sairia errada.\n\nGerar mesmo assim?');
+      `O preço novo vai ser gravado na coluna "${mlCabecalho[id]}", a mesma de onde veio o custo.\n\n`
+      + 'No arquivo gerado o custo some — guarde a planilha original, ou ligue as colunas de '
+      + 'análise, que salvam o custo à parte.\n\nGerar assim?');
     if(!ok) return;
   }
 
