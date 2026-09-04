@@ -247,6 +247,56 @@ secao('5f. Conversão das medidas');
      'medida faltando devolve dimensões nulas');
 }
 
+/* ── 5g. Lendo planilha de qualquer origem ────────────────────────────────── */
+secao('5g. Cabeçalho, aba e nomes de coluna');
+{
+  // "Custo " com espaço sobrando não casava com /^custo$/ e a coluna sumia
+  ok(ML.normalizarTexto('  Descrição Curta ') === 'descricao curta', 'tira acento, caixa e espaço');
+  ok(ML.normalizarTexto('PREÇO ') === 'preco', '"PREÇO " vira "preco"');
+  ok(ML.semParenteses('Peso bruto (Kg)') === 'peso bruto', 'tira a unidade entre parênteses');
+  ok(ML.unidadeDoCabecalho('Altura (mm)') === 'mm', 'lê a unidade do rótulo');
+  ok(ML.unidadeDoCabecalho('Custo') === null, 'e não inventa unidade onde não há');
+
+  // planilha comum: cabeçalho já na primeira linha
+  const simples = [['SKU','Nome do Produto','Peso (kg)'], ['A1','Caixa organizadora','2000'], ['A2','Cabide','450']];
+  const c1 = ML.detectarCabecalho(simples);
+  ok(c1.linha === 0, 'acha o cabeçalho na primeira linha', `veio ${c1.linha}`);
+  ok(c1.confianca === 'alta', 'com confiança alta', `veio ${c1.confianca}`);
+
+  /* caso real do Mercado Livre: cabeçalho técnico na linha 1, o legível na 3,
+     e duas linhas de lixo antes dos dados */
+  const ml = [
+    ['FAMILY_ID','ITEM_ID','SKU','TITLE','QUANTITY'],
+    ['Anúncios','','','','Informações do produto'],
+    ['Agrupador de variações','Código do anúncio','SKU','Título','Estoque'],
+    ['','','','','Obrigatório'],
+    [],
+    ['49003','MLB7157','11245','Caixa 250 Envelopes','5.0'],
+    ['52777','MLB4794','TRC7116','Kit 3 Cabides','20.0'],
+  ];
+  const c2 = ML.detectarCabecalho(ml);
+  ok(c2.linha === 2, 'prefere o cabeçalho legível ao técnico', `veio ${c2.linha}`);
+
+  const pod = ML.podarLinhasVazias(ml.slice(c2.linha));
+  ok(pod.podadas === 2, 'poda as linhas de lixo antes dos dados', `podou ${pod.podadas}`);
+  ok(pod.aoa[1][3] === 'Caixa 250 Envelopes', 'e o primeiro produto é o certo');
+  /* o export grava por posição física: cabeçalho + podadas tem que apontar
+     para a linha real do primeiro produto */
+  ok(JSON.stringify(ml[c2.linha + pod.podadas + 1]) === JSON.stringify(pod.aoa[1]),
+     'o índice físico continua batendo, para o export gravar na linha certa');
+
+  const abas = [
+    {nome:'Ajuda',    aoa:[['','Modifique seus anúncios'],['','Modifique os dados']], oculta:false},
+    {nome:'hidden',   aoa:[['82951594-6ba5']], oculta:true},
+    {nome:'Anúncios', aoa:ml, oculta:false},
+  ];
+  ok(ML.escolherAba(abas).nome === 'Anúncios', 'escolhe a aba de produtos, não a de ajuda');
+
+  const uma = [{nome:'Planilha1', aoa:simples, oculta:false}];
+  const so = ML.escolherAba(uma);
+  ok(so.nome === 'Planilha1' && !so.alternativas.length, 'com uma aba só, escolhe ela sem alternativas');
+}
+
 /* ── 6. A margem pedida é sempre entregue ─────────────────────────────────── */
 secao('6. Varredura: a margem alvo é cumprida?');
 {

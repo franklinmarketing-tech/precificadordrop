@@ -188,6 +188,147 @@ function normalizarPesoLinha(v, converterGrandes) {
   return {kg: n, convertido: false};
 }
 
+/* ── lendo planilha de qualquer origem ───────────────────────────────────────
+   Cada depósito manda um formato: cabeçalho na terceira linha, aba de ajuda na
+   frente da de produtos, rótulo com espaço sobrando. Estas funções trabalham
+   sobre a matriz crua (AoA), sem conhecer SheetJS — por isso rodam nos testes
+   em Node.                                                                  */
+
+/* "  Descrição Curta " → "descricao curta". Sem isso, "Custo " não casa com
+   /^custo$/ e a coluna certa passa despercebida. */
+function normalizarTexto(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/* O que vem entre parênteses costuma ser a unidade: "Peso (kg)", "Altura (cm)".
+   Serve para dois fins: tirar o trecho antes de comparar com regex âncorada, e
+   confirmar a escala detectada nos números. */
+const semParenteses = s => normalizarTexto(String(s == null ? '' : s).replace(/\([^)]*\)/g, ''));
+
+function unidadeDoCabecalho(h) {
+  const m = String(h == null ? '' : h).match(/\(([^)]*)\)/);
+  if (!m) return null;
+  const u = normalizarTexto(m[1]).replace(/[.\s]/g, '');
+  return ['kg','g','mg','t','mm','cm','m','pol','in'].includes(u) ? u : null;
+}
+
+const ehNumero = v => v !== '' && v != null && !isNaN(parseNumero(v));
+
+/* Qual linha é o cabeçalho? O sinal decisivo é "texto em cima, número embaixo":
+   a linha de rótulos tem palavras onde as linhas seguintes têm valores. */
+function detectarCabecalho(aoa, limite) {
+  const linhas = (aoa || []).slice(0, limite || 15);
+  if (!linhas.length) return {linha: 0, pontos: 0, confianca: 'baixa', candidatos: []};
+
+  const largura = (aoa || []).reduce((m, l) => Math.max(m, (l || []).length), 0);
+  const candidatos = [];
+
+  linhas.forEach((linha, i) => {
+    const celulas = (linha || []).filter(c => c !== '' && c != null);
+    if (celulas.length < 2) return;
+
+    const textos = celulas.filter(c => !ehNumero(c) && /[a-zA-ZÀ-ÿ]/.test(String(c)));
+    const numeros = celulas.filter(ehNumero);
+    let pontos = textos.length * 2 + celulas.length;
+
+    /* rótulo em cima, dado embaixo: comparamos com as três linhas seguintes */
+    const abaixo = (aoa || []).slice(i + 1, i + 4);
+    if (abaixo.length) {
+      let colunasComDado = 0;
+      (linha || []).forEach((c, col) => {
+        if (c === '' || c == null || ehNumero(c)) return;
+        if (abaixo.some(l => l && l[col] !== '' && l[col] != null)) colunasComDado++;
+      });
+      pontos += colunasComDado * 3;
+    }
+
+    if (celulas.length >= 4) pontos += 3;
+    if (largura && celulas.length < largura / 2) pontos -= 2;   // título solto
+    if (celulas.length && numeros.length / celulas.length > 0.3) pontos -= 4;
+    const vistos = new Set(textos.map(normalizarTexto));
+    pontos -= (textos.length - vistos.size) * 3;                // rótulos repetidos
+
+    candidatos.push({linha: i, pontos, previa: celulas.slice(0, 5).map(String)});
+  });
+
+  if (!candidatos.length) return {linha: 0, pontos: 0, confianca: 'baixa', candidatos: []};
+
+  const ordenado = candidatos.slice().sort((a, b) => b.pontos - a.pontos);
+  const topo = ordenado[0];
+  /* Empate técnico: fica com a linha DE BAIXO. Uma planilha pode ter o
+     cabeçalho técnico em cima (FAMILY_ID, ITEM_ID) e o legível logo abaixo
+     ("Código do anúncio") — o legível é o que casa com os nossos regexes. */
+  const empatados = ordenado.filter(c => c.pontos >= topo.pontos * 0.85);
+  const escolhido = empatados.reduce((a, b) => (b.linha > a.linha ? b : a));
+
+  const segundo = ordenado.find(c => c.linha !== escolhido.linha);
+  const folga = segundo ? escolhido.pontos / Math.max(1, segundo.pontos) : 2;
+  return {
+    linha: escolhido.linha,
+    pontos: escolhido.pontos,
+    confianca: escolhido.linha === 0 && folga >= 1.4 ? 'alta' : (folga >= 1.2 ? 'media' : 'baixa'),
+    candidatos: ordenado.slice(0, 5),
+  };
+}
+
+/* Qual aba tem os produtos? Arquivo do Mercado Livre vem com "Ajuda" na frente
+   e "hidden" no meio; a que interessa é a de anúncios. */
+const NOME_BOM = /an[uú]ncio|produto|item|cat[aá]logo|estoque|precifica|planilha|sheet|dados/;
+const NOME_RUIM = /ajuda|instru|leia|readme|exemplo|modelo|template|hidden|oculta|config|param|glossario|legenda/;
+
+function escolherAba(abas) {
+  const validas = (abas || []).filter(a => a && (a.aoa || []).length >= 2);
+  if (!validas.length) return {indice: 0, nome: (abas && abas[0] ? abas[0].nome : ''), pontos: 0, alternativas: []};
+
+  const notas = validas.map(a => {
+    const nome = normalizarTexto(a.nome);
+    let pontos = Math.min(50, a.aoa.length);
+    if (NOME_BOM.test(nome)) pontos += 10;
+    if (NOME_RUIM.test(nome)) pontos -= 20;
+    if (a.oculta) pontos -= 30;
+
+    const cab = detectarCabecalho(a.aoa);
+    if (cab.confianca !== 'baixa') pontos += 15;
+
+    /* assinatura de aba precificável: tem coluna de dinheiro e de descrição */
+    const rotulos = (a.aoa[cab.linha] || []).map(normalizarTexto);
+    const temValor = rotulos.some(h => /custo|preco|valor/.test(h));
+    const temTexto = rotulos.some(h => /descri|titulo|nome|produto/.test(h));
+    if (temValor && temTexto) pontos += 10;
+
+    return {aba: a, nome: a.nome, pontos, linhas: a.aoa.length, cabecalho: cab.linha};
+  });
+
+  const ordenado = notas.slice().sort((a, b) => b.pontos - a.pontos);
+  const topo = ordenado[0];
+  return {
+    indice: (abas || []).indexOf(topo.aba),
+    nome: topo.nome,
+    pontos: topo.pontos,
+    cabecalho: topo.cabecalho,
+    alternativas: ordenado.slice(1).map(x => ({nome: x.nome, pontos: x.pontos, linhas: x.linhas})),
+  };
+}
+
+/* Entre o cabeçalho e os dados costuma sobrar lixo (linha de subtítulo, linha
+   de "obrigatório"). Some com as linhas sem nenhum número logo após o
+   cabeçalho — as de verdade sempre têm preço, peso ou estoque. */
+function podarLinhasVazias(aoa) {
+  const linhas = (aoa || []).slice();
+  if (linhas.length < 2) return {aoa: linhas, podadas: 0};
+  let podadas = 0;
+  while (linhas.length > 1) {
+    const l = linhas[1] || [];
+    const temAlgo = l.some(c => c !== '' && c != null);
+    const temNumero = l.some(ehNumero);
+    if (temAlgo && temNumero) break;
+    if (!temAlgo || !temNumero) { linhas.splice(1, 1); podadas++; } else break;
+  }
+  return {aoa: linhas, podadas};
+}
+
 /* ── componentes do custo de venda ───────────────────────────────────────── */
 /* A tarifa de venda varia por categoria (Clássico 10%–14%, Premium 15%–19%),
    então cada produto pode trazer a sua em `comissaoProduto`.              */
@@ -589,7 +730,9 @@ function precificarLote(entradas, params) {
 
 return {PADRAO, AVISOS, LIMITE_ML, PISO_GRAMAS, brl, parseNumero, parsePeso, arredPeso,
         detectarEscalaPeso, normalizarPesoLinha,
-        detectarEscalaDimensao, normalizarDimensaoLinha, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+        detectarEscalaDimensao, normalizarDimensaoLinha,
+        normalizarTexto, semParenteses, unidadeDoCabecalho,
+        detectarCabecalho, escolherAba, podarLinhasVazias, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
         precificarLinha, precificarLote, conferir};

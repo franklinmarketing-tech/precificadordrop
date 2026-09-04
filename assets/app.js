@@ -291,7 +291,7 @@ let mlWb = null, mlBytes = null, mlAoa = [], mlCabecalho = [], mlLinhas = [], ml
 /* De onde a tabela foi lida. O export reabre o arquivo e escreve por posição
    física, então precisa saber a aba e em que linha está o cabeçalho — senão
    grava os preços nas linhas erradas de um arquivo com cara de certo. */
-let mlAbaNome = '', mlLinhaCab = 0;
+let mlAbaNome = '', mlLinhaCab = 0, mlAbas = null, mlCabInfo = null;
 let mlConferencia = null, mlFiltro = null, mlPagina = 0, mlBusca = '';
 /* categoria descoberta no Mercado Livre, por linha da planilha */
 let mlCategorias = null;        // Map linha → {categoria, nome, classico, premium, obrigatorios}
@@ -951,12 +951,41 @@ async function mlCarregar(f){
     try{
       mlBytes = ev.target.result;
       mlWb = XLSX.read(mlBytes, {type:'array'});
-      mlAbaNome = mlWb.SheetNames[0];
-      mlLinhaCab = 0;
-      const ws = XU.normalizarRef(mlWb.Sheets[mlAbaNome]);
-      mlAoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+
+      /* Cada depósito manda um formato: a aba de produtos pode não ser a
+         primeira, e o cabeçalho pode não estar na primeira linha. Depois de
+         achar os dois, fatiamos a matriz para que mlAoa[0] volte a ser o
+         cabeçalho — assim o resto do app continua igual. */
+      const abas = mlWb.SheetNames.map((nome, i) => ({
+        nome,
+        aoa: XLSX.utils.sheet_to_json(XU.normalizarRef(mlWb.Sheets[nome]), {header:1, defval:'', raw:false}),
+        oculta: !!(mlWb.Workbook && mlWb.Workbook.Sheets && mlWb.Workbook.Sheets[i]
+                   && mlWb.Workbook.Sheets[i].Hidden),
+      }));
+      const escolha = ML.escolherAba(abas);
+      mlAbaNome = escolha.nome || mlWb.SheetNames[0];
+      mlAbas = escolha;
+
+      const bruto = (abas.find(a => a.nome === mlAbaNome) || abas[0]).aoa;
+      const cab = ML.detectarCabecalho(bruto);
+      mlCabInfo = cab;
+      mlLinhaCab = cab.linha;
+
+      const podado = ML.podarLinhasVazias(bruto.slice(mlLinhaCab));
+      mlAoa = podado.aoa;
+      mlLinhaCab += podado.podadas;   // o export escreve por posição física
       if(mlAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
       mlCabecalho = mlAoa[0].map(String);
+
+      /* Sem rótulos aproveitáveis não há o que mapear — é o caso de planilha
+         montada na vertical (um produto por vez, rótulo à esquerda), que não
+         serve para precificar em lote. Melhor dizer isso do que mostrar uma
+         lista de "Coluna A, Coluna B" e deixar o usuário adivinhando. */
+      if(mlCabecalho.filter(h => h.trim()).length < 3)
+        throw new Error('não encontrei uma tabela de produtos aqui.\n\n'
+          + `A aba "${mlAbaNome}" não tem uma linha de cabeçalho com nomes de coluna `
+          + '(como Descrição, Custo, Peso).\n\nEste app precisa de uma planilha em lista: '
+          + 'uma linha por produto, com os nomes das colunas no topo.');
 
       const opcoes = mlCabecalho.map((h,i) =>
         `<option value="${i}">${esc(h || 'Coluna ' + PE.indexToCol(i))} (${PE.indexToCol(i)})</option>`).join('');
@@ -974,18 +1003,27 @@ async function mlCarregar(f){
         const n = ML.parseNumero(l[i]);
         return !isNaN(n) && n > 0;
       });
-      const acha = re => mlCabecalho.findIndex(h => re.test(String(h)));
+      /* Comparamos sempre com o cabeçalho normalizado (sem acento, sem caixa,
+         sem espaço sobrando), senão "Custo " e "PREÇO" passam despercebidos.
+         O segundo derivado tira o que está entre parênteses, para "Peso (kg)"
+         casar com uma busca por "peso" exato. */
+      const cabNorm = mlCabecalho.map(ML.normalizarTexto);
+      const cabLimpo = mlCabecalho.map(ML.semParenteses);
+      const acha = re => {
+        const i = cabNorm.findIndex(h => re.test(h));
+        return i >= 0 ? i : cabLimpo.findIndex(h => re.test(h));
+      };
       /* "Preço de custo" do Bling costuma vir zerada; nessa planilha o custo
          real mora na coluna "Preço". Preferimos uma coluna de custo com
          valores e só então caímos no "Preço". */
-      const iCusto = [acha(/custo/i), acha(/^pre[çc]o$/i)].find(temValores);
-      const iPeso  = [acha(/peso\s*bruto/i), acha(/peso\s*l[íi]quido/i), acha(/peso/i)].find(temValores);
-      const iPreco = acha(/^pre[çc]o$/i);
+      const iCusto = [acha(/custo/), acha(/^preco$/), acha(/valor.*(custo|compra)/), acha(/^cost$/)].find(temValores);
+      const iPeso  = [acha(/peso\s*bruto/), acha(/peso\s*liquido/), acha(/peso/), acha(/^weight$/)].find(temValores);
+      const iPreco = acha(/^preco$/);
       if(iCusto !== undefined) $('mlCusto').value = iCusto;
       if(iPeso  !== undefined) $('mlPeso').value  = iPeso;
-      const iAlt  = [acha(/altura/i)].find(temValores);
-      const iLarg = [acha(/largura/i)].find(temValores);
-      const iComp = [acha(/profundidade|comprimento/i)].find(temValores);
+      const iAlt  = [acha(/altura/), acha(/^height$/)].find(temValores);
+      const iLarg = [acha(/largura/), acha(/^width$/)].find(temValores);
+      const iComp = [acha(/profundidade|comprimento/), acha(/^(length|depth)$/)].find(temValores);
       if(iAlt  !== undefined) $('mlAltura').value      = iAlt;
       if(iLarg !== undefined) $('mlLargura').value     = iLarg;
       if(iComp !== undefined) $('mlComprimento').value = iComp;
@@ -996,13 +1034,35 @@ async function mlCarregar(f){
         const v = String(l[i] || '').trim();
         return v.length >= 12 && /[a-zA-ZÀ-ÿ]{3}/.test(v);
       });
-      const iTit = [acha(/descri[çc][ãa]o\s*curta/i), acha(/^t[íi]tulo$/i), acha(/^nome$/i),
-                    acha(/descri[çc][ãa]o/i), acha(/produto/i)].find(temTexto);
+      const iTit = [acha(/descricao\s*curta/), acha(/^titulo$/), acha(/^nome$/),
+                    acha(/nome do produto/), acha(/descricao/), acha(/^title$/),
+                    acha(/produto/)].find(temTexto);
+
+      /* Tarifa por categoria vinda na planilha: até agora era o único campo
+         100% manual. Percentual não passa de 50% — é o mesmo teto que o motor
+         usa para marcar tarifa suspeita. */
+      const temPercentual = i => {
+        if(i < 0) return false;
+        let n = 0;
+        for(const l of mlAoa.slice(1)){
+          const v = ML.parseNumero(l[i]);
+          if(isNaN(v) || v <= 0) continue;
+          if(v > 50) return false;
+          n++;
+        }
+        return n >= 5;
+      };
+      const iCom = [acha(/tarifa/), acha(/comissao/), acha(/taxa\s*(de\s*)?venda/)].find(temPercentual);
+      if(iCom !== undefined) $('mlComissao').value = iCom;
       if(iTit !== undefined) $('mlTitulo').value = iTit;
       mlToggleCategoria();
 
       $('mlFName').textContent = f.name;
-      $('mlFInfo').textContent = `${mlAoa.length - 1} produtos · ${mlCabecalho.length} colunas · aba "${mlWb.SheetNames[0]}"`;
+      /* quando a aba ou a linha do cabeçalho não são as primeiras, dizemos de
+         onde os dados vieram — senão o usuário não tem como conferir */
+      $('mlFInfo').textContent = `${mlAoa.length - 1} produtos · ${mlCabecalho.length} colunas · aba "${mlAbaNome}"`
+        + (mlWb.SheetNames.length > 1 ? ` (de ${mlWb.SheetNames.length})` : '')
+        + (mlLinhaCab > 0 ? ` · cabeçalho na linha ${mlLinhaCab + 1}` : '');
       mlValidaCol();
       mlPasso(2);
     }catch(err){ alert('Não consegui ler esse arquivo: ' + err.message); }
