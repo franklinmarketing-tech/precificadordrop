@@ -10,11 +10,16 @@
       a aba original e trocamos só as células que mudaram, preservando tipo,
       formato e o resto do conteúdo.
    ══════════════════════════════════════════════════════════════════════════ */
+/* No navegador o SheetJS entra sob demanda (só quando o usuário abre uma
+   planilha), então ele ainda não existe quando este arquivo roda: por isso a
+   biblioteca é resolvida a cada chamada, e não capturada aqui em cima. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('xlsx'));
-  else root.XlsxUtils = factory(root.XLSX);
-})(typeof self !== 'undefined' ? self : this, function (XLSX) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(() => require('xlsx'));
+  else root.XlsxUtils = factory(() => root.XLSX);
+})(typeof self !== 'undefined' ? self : this, function (obterXLSX) {
 'use strict';
+
+const XLSX = { get utils(){ return obterXLSX().utils; } };
 
 /* Garante que o range da aba começa em A1, para que os índices de coluna
    batam com as letras reais (A=0, B=1, …). */

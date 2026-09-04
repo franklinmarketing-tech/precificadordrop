@@ -30,22 +30,21 @@
 
 <link rel="stylesheet" href="assets/hub.css"/>
 <link rel="stylesheet" href="assets/views.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-/* Se o CDN principal falhar, tenta o segundo antes de desistir. Sem a
-   biblioteca, nenhuma planilha abre — melhor um aviso claro que um
-   "XLSX is not defined" no console, que o usuário nunca vê. */
-if (!window.XLSX) {
-  document.write('<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/scr' + 'ipt>');
-}
-</script>
+<!-- O SheetJS (861 KB) saiu daqui: como <script> no <head> ele bloqueava a
+     primeira pintura da página inteira, mesmo para quem só ia ver o hub ou
+     usar a calculadora. Agora é buscado sob demanda, quando alguém realmente
+     abre ou gera uma planilha — ver garantirXLSX() em assets/app.js.
+     Só a dica de conexão fica aqui, para o download começar mais rápido. -->
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com"/>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin/>
 </head>
 <body class="view-hub">
 
+<!-- As manchas de cor agora são gradientes pintados no próprio .bg — antes
+     eram quatro divs com blur(70px) animadas em loop, o que sozinho derrubava
+     a home para 7 quadros por segundo. -->
 <div class="bg">
-  <div class="orb orb-1"></div><div class="orb orb-2"></div>
-  <div class="orb orb-3"></div><div class="orb orb-4"></div>
-  <div class="veil"></div><div class="mesh"></div><div class="spot"></div><div class="grain"></div>
+  <div class="veil"></div><div class="mesh"></div><div class="grain"></div>
 </div>
 
 <div class="shell">

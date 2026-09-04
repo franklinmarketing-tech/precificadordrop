@@ -17,15 +17,51 @@ const esc = s => String(s == null ? '' : s)
   .replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const mostrar = (id, sim) => $(id).classList.toggle('hide', !sim);
 
-/* A biblioteca de planilhas vem de CDN. Se os dois endereços falharem (rede da
-   empresa bloqueando, CDN fora do ar), nada de planilha funciona — avisa em vez
-   de estourar um erro que só aparece no console. */
-function temXLSX(){
+/* ══ BIBLIOTECA DE PLANILHAS, SOB DEMANDA ═════════════════════════════════
+   O SheetJS tem 861 KB — sozinho, dois terços de tudo que a página baixava.
+   Antes vinha num <script> no <head>, travando a primeira pintura: quem só
+   queria ver o hub, usar a calculadora ou ler o guia esperava quase um mega
+   de uma biblioteca que nunca ia usar.
+
+   Agora ele só é buscado no momento em que alguém realmente abre ou gera uma
+   planilha. Quem faz isso já clicou num arquivo e espera um instante de
+   processamento de qualquer jeito — é onde a espera passa despercebida.   */
+const XLSX_CDNS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+];
+let xlsxCarregando = null;
+
+function carregarScript(src){
+  return new Promise((ok, falhou) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ok;
+    s.onerror = () => falhou(new Error(src));
+    document.head.appendChild(s);
+  });
+}
+
+/* devolve true quando a biblioteca está pronta para uso */
+async function garantirXLSX(){
   if(window.XLSX) return true;
-  alert('Não consegui carregar a biblioteca que lê planilhas.\n\n' +
-        'Isso costuma ser conexão ou bloqueio de rede. Recarregue a página ' +
-        '(Ctrl+F5); se continuar, tente de outra rede.');
-  return false;
+  if(!xlsxCarregando){
+    xlsxCarregando = (async () => {
+      for(const url of XLSX_CDNS){
+        try{ await carregarScript(url); if(window.XLSX) return true; }
+        catch(e){ /* tenta o próximo endereço */ }
+      }
+      return false;
+    })();
+  }
+  const ok = await xlsxCarregando;
+  if(!ok){
+    xlsxCarregando = null;                 // deixa tentar de novo numa próxima vez
+    alert('Não consegui carregar a biblioteca que lê planilhas.\n\n' +
+          'Isso costuma ser conexão ou bloqueio de rede. Tente de novo; ' +
+          'se continuar, tente de outra rede.');
+  }
+  return ok;
 }
 
 /* ══ ROUTER ═══════════════════════════════════════════════════════════════ */
@@ -82,13 +118,8 @@ document.querySelectorAll('.tool').forEach(card => {
 });
 
 if(preciso && !reduzido){
-  const spot = document.querySelector('.spot');
-  addEventListener('mousemove', e => {
-    document.body.classList.add('awake');
-    spot.style.setProperty('--mx', (e.clientX / innerWidth  * 100).toFixed(1) + '%');
-    spot.style.setProperty('--my', (e.clientY / innerHeight * 100).toFixed(1) + '%');
-  }, {passive:true});
-
+  /* O holofote que seguia o mouse saiu: era um gradiente do tamanho da tela
+     repintado a cada mousemove — caro para um efeito que quase não se nota. */
   const MAX = 7;
   document.querySelectorAll('[data-tilt]').forEach(card => {
     let raf = null, tx = 0, ty = 0;
@@ -846,8 +877,9 @@ function mlDrop(e){
   $('mlZone').classList.remove('drag');
   mlCarregar(e.dataTransfer.files[0]);
 }
-function mlCarregar(f){
-  if(!f || !temXLSX()) return;
+async function mlCarregar(f){
+  if(!f) return;
+  if(!await garantirXLSX()) return;   /* baixa o SheetJS só agora, na hora de ler o arquivo */
   mlNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
@@ -2103,8 +2135,9 @@ function plDrop(e){
   $('plZone').classList.remove('drag');
   plCarregar(e.dataTransfer.files[0]);
 }
-function plCarregar(f){
-  if(!f || !temXLSX()) return;
+async function plCarregar(f){
+  if(!f) return;
+  if(!await garantirXLSX()) return;
   plNome = f.name;
   const rd = new FileReader();
   rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
