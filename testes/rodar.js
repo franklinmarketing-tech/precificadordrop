@@ -130,6 +130,18 @@ perto(ML.parsePeso('1.234.567'), 1234567, '"1.234.567" ainda é milhar', 1e-9);
 // 4 casas: um miligrama precisa sobreviver ao arredondamento
 perto(ML.arredPeso(0.0008), 0.0008, 'peso guarda 4 casas decimais', 1e-9);
 
+/* ── 5c. Coluna em gramas com rótulo de kg ────────────────────────────────── */
+secao('5c. A coluna de peso está em gramas?');
+ok(ML.detectarEscalaPeso(['2000','1091','1000','2200','500','350','1500','800','2500','1200']).suspeita,
+   'inteiros grandes viram suspeita de gramas');
+ok(!ML.detectarEscalaPeso(['0,001','13,000','0,950','4,600','1,200','2,575','0,25','1,5','2,2','0,32']).suspeita,
+   'planilha em quilos não dispara alarme falso');
+ok(!ML.detectarEscalaPeso(['1','2','3','0,5','1,5','2,5','4','1,2','0,8','3']).suspeita,
+   'quilos com valores inteiros pequenos não disparam');
+ok(!ML.detectarEscalaPeso(['2000','1000']).suspeita, 'poucos valores não bastam para concluir');
+perto(ML.detectarEscalaPeso(['2000','1091','1000','2200','500','350','1500','800','2500','1200']).medianaConvertida,
+      1.2, 'sugere a mediana convertida para kg', 1e-9);
+
 /* ── 6. A margem pedida é sempre entregue ─────────────────────────────────── */
 secao('6. Varredura: a margem alvo é cumprida?');
 {

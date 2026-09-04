@@ -546,9 +546,18 @@
               <div class="nota" id="mlCustoNota"></div>
             </div>
             <div>
-              <div class="lbl verde">Coluna do peso (kg)</div>
+              <div class="lbl verde">Coluna do peso</div>
               <select id="mlPeso" onchange="mlValidaCol()"><option value="-1">Sem peso — usar frete manual</option></select>
+              <!-- muita planilha diz "kg" no título e traz gramas (2000 = 2 kg) -->
+              <div class="uni-peso" id="mlUniBox">
+                <span>Os números estão em</span>
+                <select id="mlPesoUnidade" onchange="mlValidaCol()">
+                  <option value="kg">quilos (2,5 = 2,5 kg)</option>
+                  <option value="g">gramas (2000 = 2 kg)</option>
+                </select>
+              </div>
               <div class="nota" id="mlPesoNota"></div>
+              <div class="uni-alerta hide" id="mlUniAlerta"></div>
             </div>
             <div>
               <div class="lbl verde">Coluna do preço (onde gravar)</div>

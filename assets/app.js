@@ -953,12 +953,38 @@ async function mlCarregar(f){
   rd.readAsArrayBuffer(f);
 }
 
+/* "Peso (kg)" com 2000 na célula é grama, não duas toneladas. Detectamos o
+   padrão da coluna inteira e oferecemos a troca — sem converter por conta
+   própria, porque um catálogo de itens pesados de verdade existe. */
+function mlChecarUnidadePeso(ip){
+  const caixa = $('mlUniAlerta');
+  if(ip < 0){ mostrar('mlUniAlerta', false); return; }
+
+  const r = ML.detectarEscalaPeso(mlAoa.slice(1).map(l => l[ip]));
+  const jaEmGramas = $('mlPesoUnidade').value === 'g';
+  if(!r.suspeita || jaEmGramas){ mostrar('mlUniAlerta', false); return; }
+
+  caixa.innerHTML = `<b>Esses números parecem estar em gramas.</b>
+    O peso do meio da planilha é <b>${String(r.mediana).replace('.', ',')}</b>, que como quilo daria
+    ${r.acima150 ? `${r.acima150} produto${r.acima150 === 1 ? '' : 's'} acima de 150 kg e ` : ''}frete
+    fora da realidade. Em gramas, seriam <b>${String(r.medianaConvertida).replace('.', ',')} kg</b>.
+    <button type="button" onclick="mlUsarGramas()">Sim, estão em gramas</button>`;
+  mostrar('mlUniAlerta', true);
+}
+
+function mlUsarGramas(){
+  $('mlPesoUnidade').value = 'g';
+  mlValidaCol();
+}
+
 function mlValidaCol(){
   const ic = parseInt($('mlCusto').value), ip = parseInt($('mlPeso').value);
   const id = parseInt($('mlPreco').value), im = parseInt($('mlComissao').value);
   $('mlCustoNota').textContent = ic >= 0 ? `✓ "${mlCabecalho[ic]}" — custo do produto` : '';
   $('mlPesoNota').textContent  = ip >= 0 ? `✓ "${mlCabecalho[ip]}" — frete pela tabela oficial`
                                          : `sem peso: frete manual de ${ML.brl(pml.freteManual)}`;
+  mostrar('mlUniBox', ip >= 0);
+  mlChecarUnidadePeso(ip);
   $('mlPrecoNota').textContent = id >= 0 ? `⚠ vai sobrescrever "${mlCabecalho[id]}"` : '';
   /* como a opção já vem ligada, o aviso precisa acompanhar a coluna de título
      escolhida — inclusive para pedir que ela seja selecionada */
@@ -1394,6 +1420,15 @@ async function mlProcessar(){
   const iComp = parseInt($('mlComprimento').value);
   if(ic < 0) return;
 
+  /* A coluna pode estar em gramas mesmo dizendo "kg". Anexamos a unidade ao
+     valor em vez de dividir por mil aqui: o motor já sabe converter, e assim
+     um valor que JÁ traz "1,5 kg" escrito não é convertido duas vezes. */
+  const emGramas = $('mlPesoUnidade').value === 'g';
+  const comUnidade = v => {
+    if(!emGramas || v === '' || v == null) return v;
+    return /[a-z]/i.test(String(v)) ? v : String(v) + ' g';
+  };
+
   // monta as entradas e deixa o motor precificar e conferir tudo de uma vez
   const entradas = mlAoa.slice(1).map((linha, i) => {
     let dims = null;
@@ -1407,7 +1442,9 @@ async function mlProcessar(){
     return {
       linha: i + 1,
       custo: ed.custo != null ? ed.custo : linha[ic],
-      peso: ed.peso != null ? ed.peso : (ip >= 0 ? linha[ip] : ''),
+      /* o que o usuário digitou na tela é sempre kg (ou traz a unidade junto);
+         a conversão de gramas vale só para o valor vindo da planilha */
+      peso: ed.peso != null ? ed.peso : (ip >= 0 ? comUnidade(linha[ip]) : ''),
       dimensoes: dims,
       comissaoProduto: im >= 0 ? linha[im] : '',
     };
@@ -1689,7 +1726,7 @@ function mlRenderTabela(){
   $('mlFiltroBar').innerHTML = `<div class="filtro-bar">
       <input type="search" class="busca" placeholder="Buscar por descrição ou código…"
         value="${esc(mlBusca)}" oninput="mlBuscar(this.value)"/>
-      <span class="f-atalhos">${atalhos}</span>
+      <div class="f-atalhos"><span class="f-titulo">Clique para ver só os produtos com problema</span>${atalhos}</div>
       ${grupo ? `<span>Mostrando só: <b>${esc(grupo.titulo)}</b> (${grupo.n})</span>
         <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>` : ''}
       ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}

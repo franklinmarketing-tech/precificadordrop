@@ -114,6 +114,38 @@ function parsePeso(v) {
    produtos muito leves (brinco, adesivo) vivem nessa escala. */
 const arredPeso = kg => isNaN(kg) ? kg : Math.round(kg * 1e4) / 1e4;
 
+/* ── a coluna está em gramas mesmo dizendo "kg"? ──────────────────────────────
+   Acontece o tempo todo: a planilha traz 2000 para um produto de 2 kg. Lido
+   como quilo, o frete vai para a última faixa e o preço sai irreal.
+
+   Não dá para decidir linha a linha (2000 kg é uma carga possível), mas a
+   coluna inteira entrega o padrão: se quase nada tem casa decimal e a mediana
+   está na casa das centenas, são gramas. Devolvemos a suspeita para a tela
+   perguntar — converter sozinho seria pior que o erro que corrige. */
+function detectarEscalaPeso(valores) {
+  const kg = [];
+  for (const v of valores || []) {
+    if (v === '' || v == null) continue;
+    const n = parsePeso(v);
+    if (!isNaN(n) && n > 0) kg.push(n);
+  }
+  if (kg.length < 3) return {suspeita: false, n: kg.length};
+
+  const ordenado = kg.slice().sort((a, b) => a - b);
+  const mediana = ordenado[Math.floor(ordenado.length / 2)];
+  const inteiros = kg.filter(n => Number.isInteger(n)).length / kg.length;
+  const acima50 = kg.filter(n => n >= 50).length / kg.length;
+
+  /* Um produto de e-commerce raramente passa de 50 kg. Quando a maioria passa,
+     são inteiros e a mediana é grande, a unidade é grama. */
+  const suspeita = mediana >= 100 && inteiros >= 0.9 && acima50 >= 0.75;
+  return {
+    suspeita, n: kg.length, mediana,
+    medianaConvertida: arredPeso(mediana / 1000),
+    acima150: kg.filter(n => n > 150).length,
+  };
+}
+
 /* ── componentes do custo de venda ───────────────────────────────────────── */
 /* A tarifa de venda varia por categoria (Clássico 10%–14%, Premium 15%–19%),
    então cada produto pode trazer a sua em `comissaoProduto`.              */
@@ -408,7 +440,7 @@ function precificarLote(entradas, params) {
   return {linhas, conferencia: conferir(linhas)};
 }
 
-return {PADRAO, AVISOS, brl, parseNumero, parsePeso, arredPeso, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+return {PADRAO, AVISOS, brl, parseNumero, parsePeso, arredPeso, detectarEscalaPeso, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
         precificarLinha, precificarLote, conferir};
