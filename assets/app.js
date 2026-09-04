@@ -1812,16 +1812,26 @@ function mlRenderStats(){
   const soma = lucros.reduce((a,b) => a + b, 0);
   const revisar = mlConferencia ? mlConferencia.revisar : 0;
 
+  /* O lucro total é o resultado que interessa e ganha destaque; o card de
+     revisão vira botão, porque é o único que pede ação. */
+  const primeiroGrupo = mlConferencia && mlConferencia.grupos.length ? mlConferencia.grupos[0].id : null;
   const cards = [
-    {n: mlLinhas.length,              l:'Produtos',             c:'var(--ink)'},
-    {n: ok.length,                    l:'Preços calculados',    c:'var(--green-dk)'},
-    {n: revisar,                      l:'Precisam de revisão',  c: revisar ? 'var(--red)' : 'var(--faint)'},
-    {n: ML.brl(soma / (lucros.length || 1)), l:'Lucro médio',   c:'var(--violet-dk)'},
-    {n: ML.brl(soma),                 l:'Lucro total estimado', c:'var(--green-dk)'},
+    {n: mlLinhas.length,   l:'Produtos',          c:'var(--ink)'},
+    {n: ok.length,         l:'Preços calculados', c:'var(--green-dk)'},
+    revisar
+      ? {n: revisar, l:'Precisam de revisão', c:'var(--red)', acao: primeiroGrupo, dica:'ver o que precisa de atenção'}
+      : {n: 'tudo certo', l:'Nada a revisar', c:'var(--green-dk)', pequeno:true},
+    {n: ML.brl(soma / (lucros.length || 1)), l:'Lucro médio por venda', c:'var(--violet-dk)'},
+    {n: ML.brl(soma), l:'Lucro total estimado', c:'var(--green-dk)', destaque:true},
   ];
-  $('mlStats').innerHTML = cards.map((c,i) =>
-    `<div class="stat" style="animation-delay:${i*.04}s"><div class="stat-n" style="color:${c.c}">${c.n}</div>
-     <div class="stat-l">${c.l}</div></div>`).join('');
+  $('mlStats').innerHTML = cards.map((c,i) => {
+    const classe = 'stat' + (c.destaque ? ' stat-destaque' : '') + (c.acao ? ' stat-acao' : '');
+    const clique = c.acao ? ` onclick="mlVerLinhas('${c.acao}')" title="${esc(c.dica)}"` : '';
+    return `<div class="${classe}" style="animation-delay:${i*.04}s"${clique}>
+      <div class="stat-n${c.pequeno ? ' stat-n-txt' : ''}" style="color:${c.c}">${c.n}</div>
+      <div class="stat-l">${c.l}</div>
+      ${c.acao ? '<div class="stat-cta">ver as linhas →</div>' : ''}</div>`;
+  }).join('');
 }
 
 /* ── conferência: o que precisa de atenção antes de exportar ── */
@@ -1829,9 +1839,12 @@ function mlRenderChecks(){
   const c = mlConferencia;
   if(!c) return;
 
+  /* o badge diz o tamanho do problema, não só que existe um */
   const badge = $('mlBadge');
-  badge.textContent = c.ok ? (c.revisar ? 'CONFIRA' : 'TUDO CERTO') : 'REVISAR';
-  badge.className = 'pill ' + (c.ok ? 'pill-ok' : 'pill-bad');
+  const erros = c.grupos.filter(g => g.gravidade === 'erro').reduce((s, g) => s + g.n, 0);
+  badge.textContent = !c.revisar ? 'TUDO CERTO'
+    : (erros ? `${erros} PRECISAM DE CORREÇÃO` : `${c.revisar} PARA CONFERIR`);
+  badge.className = 'pill ' + (erros ? 'pill-bad' : (c.revisar ? 'pill-alerta' : 'pill-ok'));
 
   if(!c.grupos.length){
     $('mlChecks').innerHTML = `<div class="chk ok">

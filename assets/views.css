@@ -674,7 +674,10 @@ body.view-hub{overflow-x:hidden}
 .pag-tam button{padding:5px 10px;font-size:11px}
 .pag-tam button.on{border-color:var(--blue);color:var(--blue-dk);background:rgba(79,124,255,.09)}
 
-.paginacao{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+/* sem o wrap, os botões de tamanho de página forçavam 400px de largura e a
+   rolagem lateral vazava para a página inteira no celular */
+.paginacao{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;
+  flex-wrap:wrap}
 .paginacao button{border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;
   font-size:11.5px;font-weight:600;color:var(--sub);padding:9px 16px;border-radius:10px;transition:all .15s}
 .paginacao button:hover:not(:disabled){border-color:var(--blue);color:var(--blue-dk);transform:translateY(-1px)}
