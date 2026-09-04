@@ -268,24 +268,80 @@ tbody tr:hover td{background:#f8faff}
 @media(max-width:640px){.step-lbl{display:none}}
 
 /* ── validação ──────────────────────────────────────────── */
-.checks{display:flex;flex-direction:column;gap:8px}
-.chk{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid var(--line)}
-.chk.ok{border-color:rgba(18,183,106,.3);background:rgba(18,183,106,.05)}
-.chk.bad{border-color:rgba(229,72,77,.35);background:rgba(229,72,77,.05)}
+.checks{display:flex;flex-direction:column;gap:10px}
+
+/* O card usa a cor só na lateral e no ícone. Antes o fundo inteiro era tingido:
+   com quatro alertas na tela virava um bloco de âmbar onde nada se destacava,
+   e o erro vermelho — o único que pede ação — se perdia no meio. */
+.chk{position:relative;display:flex;align-items:flex-start;gap:13px;overflow:hidden;
+  padding:14px 16px 14px 19px;border-radius:14px;background:#fff;
+  border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);
+  transition:box-shadow .18s,transform .18s,border-color .18s}
+/* overflow:hidden no card recorta a barra no raio da borda — sem ele o
+   gradiente vaza num bico quadrado no pé do card */
+.chk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--chk-cor,var(--line))}
+.chk:hover{box-shadow:0 6px 20px -8px rgba(20,30,60,.18);transform:translateY(-1px)}
+.chk.ok{--chk-cor:linear-gradient(180deg,#28dd8a,#079254)}
+.chk.bad{--chk-cor:linear-gradient(180deg,#ff7a7d,#d63a3f);border-color:rgba(229,72,77,.28);
+  background:linear-gradient(100deg,rgba(229,72,77,.055),rgba(229,72,77,.012) 45%,#fff 75%)}
 /* alerta é âmbar, não verde: um card verde com ícone de aviso dizia
    "está tudo bem" e "atenção" ao mesmo tempo */
-.chk.alerta{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.05)}
-.chk-i{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
-.chk.ok .chk-i{background:linear-gradient(160deg,#28dd8a,#079254);box-shadow:0 3px 8px -2px rgba(18,183,106,.7)}
-.chk.bad .chk-i{background:linear-gradient(160deg,#ff7a7d,#d63a3f);box-shadow:0 3px 8px -2px rgba(229,72,77,.7)}
-.chk.alerta .chk-i{background:linear-gradient(160deg,#fbbf24,#b45309);box-shadow:0 3px 8px -2px rgba(245,158,11,.6)}
-.chk-i svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.chk-t{font-size:12.5px;font-weight:600}
-.chk-d{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.5}
-/* o que fazer, não só o que houve */
-.chk-r{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.5;
-  padding-top:6px;border-top:1px dashed var(--line)}
-.chk-r b{color:var(--ink);font-weight:700}
+.chk.alerta{--chk-cor:linear-gradient(180deg,#fbbf24,#b45309)}
+
+.chk-i{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;flex:none;margin-top:1px}
+.chk.ok .chk-i{background:linear-gradient(160deg,#28dd8a,#079254);box-shadow:0 4px 10px -3px rgba(18,183,106,.6)}
+.chk.bad .chk-i{background:linear-gradient(160deg,#ff7a7d,#d63a3f);box-shadow:0 4px 10px -3px rgba(229,72,77,.6)}
+.chk.alerta .chk-i{background:linear-gradient(160deg,#fbbf24,#b45309);box-shadow:0 4px 10px -3px rgba(245,158,11,.5)}
+.chk-i svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+.chk-t{font-family:var(--display);font-size:13.5px;font-weight:700;letter-spacing:-.15px;
+  color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chk-d{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.55}
+
+/* o que fazer, não só o que houve. Fica preso à esquerda por uma guia colorida
+   em vez de uma caixa cheia: a caixa competia com a descrição em vez de
+   apoiá-la, e em quatro cards seguidos virava um bloco de cor só */
+.chk-r{font-size:11.5px;color:var(--sub);margin-top:9px;line-height:1.55;
+  padding-left:11px;border-left:2px solid var(--chk-guia,var(--line))}
+.chk-r b{display:block;font-size:9.5px;font-weight:700;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.chk.bad{--chk-guia:rgba(229,72,77,.35)}
+.chk.bad .chk-r b{color:var(--red)}
+.chk.alerta{--chk-guia:rgba(245,158,11,.4)}
+.chk.alerta .chk-r b{color:#9a5b00}
+
+/* a contagem é o dado que dimensiona o problema: ganha peso e cor própria */
+.chk-n{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:10.5px;
+  font-weight:700;padding:3px 9px;border-radius:100px;background:#eef1f8;color:var(--sub);letter-spacing:0}
+.chk.bad .chk-n{background:rgba(229,72,77,.12);color:var(--red)}
+.chk.alerta .chk-n{background:rgba(245,158,11,.16);color:#9a5b00}
+.chk.ok .chk-n{background:rgba(18,183,106,.12);color:var(--green-dk)}
+
+@media(max-width:600px){
+  .chk{flex-wrap:wrap;padding:13px 14px 13px 17px}
+  .chk-d,.chk-r{max-width:none}
+}
+/* Resumo do lote: antes o painel abria direto na lista de problemas e não
+   dizia o principal — que a grande maioria dos produtos está pronta. A barra
+   dá a proporção num relance; os números dizem quantos e de que tipo. */
+.chk-resumo{margin-bottom:14px}
+.chk-barra{display:flex;height:7px;border-radius:100px;overflow:hidden;background:#eef1f8;gap:2px}
+.chk-barra i{display:block;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.chk-barra .b-ok{background:linear-gradient(90deg,#28dd8a,#079254)}
+.chk-barra .b-alerta{background:linear-gradient(90deg,#fbbf24,#d98a06)}
+.chk-barra .b-erro{background:linear-gradient(90deg,#ff7a7d,#d63a3f)}
+.chk-legenda{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:9px;
+  font-size:11.5px;color:var(--sub)}
+.chk-legenda span{display:inline-flex;align-items:center;gap:6px}
+.chk-legenda i{width:8px;height:8px;border-radius:3px;flex:none}
+.chk-legenda b{font-family:var(--display);font-variant-numeric:tabular-nums;
+  font-weight:700;color:var(--ink)}
+.chk-legenda .l-ok i{background:linear-gradient(160deg,#28dd8a,#079254)}
+.chk-legenda .l-alerta i{background:linear-gradient(160deg,#fbbf24,#b45309)}
+.chk-legenda .l-erro i{background:linear-gradient(160deg,#ff7a7d,#d63a3f)}
+
 .pill{font-size:10px;font-weight:600;letter-spacing:1px;padding:6px 13px;border-radius:100px}
 .pill-ok{background:rgba(18,183,106,.12);color:var(--green-dk)}
 .pill-bad{background:rgba(229,72,77,.12);color:var(--red)}

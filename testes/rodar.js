@@ -165,8 +165,11 @@ secao('5d. Conversão linha a linha');
   [80, 0.08, true], [82, 0.082, true], [117, 0.117, true], [20, 0.02, true],
   // inteiros pequenos são pesos plausíveis de verdade
   [19, 19, false], [16, 16, false], [5, 5, false], [1, 1, false],
-  // decimais nunca são gramas: gramas vêm redondas
-  [0.9, 0.9, false], [4.6, 4.6, false], [2.575, 2.575, false], [199.999, 199.999, false],
+  // decimais não são gramas: gramas vêm redondas
+  [0.9, 0.9, false], [4.6, 4.6, false], [2.575, 2.575, false], [149.5, 149.5, false],
+  // ...até 150 kg. Acima disso o ML não entrega, então nem decimal é quilo:
+  // o escorredor de macarrão que veio "199.999" pesa 199,999 g = 0,2 kg
+  [199.999, 0.2, true], [150.5, 0.1505, true],
 ].forEach(([entrada, esperado, converteu]) => {
   const r = ML.normalizarPesoLinha(entrada, true);
   perto(r.kg, esperado, `${entrada} → ${esperado} kg`, 1e-9);

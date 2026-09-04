@@ -124,15 +124,21 @@ const arredPeso = kg => isNaN(kg) ? kg : Math.round(kg * 1e4) / 1e4;
    • acima de PISO_GRAMAS — peso de dropshipping (roupa, brinquedo, panela)
      raramente passa disso;
    • número inteiro — peso em gramas vem redondo (2000, 80, 117), enquanto
-     quilo de verdade tem casa decimal (0,9 / 2,575 / 199,999).
+     quilo de verdade tem casa decimal (0,9 / 2,575).
 
    Só o limite de 150 kg não bastava: a planilha do usuário tinha 211 produtos
    entre 20 e 150 kg (80, 82, 117…), todos inteiros e todos gramas, que
-   passavam batido e saíam com frete de centenas de reais. */
+   passavam batido e saíam com frete de centenas de reais.
+
+   Acima de 150 kg o decimal deixa de proteger: o Mercado Livre não entrega
+   nessa faixa, então NENHUM peso em quilos ali é legítimo — decimal ou não,
+   é grama. Um escorredor de macarrão veio como "199.999" (199,999 g ≈ 0,2 kg,
+   igual ao da linha vizinha) e escapava por não ser inteiro, saindo com frete
+   de 200 kg. */
 const LIMITE_ML = 150;    // acima disso o Mercado Livre não tem faixa de frete
 const PISO_GRAMAS = 20;   // acima disso, um inteiro é quase certamente grama
 
-const pareceGramas = n => Number.isInteger(n) && n >= PISO_GRAMAS;
+const pareceGramas = n => (Number.isInteger(n) && n >= PISO_GRAMAS) || n > LIMITE_ML;
 
 function detectarEscalaPeso(valores) {
   const kg = [];

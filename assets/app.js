@@ -1843,14 +1843,16 @@ function mlRenderChecks(){
   const badge = $('mlBadge');
   const erros = c.grupos.filter(g => g.gravidade === 'erro').reduce((s, g) => s + g.n, 0);
   badge.textContent = !c.revisar ? 'TUDO CERTO'
-    : (erros ? `${erros} PRECISAM DE CORREÇÃO` : `${c.revisar} PARA CONFERIR`);
+    : (erros ? `${erros} ${erros === 1 ? 'PRECISA' : 'PRECISAM'} DE CORREÇÃO` : `${c.revisar} PARA CONFERIR`);
   badge.className = 'pill ' + (erros ? 'pill-bad' : (c.revisar ? 'pill-alerta' : 'pill-ok'));
+
+  mlRenderResumo(c);
 
   if(!c.grupos.length){
     $('mlChecks').innerHTML = `<div class="chk ok">
       <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
       <div><div class="chk-t">Nada a revisar</div>
-      <div class="chk-d">Os ${c.total} produtos têm custo, peso e medidas — os preços podem ser usados como estão.</div></div>
+      <div class="chk-d">Os ${c.total.toLocaleString('pt-BR')} produtos têm custo, peso e medidas — os preços podem ser usados como estão.</div></div>
     </div>`;
     return;
   }
@@ -1860,12 +1862,42 @@ function mlRenderChecks(){
       <div class="chk-i">${g.gravidade === 'erro'
         ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
         : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'}</div>
-      <div><div class="chk-t">${esc(g.titulo)} <span class="tag">${g.n} ${g.n === 1 ? 'produto' : 'produtos'}</span></div>
+      <div><div class="chk-t">${esc(g.titulo)} <span class="chk-n">${g.n} ${g.n === 1 ? 'produto' : 'produtos'}</span></div>
         <div class="chk-d">${esc(g.descricao)}</div>
-        ${g.comoResolver ? `<div class="chk-r"><b>Como resolver:</b> ${esc(g.comoResolver)}</div>` : ''}</div>
+        ${g.comoResolver ? `<div class="chk-r"><b>Como resolver</b>${esc(g.comoResolver)}</div>` : ''}</div>
       <button class="chk-btn${mlFiltro === g.id ? ' on' : ''}" onclick="mlVerLinhas('${g.id}')">
-        ${mlFiltro === g.id ? 'ver todos' : `ver ${g.n === 1 ? 'a linha' : 'as linhas'}`}</button>
+        ${mlFiltro === g.id ? 'ver todos' : `ver ${g.n === 1 ? 'a linha' : 'as linhas'}`}
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
     </div>`).join('') + mlChecksCategoria();
+}
+
+/* Proporção do lote em uma barra. A lista abaixo enumera problemas; aqui o
+   usuário vê primeiro o tamanho deles em relação ao total — com 5.196 produtos,
+   "4 para corrigir" é uma notícia boa, e a lista sozinha não passava isso. */
+function mlRenderResumo(c){
+  const alvo = $('mlChecksResumo');
+  if(!alvo) return;
+
+  const total = c.total || 0;
+  const erro = c.comErro || 0;
+  /* comAlerta conta linhas que têm alerta, inclusive as que também têm erro —
+     senão as fatias somariam mais que o total */
+  const alerta = Math.max(0, (c.comAlerta || 0) - erro);
+  const ok = Math.max(0, total - erro - alerta);
+  if(!total){ alvo.innerHTML = ''; return; }
+
+  const pct = n => (n / total * 100).toFixed(2) + '%';
+  const fatia = (n, cls) => n ? `<i class="${cls}" style="width:${pct(n)}"></i>` : '';
+  const item = (n, cls, txt) => n
+    ? `<span class="${cls}"><i></i><b>${n.toLocaleString('pt-BR')}</b> ${txt}</span>` : '';
+
+  alvo.innerHTML = `
+    <div class="chk-barra">${fatia(ok,'b-ok')}${fatia(alerta,'b-alerta')}${fatia(erro,'b-erro')}</div>
+    <div class="chk-legenda">
+      ${item(ok,'l-ok','prontos para exportar')}
+      ${item(alerta,'l-alerta', alerta === 1 ? 'para conferir' : 'para conferir')}
+      ${item(erro,'l-erro', erro === 1 ? 'precisa de correção' : 'precisam de correção')}
+    </div>`;
 }
 
 /* O que a categoria exige antes de o anúncio ser aceito. É daqui que vem a
@@ -1888,7 +1920,7 @@ function mlChecksCategoria(){
   if(semCat) saida += `
     <div class="chk ok">
       <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
-      <div><div class="chk-t">Categoria não encontrada <span class="tag">${semCat} ${semCat === 1 ? 'produto' : 'produtos'}</span></div>
+      <div><div class="chk-t">Categoria não encontrada <span class="chk-n">${semCat} ${semCat === 1 ? 'produto' : 'produtos'}</span></div>
         <div class="chk-d">O Mercado Livre não reconheceu a categoria pelo título. Esses produtos
           foram precificados com a tarifa dos parâmetros — confira se o título está descritivo.</div></div>
     </div>`;

@@ -579,11 +579,25 @@ body.view-hub{overflow-x:hidden}
 @media(max-width:600px){.regra{grid-template-columns:22px 1fr}.regra-v{grid-column:2;margin-top:4px}}
 
 /* ═══ CONFERÊNCIA DO LOTE ═════════════════════════════════ */
-.chk-btn{border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;font-size:10.5px;
-  font-weight:600;color:var(--blue-dk);padding:7px 13px;border-radius:9px;white-space:nowrap;transition:all .15s}
-.chk-btn:hover{background:#f0f4ff;border-color:var(--blue);transform:translateY(-1px)}
-.chk-btn.on{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent}
-.chk{grid-template-columns:19px 1fr auto;display:grid;align-items:center}
+.chk-btn{border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;font-size:11px;
+  font-weight:600;color:var(--blue-dk);padding:8px 14px;border-radius:10px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.chk-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.chk-btn:hover{background:#f0f4ff;border-color:var(--blue);transform:translateY(-1px);
+  box-shadow:0 4px 12px -4px rgba(79,124,255,.45)}
+.chk-btn:hover svg{transform:translateX(2px)}
+.chk-btn.on{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px -4px rgba(47,90,224,.6)}
+.chk-btn.on svg{transform:rotate(180deg)}
+/* o botão fica na linha do título, não centrado num card que cresceu com o
+   "como resolver" — no card alto ele acabava flutuando longe de tudo */
+.chk{grid-template-columns:26px minmax(0,1fr) auto;display:grid;align-items:start;column-gap:13px}
+.chk > .chk-btn{align-self:start;margin-top:1px}
+@media(max-width:600px){
+  .chk{grid-template-columns:26px 1fr}
+  .chk > .chk-btn{grid-column:2;justify-self:start;margin-top:10px}
+}
 
 .tag-erro{background:rgba(229,72,77,.12);color:var(--red)}
 .tag-alerta{background:rgba(247,144,9,.14);color:#9a5b00}
