@@ -1355,6 +1355,20 @@
   </div>
 </div>
 
+<!-- ═══ POP-UP: PROGRESSO DO CÁLCULO ═══
+     Sem ele, uma planilha grande deixa a tela parada por dezenas de segundos
+     (a consulta de categoria vai de 20 em 20 produtos) e parece travada. -->
+<div class="scrim" id="scrimProg"></div>
+<div class="pop pop-prog" id="popProg" role="dialog" aria-modal="true"
+     aria-labelledby="progTitulo" aria-live="polite">
+  <div class="prog-ic"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-6.5-2 2m-7 7-2 2m0-11 2 2m7 7 2 2"/></svg></div>
+  <div class="prog-t" id="progTitulo">Calculando os preços</div>
+  <div class="prog-s" id="progEtapa">preparando…</div>
+  <div class="cat-barra"><i id="progBarra"></i></div>
+  <div class="prog-n" id="progNumero"></div>
+  <div class="prog-passos" id="progPassos"></div>
+</div>
+
 <!-- ═══ POP-UP: CUSTOS OFICIAIS ═══ -->
 <div class="scrim" id="scrimCustos" onclick="fecharCustos()"></div>
 <div class="pop pop-largo" id="popCustos" role="dialog" aria-modal="true" aria-label="Custos oficiais">

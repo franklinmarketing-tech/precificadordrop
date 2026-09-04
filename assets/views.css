@@ -933,6 +933,35 @@ body.view-hub{overflow-x:hidden}
 .pop-s{font-size:9px;font-weight:600;letter-spacing:1.3px;color:var(--faint);margin-top:3px}
 .pop-b{padding:20px 22px 24px;overflow:auto;flex:1;min-height:0}
 .pop-b > div > .panel:first-child{margin-top:0}
+/* ── janela de progresso do cálculo ───────────────────────────────────────── */
+.pop-prog{width:min(430px,calc(100vw - 32px));padding:30px 30px 26px;text-align:center;
+  align-items:center}
+.prog-ic{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;
+  justify-content:center;margin-bottom:16px;
+  background:linear-gradient(160deg,var(--blue),var(--blue-dk));
+  box-shadow:0 8px 20px -8px rgba(79,124,255,.75)}
+.prog-ic svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;animation:progGira 1.6s linear infinite}
+@keyframes progGira{to{transform:rotate(360deg)}}
+.prog-t{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:-.3px;
+  color:var(--ink)}
+.prog-s{font-size:12px;color:var(--sub);margin:7px 0 16px;line-height:1.45;min-height:34px}
+.pop-prog .cat-barra{width:100%;height:8px}
+.prog-n{font-size:11.5px;color:var(--faint);margin-top:9px;font-variant-numeric:tabular-nums;
+  min-height:16px}
+.prog-passos{display:flex;flex-direction:column;gap:9px;margin-top:20px;width:100%;
+  padding-top:18px;border-top:1px solid var(--line);text-align:left}
+.prog-passo{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--faint)}
+.prog-passo.agora{color:var(--ink);font-weight:700}
+.prog-passo.feito{color:var(--sub)}
+.prog-bolinha{width:18px;height:18px;border-radius:50%;flex:none;display:flex;
+  align-items:center;justify-content:center;border:2px solid var(--line);background:#fff}
+.prog-passo.agora .prog-bolinha{border-color:var(--blue);
+  box-shadow:0 0 0 4px rgba(79,124,255,.16)}
+.prog-passo.feito .prog-bolinha{border-color:var(--green-dk);background:var(--green-dk)}
+.prog-bolinha svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:3.4;
+  stroke-linecap:round;stroke-linejoin:round}
+
 body.sem-rolagem{overflow:hidden}
 @media(max-width:700px){
   .pop{width:calc(100vw - 16px);max-height:92vh;border-radius:18px}

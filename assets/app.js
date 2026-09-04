@@ -433,6 +433,46 @@ function irManual(secao){
 function abrirCalc(){ abrirPop('popCalc', 'scrimCalc', () => recalcularTudo()); }
 function fecharCalc(){ fecharPop('popCalc', 'scrimCalc'); }
 
+/* ── janela de progresso do cálculo ──────────────────────────────────────────
+   Consultar a categoria de 500 produtos leva dezenas de segundos, de 20 em 20.
+   Sem mostrar o que está acontecendo, a tela fica parada e parece travada.  */
+const PROG_ETAPAS = ['Lendo a planilha', 'Consultando o Mercado Livre', 'Calculando os preços', 'Montando a tabela'];
+let progEtapaAtual = 0;
+
+function progAbrir(){
+  progEtapaAtual = 0;
+  $('progBarra').style.width = '0%';
+  $('progNumero').textContent = '';
+  progPassos();
+  abrirPop('popProg', 'scrimProg');
+}
+function progFechar(){ fecharPop('popProg', 'scrimProg'); }
+
+/* i = índice da etapa; pct e detalhe são opcionais (a consulta ao ML os usa) */
+function progEtapa(i, pct, detalhe){
+  progEtapaAtual = i;
+  $('progEtapa').textContent = detalhe || PROG_ETAPAS[i] + '…';
+  /* cada etapa ocupa uma fatia da barra; dentro dela, o avanço é proporcional */
+  const fatia = 100 / PROG_ETAPAS.length;
+  const dentro = pct == null ? 0 : Math.max(0, Math.min(1, pct));
+  $('progBarra').style.width = (i * fatia + dentro * fatia).toFixed(1) + '%';
+  progPassos();
+}
+function progNumero(txt){ $('progNumero').textContent = txt || ''; }
+
+function progPassos(){
+  $('progPassos').innerHTML = PROG_ETAPAS.map((nome, i) => {
+    const estado = i < progEtapaAtual ? 'feito' : (i === progEtapaAtual ? 'agora' : '');
+    const marca = i < progEtapaAtual
+      ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : '';
+    return `<div class="prog-passo ${estado}"><span class="prog-bolinha">${marca}</span>${esc(nome)}</div>`;
+  }).join('');
+}
+
+/* deixa o navegador pintar antes de seguir: sem isso a barra só apareceria
+   no fim, quando o trabalho pesado já travou a thread */
+const respirar = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
 function abrirCustos(){
   abrirPop('popCustos', 'scrimCustos', () => {
     taxasProntas = false;
@@ -1348,9 +1388,12 @@ function mlToggleCategoria(){
 }
 
 function mlCatProgresso(feitos, total){
-  const pct = total ? Math.round(feitos / total * 100) : 0;
-  $('mlCatBarra').style.width = pct + '%';
+  const fracao = total ? feitos / total : 0;
+  $('mlCatBarra').style.width = Math.round(fracao * 100) + '%';
   $('mlCatProgT').textContent = `consultando o Mercado Livre — ${feitos} de ${total} produtos`;
+  /* mesma informação na janela de progresso, onde o usuário está olhando */
+  progEtapa(1, fracao, `Consultando a categoria de cada produto no Mercado Livre`);
+  progNumero(`${feitos} de ${total} produtos`);
 }
 
 async function mlDescobrirCategorias(entradas, iTitulo, iCusto){
@@ -1420,6 +1463,19 @@ async function mlProcessar(){
   const iComp = parseInt($('mlComprimento').value);
   if(ic < 0) return;
 
+  progAbrir();
+  try{
+    await mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp);
+  } finally {
+    progFechar();
+  }
+}
+
+async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
+  progEtapa(0);
+  progNumero(`${Math.max(0, mlAoa.length - 1)} produtos`);
+  await respirar();
+
   /* A coluna pode estar em gramas mesmo dizendo "kg". Anexamos a unidade ao
      valor em vez de dividir por mil aqui: o motor já sabe converter, e assim
      um valor que JÁ traz "1,5 kg" escrito não é convertido duas vezes. */
@@ -1454,12 +1510,15 @@ async function mlProcessar(){
      e usa a tarifa real daquela categoria em vez de uma comissão única. */
   mlCategorias = null;
   mlUsandoCategoria = false;
-  if($('mlUsarCategoria').checked){
-    const it = parseInt($('mlTitulo').value);
-    if(it >= 0){
-      const ok = await mlDescobrirCategorias(entradas, it, ic);
-      if(ok) mlUsandoCategoria = true;
-    }
+  const usarCat = $('mlUsarCategoria').checked && parseInt($('mlTitulo').value) >= 0;
+  if(usarCat){
+    progEtapa(1, 0);
+    await respirar();
+    const ok = await mlDescobrirCategorias(entradas, parseInt($('mlTitulo').value), ic);
+    if(ok) mlUsandoCategoria = true;
+  }else{
+    progEtapa(1, 1, 'Consulta ao Mercado Livre desligada — usando a tarifa dos parâmetros');
+    await respirar();
   }
   if(mlUsandoCategoria){
     const tipo = pml.tipoAnuncio === 'premium' ? 'premium' : 'classico';
@@ -1469,6 +1528,10 @@ async function mlProcessar(){
       if(c && c[tipo] != null) e.comissaoProduto = c[tipo];
     });
   }
+
+  progEtapa(2);
+  progNumero(`${entradas.length} produtos`);
+  await respirar();
 
   const lote = ML.precificarLote(entradas, Object.assign({}, pml, {margemAlvo: mlMargem}));
   mlLinhas = lote.linhas;
@@ -1482,9 +1545,17 @@ async function mlProcessar(){
         + 'escolha a coluna que guarda o custo do produto.');
     return;
   }
+  progEtapa(3);
+  progNumero(`${ok.length} preços calculados`);
+  await respirar();
+
   mlRenderStats();
   mlRenderChecks();
   mlRenderTabela();
+  /* a barra cheia por um instante: fechar no meio do caminho dá a impressão
+     de que algo foi interrompido */
+  progEtapa(4, 0, 'Pronto');
+  await new Promise(r => setTimeout(r, reduzido ? 0 : 420));
 
   $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar planilha pronta para o Bling (${ok.length} produtos)`;
   mlPasso(3);
