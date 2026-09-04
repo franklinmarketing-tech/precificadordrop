@@ -122,6 +122,8 @@ const arredPeso = kg => isNaN(kg) ? kg : Math.round(kg * 1e4) / 1e4;
    coluna inteira entrega o padrão: se quase nada tem casa decimal e a mediana
    está na casa das centenas, são gramas. Devolvemos a suspeita para a tela
    perguntar — converter sozinho seria pior que o erro que corrige. */
+const LIMITE_ML = 150;   // acima disso o Mercado Livre não tem faixa de frete
+
 function detectarEscalaPeso(valores) {
   const kg = [];
   for (const v of valores || []) {
@@ -129,21 +131,40 @@ function detectarEscalaPeso(valores) {
     const n = parsePeso(v);
     if (!isNaN(n) && n > 0) kg.push(n);
   }
-  if (kg.length < 3) return {suspeita: false, n: kg.length};
+  if (!kg.length) return {suspeita: false, n: 0, acima150: 0};
 
   const ordenado = kg.slice().sort((a, b) => a - b);
   const mediana = ordenado[Math.floor(ordenado.length / 2)];
-  const inteiros = kg.filter(n => Number.isInteger(n)).length / kg.length;
-  const acima50 = kg.filter(n => n >= 50).length / kg.length;
+  const grandes = kg.filter(n => n > LIMITE_ML);
 
-  /* Um produto de e-commerce raramente passa de 50 kg. Quando a maioria passa,
-     são inteiros e a mediana é grande, a unidade é grama. */
-  const suspeita = mediana >= 100 && inteiros >= 0.9 && acima50 >= 0.75;
+  /* Nenhum produto vendido no Mercado Livre pesa mais de 150 kg: cada valor
+     acima disso é grama escrita numa coluna que diz "kg". A planilha real do
+     usuário mistura as duas escalas (0,9 kg e 2000 g na mesma coluna), então a
+     decisão é POR LINHA — converter a coluna inteira estragaria os 63% que já
+     estavam certos. */
   return {
-    suspeita, n: kg.length, mediana,
-    medianaConvertida: arredPeso(mediana / 1000),
-    acima150: kg.filter(n => n > 150).length,
+    suspeita: grandes.length > 0,
+    n: kg.length,
+    mediana,
+    acima150: grandes.length,
+    /* o maior de todos, para a mensagem mostrar o caso mais gritante */
+    maior: ordenado[ordenado.length - 1],
+    maiorConvertido: arredPeso(ordenado[ordenado.length - 1] / 1000),
+    todosGrandes: grandes.length === kg.length,
   };
+}
+
+/* Converte só o que não cabe na tabela do ML. Devolve o peso em quilos e diz
+   se houve conversão, para a tela poder marcar a linha. */
+function normalizarPesoLinha(v, converterGrandes) {
+  const n = parsePeso(v);
+  if (isNaN(n) || n <= 0) return {kg: n, convertido: false};
+  /* Exigimos inteiro: um peso gravado em gramas não tem casa decimal (2000,
+     1091). Já "150,5" é quilo mal cadastrado, e dividir por mil o transformaria
+     em 0,15 kg — trocaríamos um erro visível por um invisível. */
+  if (converterGrandes && n > LIMITE_ML && Number.isInteger(n))
+    return {kg: arredPeso(n / 1000), convertido: true};
+  return {kg: n, convertido: false};
 }
 
 /* ── componentes do custo de venda ───────────────────────────────────────── */
@@ -440,7 +461,8 @@ function precificarLote(entradas, params) {
   return {linhas, conferencia: conferir(linhas)};
 }
 
-return {PADRAO, AVISOS, brl, parseNumero, parsePeso, arredPeso, detectarEscalaPeso, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
+return {PADRAO, AVISOS, LIMITE_ML, brl, parseNumero, parsePeso, arredPeso,
+        detectarEscalaPeso, normalizarPesoLinha, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
         analisar, precoPara, custoTotal,
         precificarLinha, precificarLote, conferir};

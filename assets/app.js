@@ -297,6 +297,8 @@ let mlUsandoCategoria = false;
 let mlEdicoes = new Map();
 /* a coluna de peso parece estar em gramas e ninguém decidiu ainda */
 let mlPesoSuspeito = false, mlPesoConfirmadoKg = false;
+/* linhas cujo peso foi convertido de gramas para quilos no cálculo */
+let mlPesosConvertidos = new Set();
 let ML_POR_PAGINA = 100;
 const ML_PAGINAS = [100, 200, 600];
 let pml = carregarParamsML();
@@ -1005,22 +1007,41 @@ function mlChecarUnidadePeso(ip){
   if(ip < 0){ mlPesoSuspeito = false; mostrar('mlUniAlerta', false); return; }
 
   const r = ML.detectarEscalaPeso(mlAoa.slice(1).map(l => l[ip]));
-  const jaEmGramas = $('mlPesoUnidade').value === 'g';
+  const jaResolvido = $('mlPesoUnidade').value !== 'kg';
   /* enquanto ninguém responder, o cálculo fica bloqueado: deixar passar produz
-     frete de centenas de reais em toda a planilha, e o usuário só descobre
-     olhando a coluna Situação linha a linha */
-  mlPesoSuspeito = r.suspeita && !jaEmGramas && !mlPesoConfirmadoKg;
+     frete de centenas de reais nessas linhas, e o usuário só descobre olhando
+     a coluna Situação uma a uma */
+  mlPesoSuspeito = r.suspeita && !jaResolvido && !mlPesoConfirmadoKg;
   if(!mlPesoSuspeito){ mostrar('mlUniAlerta', false); return; }
 
-  caixa.innerHTML = `<b>Esses números parecem estar em gramas, não em quilos.</b>
-    O peso do meio da planilha é <b>${String(r.mediana).replace('.', ',')}</b>, que como quilo daria
-    ${r.acima150 ? `${r.acima150} produto${r.acima150 === 1 ? '' : 's'} acima de 150 kg e ` : ''}frete
-    fora da realidade. Em gramas, seriam <b>${String(r.medianaConvertida).replace('.', ',')} kg</b>.
-    <div class="uni-btns">
-      <button type="button" class="sim" onclick="mlUsarGramas()">São gramas — converter</button>
-      <button type="button" class="nao" onclick="mlConfirmarKg()">São quilos mesmo</button>
-    </div>`;
+  const n = r.acima150;
+  const num = v => String(v).replace('.', ',');
+  /* Duas situações diferentes: a coluna inteira em gramas, ou uma planilha que
+     mistura as escalas — nesta última, converter tudo estragaria quem já está
+     certo, então só as linhas impossíveis são corrigidas. */
+  caixa.innerHTML = r.todosGrandes
+    ? `<b>Esses números parecem estar em gramas, não em quilos.</b>
+       O peso do meio da planilha é <b>${num(r.mediana)}</b>, e ${n === 1 ? 'ele daria' : `${n} produtos dariam`}
+       mais de 150 kg — acima do limite do Mercado Livre, com frete fora da realidade.
+       <div class="uni-btns">
+         <button type="button" class="sim" onclick="mlUsarGramas()">São gramas — converter tudo</button>
+         <button type="button" class="nao" onclick="mlConfirmarKg()">São quilos mesmo</button>
+       </div>`
+    : `<b>${n} produto${n === 1 ? '' : 's'} com peso acima de 150 kg.</b>
+       O Mercado Livre não entrega acima disso, então esses valores estão em gramas
+       (o maior é <b>${num(r.maior)}</b>, que daria <b>${num(r.maiorConvertido)} kg</b>).
+       Os outros ${r.n - n} produtos já estão em quilos e não serão tocados.
+       <div class="uni-btns">
+         <button type="button" class="sim" onclick="mlCorrigirGrandes()">Corrigir ${n === 1 ? 'esse' : `esses ${n}`} e manter o resto</button>
+         <button type="button" class="nao" onclick="mlConfirmarKg()">Deixar como está</button>
+       </div>`;
   mostrar('mlUniAlerta', true);
+}
+
+/* corrige só as linhas impossíveis, preservando as que já estão em quilos */
+function mlCorrigirGrandes(){
+  $('mlPesoUnidade').value = 'auto';
+  mlValidaCol();
 }
 
 /* o usuário afirmou que são quilos: paramos de perguntar por esta planilha */
@@ -1502,13 +1523,18 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
   progNumero(`${Math.max(0, mlAoa.length - 1)} produtos`);
   await respirar();
 
-  /* A coluna pode estar em gramas mesmo dizendo "kg". Anexamos a unidade ao
-     valor em vez de dividir por mil aqui: o motor já sabe converter, e assim
-     um valor que JÁ traz "1,5 kg" escrito não é convertido duas vezes. */
-  const emGramas = $('mlPesoUnidade').value === 'g';
-  const comUnidade = v => {
-    if(!emGramas || v === '' || v == null) return v;
-    return /[a-z]/i.test(String(v)) ? v : String(v) + ' g';
+  /* Peso em gramas numa coluna que diz "kg". A planilha real mistura as duas
+     escalas (0,9 kg e 2000 g lado a lado), então a conversão é por linha: só o
+     que passa de 150 kg — impossível no Mercado Livre — vira grama. */
+  const unidade = $('mlPesoUnidade').value;
+  mlPesosConvertidos = new Set();
+  const comUnidade = (v, linha) => {
+    if(v === '' || v == null) return v;
+    if(unidade === 'g') return /[a-z]/i.test(String(v)) ? v : String(v) + ' g';
+    if(unidade !== 'auto') return v;
+    const r = ML.normalizarPesoLinha(v, true);
+    if(r.convertido){ mlPesosConvertidos.add(linha); return r.kg; }
+    return v;
   };
 
   // monta as entradas e deixa o motor precificar e conferir tudo de uma vez
@@ -1526,7 +1552,7 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
       custo: ed.custo != null ? ed.custo : linha[ic],
       /* o que o usuário digitou na tela é sempre kg (ou traz a unidade junto);
          a conversão de gramas vale só para o valor vindo da planilha */
-      peso: ed.peso != null ? ed.peso : (ip >= 0 ? comUnidade(linha[ip]) : ''),
+      peso: ed.peso != null ? ed.peso : (ip >= 0 ? comUnidade(linha[ip], i + 1) : ''),
       dimensoes: dims,
       comissaoProduto: im >= 0 ? linha[im] : '',
     };
@@ -1783,6 +1809,8 @@ function mlRenderTabela(){
          cobra o volumétrico (caixa grande e leve), avisamos ao lado, senão o
          número editado não bate com o envio cobrado. */
       const tdPeso = campo(r, 'peso', ed.peso != null ? ed.peso : (r.pesoReal ? pesoTxt(r.pesoReal) : '')) +
+        (mlPesosConvertidos.has(r.linha)
+          ? `<div class="vol conv" title="A planilha trazia esse peso em gramas: acima de 150 kg o Mercado Livre não entrega">convertido de gramas</div>` : '') +
         (r.pesoUsou === 'volumétrico' && r.peso
           ? `<div class="vol" title="A caixa é grande para o peso: o Mercado Livre cobra o peso volumétrico (altura × largura × comprimento ÷ 6000)">frete cobra ${pesoTxt(r.peso)}</div>`
           : '');

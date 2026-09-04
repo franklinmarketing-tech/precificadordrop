@@ -130,17 +130,40 @@ perto(ML.parsePeso('1.234.567'), 1234567, '"1.234.567" ainda é milhar', 1e-9);
 // 4 casas: um miligrama precisa sobreviver ao arredondamento
 perto(ML.arredPeso(0.0008), 0.0008, 'peso guarda 4 casas decimais', 1e-9);
 
-/* ── 5c. Coluna em gramas com rótulo de kg ────────────────────────────────── */
-secao('5c. A coluna de peso está em gramas?');
-ok(ML.detectarEscalaPeso(['2000','1091','1000','2200','500','350','1500','800','2500','1200']).suspeita,
-   'inteiros grandes viram suspeita de gramas');
-ok(!ML.detectarEscalaPeso(['0,001','13,000','0,950','4,600','1,200','2,575','0,25','1,5','2,2','0,32']).suspeita,
-   'planilha em quilos não dispara alarme falso');
-ok(!ML.detectarEscalaPeso(['1','2','3','0,5','1,5','2,5','4','1,2','0,8','3']).suspeita,
-   'quilos com valores inteiros pequenos não disparam');
-ok(!ML.detectarEscalaPeso(['2000','1000']).suspeita, 'poucos valores não bastam para concluir');
-perto(ML.detectarEscalaPeso(['2000','1091','1000','2200','500','350','1500','800','2500','1200']).medianaConvertida,
-      1.2, 'sugere a mediana convertida para kg', 1e-9);
+/* ── 5c. Peso em gramas numa coluna que diz "kg" ──────────────────────────────
+   Nenhum produto do Mercado Livre passa de 150 kg, então todo valor acima
+   disso é grama. A planilha real mistura as escalas (0,9 kg e 2000 g na mesma
+   coluna), por isso a decisão é por linha, não pela coluna inteira. */
+secao('5c. Peso em gramas rotulado como kg');
+{
+  const soGramas = ML.detectarEscalaPeso(['2000','1091','1000','2200','500','350','1500','800','2500','1200']);
+  ok(soGramas.suspeita, 'valores impossíveis viram suspeita');
+  ok(soGramas.todosGrandes, 'reconhece a coluna inteira em gramas');
+
+  const soKg = ML.detectarEscalaPeso(['0,001','13,000','0,950','4,600','1,200','2,575','0,25','1,5','2,2','0,32']);
+  ok(!soKg.suspeita, 'planilha em quilos não dispara alarme falso');
+  ok(!ML.detectarEscalaPeso(['1','2','3','0,5','1,5','2,5','4','1,2','0,8','3']).suspeita,
+     'quilos com valores inteiros pequenos não disparam');
+
+  // o caso real: parte em kg, parte em gramas
+  const mista = ML.detectarEscalaPeso(['0,9','2000','0,01','1091','13','2200','4,6']);
+  ok(mista.suspeita, 'planilha misturada dispara');
+  ok(!mista.todosGrandes, 'e é reconhecida como misturada, não como toda em gramas');
+  ok(mista.acima150 === 3, 'conta só as linhas impossíveis', `contou ${mista.acima150}`);
+  perto(mista.maiorConvertido, 2.2, 'mostra o maior valor já convertido', 1e-9);
+}
+
+secao('5d. Conversão linha a linha');
+[
+  [2000, 2, true], [1091, 1.091, true], [131000, 131, true],
+  [0.9, 0.9, false], [13, 13, false], [4.6, 4.6, false], [150, 150, false],
+  // decimal logo acima do limite é quilo mal cadastrado, não grama
+  [150.5, 150.5, false],
+].forEach(([entrada, esperado, converteu]) => {
+  const r = ML.normalizarPesoLinha(entrada, true);
+  perto(r.kg, esperado, `${entrada} → ${esperado} kg`, 1e-9);
+  ok(r.convertido === converteu, `${entrada} ${converteu ? 'é convertido' : 'fica como está'}`);
+});
 
 /* ── 6. A margem pedida é sempre entregue ─────────────────────────────────── */
 secao('6. Varredura: a margem alvo é cumprida?');
