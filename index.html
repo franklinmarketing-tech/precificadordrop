@@ -289,7 +289,7 @@
           <span class="mkt-n">2 ferramentas · 5 consultas</span>
         </div>
 
-        <div class="bento bento-2">
+        <div class="bento bento-2 bento-3">
         <button class="tool tool-1 live" data-tilt onclick="ir('planilha')">
           <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
           <span class="tool-num">01</span>
@@ -339,6 +339,32 @@
             <li>Peso volumétrico: cobra pelo maior entre ele e o real</li>
             <li>Avisa o que pode fazer você perder dinheiro</li>
             <li>Sai um arquivo pronto para o Bling</li>
+            </ul>
+          </div>
+        </button>
+
+        <button class="tool tool-3 live" data-tilt onclick="ir('anuncios')">
+          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
+          <span class="tool-num">03</span>
+          <span class="tool-status st-live">ATIVO</span>
+          <span class="dica" tabindex="0" role="button" aria-expanded="false"
+                aria-label="Saiba mais sobre Validar estrutura para o Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
+          <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Planilha de anúncios" width="76" height="76" loading="lazy"/></div>
+          <div class="tool-body lift-1">
+            <div class="tool-title">Validar estrutura para o Mercado Livre</div>
+            <div class="tool-desc">Os preços calculados dentro do arquivo de anúncios do ML.</div>
+          </div>
+          <div class="tool-cta">ABRIR VALIDADOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+          <div class="saibamais" aria-hidden="true">
+            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o validador faz</span></div>
+            <p>Você sobe o arquivo de anúncios que baixou do Mercado Livre e a planilha de preços. Ele confere a estrutura, casa por SKU e devolve o arquivo pronto para subir de volta.</p>
+            <ul>
+            <li>Confere se o arquivo tem <b>ITEM_ID</b>, <b>SKU</b> e <b>PRICE</b></li>
+            <li>Casa cada anúncio com o preço pelo SKU</li>
+            <li>Mostra quanto cada preço muda em relação ao que está no ar</li>
+            <li>Avisa quando a mudança vai toda para o mesmo lado</li>
+            <li>Aponta anúncio sem SKU e SKU repetido</li>
+            <li>Escreve só o preço — não toca em condição, envio nem tipo</li>
             </ul>
           </div>
         </button>
@@ -758,6 +784,93 @@
     </div>
   </div>
 
+
+  <!-- ═══════════════ VIEW: ANÚNCIOS DO MERCADO LIVRE ═══════════════
+       Pega o arquivo "Modifique seus anúncios" que o ML entrega e escreve
+       nele os preços que o Precificador calculou, casando por SKU. O arquivo
+       do ML edita anúncios existentes: o ITEM_ID de cada linha é quem diz ao
+       ML qual anúncio mexer, e esse código não se inventa. -->
+  <div id="view-anuncios" class="view hide">
+    <div class="ml-head">
+      <div class="ml-selo">
+        <svg viewBox="0 0 44 30" aria-hidden="true">
+          <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
+                fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Mercado&nbsp;Livre</span>
+      </div>
+      <div>
+        <h1>Validar estrutura <span class="grad">para o Mercado Livre.</span></h1>
+        <div class="h-sub">Carregue o arquivo de anúncios do Mercado Livre e a planilha de preços.
+          O app confere a estrutura, casa por SKU e devolve o arquivo pronto para subir.</div>
+      </div>
+    </div>
+
+    <!-- passo 1 -->
+    <div class="panel" id="anStep1">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar o arquivo de anúncios do Mercado Livre</div></div>
+      <div class="dica" style="margin-bottom:16px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+        <div>No Mercado Livre, vá em <b>Anúncios → Editar em massa → Baixar planilha</b>.
+          É o arquivo com a aba <b>Anúncios</b> e as colunas ITEM_ID, SKU e PRICE.</div>
+      </div>
+      <div class="zone" id="anZone" onclick="document.getElementById('anFi').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'ml')">
+        <input id="anFi" type="file" accept=".xlsx,.xls" class="hide" onchange="anCarregarML(event.target.files[0])"/>
+        <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+        <div class="zone-t">Arraste o arquivo de anúncios do Mercado Livre</div>
+        <div class="zone-s">ou clique para selecionar · .xlsx</div>
+      </div>
+      <div id="anMLInfo" class="hide" style="margin-top:14px"></div>
+    </div>
+
+    <!-- passo 2 -->
+    <div class="panel hide" id="anStep2">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Carregar a planilha de preços</div></div>
+      <div class="zone" id="anZone2" onclick="document.getElementById('anFi2').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'precos')">
+        <input id="anFi2" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="anCarregarPrecos(event.target.files[0])"/>
+        <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+        <div class="zone-t">Arraste a planilha de preços</div>
+        <div class="zone-s">a que o Precificador gerou, ou qualquer uma com SKU e preço</div>
+      </div>
+      <div id="anMapa" class="hide" style="margin-top:16px"></div>
+    </div>
+
+    <!-- passo 3 -->
+    <div class="hide" id="anStep3">
+      <div class="stats stats-4" id="anStats"></div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Conferência antes de subir</div>
+          <span class="pill" id="anBadge"></span>
+        </div>
+        <div id="anResumo"></div>
+        <div class="checks" id="anChecks"></div>
+      </div>
+
+      <div class="panel" id="anPainelTabela">
+        <div class="panel-h">
+          <div class="panel-t verde"><span class="n">3</span> Conferir os anúncios</div>
+          <span class="pill pill-ok" id="anTabInfo"></span>
+        </div>
+        <div id="anFiltroBar" class="hide"></div>
+        <div class="tbl-wrap"><table id="anTabela"></table></div>
+        <div id="anPaginacao"></div>
+        <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="anRecomecar()">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
+          <button class="btn btn-green" style="flex:1" id="anBtnDl" onclick="anBaixar()">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Baixar arquivo pronto para o Mercado Livre
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══════════════ VIEW: MANUAL ═══════════════ -->
   <div id="view-manual" class="view hide">
@@ -1776,7 +1889,9 @@
 <script src="assets/ml-fretes.js"></script>
 <script src="assets/ml-engine.js"></script>
 <script src="assets/planilha-engine.js"></script>
-<script src="assets/app.js"></script>
+<script src="assets/anuncios-engine.js"></script>
+  <script src="assets/app.js"></script>
+  <script src="assets/anuncios-ui.js"></script>
 <script src="assets/pwa.js"></script>
 </body>
 </html>

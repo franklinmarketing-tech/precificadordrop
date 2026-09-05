@@ -1469,3 +1469,32 @@ body.sem-rolagem{overflow:hidden}
   fill:none;stroke:var(--blue-dk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ios-nota{margin-top:14px;font-size:13px;line-height:1.6;color:var(--faint);
   padding:11px 13px;border-radius:11px;background:rgba(20,30,60,.04)}
+
+/* Três ferramentas na família Mercado Livre: em duas colunas a terceira
+   ficava sozinha na linha de baixo, com metade da faixa vazia ao lado. */
+.bento-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1040px){.bento-3{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.bento-3{grid-template-columns:1fr}}
+.tool-3{--ring:rgba(18,183,106,.43);--glow:rgba(18,183,106,.2);--halo:rgba(18,183,106,.5);--spark:#12b76a}
+
+/* ═══ RESUMO DA MUDANÇA DE PREÇO ═══════════════════════════
+   Numa carga real quase toda linha cai em "preço muda muito", e um alerta que
+   marca tudo não informa nada. O que decide se pode subir é a direção e o
+   tamanho da mudança no lote inteiro. */
+.an-var{padding:16px 18px;border-radius:14px;margin-bottom:16px;
+  background:var(--sup-3);border:1px solid var(--line)}
+.an-var.unilateral{border-color:var(--amber);
+  background:color-mix(in srgb,var(--amber) 9%,var(--sup))}
+.an-var-t{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:-.2px}
+.an-var-g{display:flex;gap:20px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;color:var(--sub)}
+.an-var-g span{display:inline-flex;align-items:center;gap:7px}
+.an-var-g span::before{content:'';width:9px;height:9px;border-radius:3px;flex:none}
+.an-var-g .l-sobe::before{background:var(--green)}
+.an-var-g .l-desce::before{background:var(--red)}
+.an-var-g .l-igual::before{background:var(--faint)}
+.an-var-g b{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+.an-var-e{display:flex;gap:18px;flex-wrap:wrap;margin-top:9px;font-size:13px;color:var(--faint)}
+.an-var-e b{color:var(--sub);font-variant-numeric:tabular-nums}
+.an-var-av{margin-top:12px;padding-top:11px;border-top:1px dashed var(--amber);
+  font-size:13.5px;line-height:1.55;color:var(--sub)}
+.an-var-av b{color:var(--amber-dk)}

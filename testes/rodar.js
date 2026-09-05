@@ -8,6 +8,7 @@
 const ML = require('../assets/ml-engine.js');
 const MF = require('../assets/ml-fretes.js');
 const PE = require('../assets/planilha-engine.js');
+const AE = require('../assets/anuncios-engine.js');
 
 let passou = 0, falhou = 0;
 const falhas = [];
@@ -380,6 +381,75 @@ secao('8. Editor de planilha de produtos');
 
 /* ── resultado ────────────────────────────────────────────────────────────── */
 console.log('\n' + '─'.repeat(58));
+secao('9. Anúncios do Mercado Livre');
+{
+  /* recorta o formato real do arquivo "Modifique seus anúncios": 5 linhas de
+     cabeçalho e os anúncios a partir da 6ª */
+  const modeloAoa = [
+    ['FAMILY_ID','ITEM_ID','PRODUCT_NUMBER','VARIATION_ID','SKU','TITLE','VARIATIONS','QUANTITY','PRICE','CURRENCY_ID','CONDITION','SHIPPING_METHOD','LISTING_TYPE','FEE_PER_SALE','STATUS'],
+    ['Anúncios'], ['Agrupador','Código do anúncio'], ['','','','','','','','Obrigatório'], ['',''],
+    ['1','MLB1','U1','','SKU-A','Panela de teste','','10',100,'R$','Novo','Mercado Envios grátis','Clássico','','Ativo'],
+    ['2','MLB2','U2','','SKU-B','Caneca de teste','','5',50,'R$','Novo','Mercado Envios grátis','Clássico','','Ativo'],
+    ['3','MLB3','U3','','','Sem sku','','5',20,'R$','Novo','Mercado Envios grátis','Clássico','','Ativo'],
+    ['4','MLB4','U4','','SKU-D','Sem preco novo','','5',30,'R$','Novo','Mercado Envios grátis','Clássico','','Ativo'],
+    [null,null,null,null,null,null,null,null,null],   // faixa vazia do Excel
+  ];
+  const m = AE.lerModelo(modeloAoa);
+  ok(m.ok, 'reconhece o arquivo do Mercado Livre', (m.erros||[]).join(' '));
+  ok(m.total === 4, 'conta só as linhas com ITEM_ID', 'contou ' + m.total);
+  ok(m.inicio === 5, 'os anúncios começam na linha 6');
+
+  const semColuna = AE.lerModelo([['SKU','TITLE','PRICE']]);
+  ok(!semColuna.ok, 'recusa arquivo sem ITEM_ID');
+
+  /* a coluna é achada pelo código, não pela posição: o ML já trocou a ordem */
+  const trocado = modeloAoa.map(l => l.slice());
+  trocado[0] = ['PRICE','ITEM_ID','SKU'];
+  trocado[5] = [999,'MLB9','SKU-A'];
+  const mt = AE.lerModelo(trocado);
+  ok(mt.ok && mt.idx.PRICE === 0 && mt.idx.SKU === 2, 'acha as colunas fora de ordem');
+
+  const precosAoa = [
+    ['SKU','Preço'],
+    ['SKU-A', '250,50'],      // vírgula decimal
+    ['SKU-B', 'R$ 1.234,00'], // com moeda e milhar
+    ['SKU-C', 80],            // não existe como anúncio
+    ['SKU-A', '999'],         // repetido com preço diferente
+  ];
+  const px = AE.indexarPrecos(precosAoa, 0, 1, 0);
+  perto(px.mapa.get('SKU-A').preco, 250.50, 'lê preço com vírgula', 1e-9);
+  perto(px.mapa.get('SKU-B').preco, 1234, 'lê preço com R$ e milhar', 1e-9);
+  ok(px.duplicados.length === 1, 'aponta SKU repetido com preço diferente');
+  ok(px.mapa.get('SKU-A').preco === 250.50, 'no repetido vale o primeiro');
+
+  const r = AE.casar(modeloAoa, m, px);
+  const c = r.conferencia;
+  ok(c.total === 4, 'casa as 4 linhas de anúncio', 'foram ' + c.total);
+  ok(c.atualizados === 2, 'dois anúncios recebem preço novo', 'foram ' + c.atualizados);
+  ok(c.semAnuncio === 1, 'SKU-C fica como produto sem anúncio');
+
+  const porSku = Object.fromEntries(r.linhas.map(l => [l.sku || '(vazio)', l]));
+  perto(porSku['SKU-A'].precoNovo, 250.50, 'grava o preço novo do SKU-A', 1e-9);
+  perto(porSku['SKU-A'].variacao, 1.505, 'calcula a variação (100 -> 250,50)', 1e-9);
+  ok(porSku['SKU-A'].avisos.includes('variacao_alta'), 'marca variação acima de 50%');
+  ok(porSku['(vazio)'].avisos.includes('anuncio_sem_sku'), 'aponta anúncio sem SKU');
+  ok(porSku['SKU-D'].avisos.includes('sem_preco'), 'aponta anúncio sem preço novo');
+  ok(porSku['SKU-D'].precoNovo === null, 'anúncio sem preço novo não recebe valor');
+
+  /* a linha física é o que o download usa para escrever no lugar certo */
+  ok(porSku['SKU-A'].fisica === 5, 'guarda a linha física do anúncio');
+
+  const v = c.variacao;
+  ok(v && v.n === 2, 'resume a variação do lote', v ? 'n=' + v.n : 'sem resumo');
+  ok(v && v.sobem === 2 && v.descem === 0, 'conta quantos sobem e quantos descem');
+
+  /* preço inválido não pode virar preço no arquivo */
+  const px2 = AE.indexarPrecos([['SKU','Preço'],['SKU-A', 0],['SKU-B','abc']], 0, 1, 0);
+  const r2 = AE.casar(modeloAoa, m, px2);
+  ok(r2.conferencia.atualizados === 0, 'preço zero ou texto não vira preço novo');
+  ok(r2.linhas[0].avisos.includes('preco_invalido'), 'marca preço inválido');
+}
+
 if (falhou) {
   console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
   falhas.forEach(f => console.log('   ✗ ' + f));

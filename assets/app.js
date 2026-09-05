@@ -90,6 +90,7 @@ const VIEWS = {
   hub:      {sub:'HUB DO ECOSSISTEMA',            titulo:'Precificador Drop — Hub do Ecossistema'},
   ml:       {sub:'PRECIFICAR MERCADO LIVRE',      titulo:'Precificar Mercado Livre — Precificador Drop'},
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
+  anuncios: {sub:'VALIDAR ESTRUTURA PARA O MERCADO LIVRE',titulo:'Validar estrutura para o Mercado Livre — Precificador Drop'},
   manual:   {sub:'GUIA DO DROP',                   titulo:'Guia do Drop — Precificador Drop'},
   mercado:  {sub:'PESQUISA DE MERCADO',            titulo:'Pesquisa de Mercado — Precificador Drop'},
   termos:      {sub:'TERMOS DE USO',                titulo:'Termos de uso — Precificador Drop'},
@@ -112,7 +113,7 @@ function ir(v, semHash){
   mostrar('btnVoltar', v !== 'hub');
 
   /* marca no menu o marketplace da tela atual */
-  const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', manual:'guia'};
+  const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', anuncios:'ml', manual:'guia'};
   document.querySelectorAll('.mn-t[data-mkt]').forEach(bt =>
     bt.classList.toggle('aqui', bt.dataset.mkt === MKT[v]));
 
