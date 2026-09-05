@@ -1958,6 +1958,148 @@ function mlChecksCategoria(){
   return saida;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   A CONTA DE UMA LINHA
+   O preço aparecia pronto e não havia como saber de onde saiu. Numa carga de
+   cinco mil produtos é isso que decide se a pessoa confia no número e publica.
+   ══════════════════════════════════════════════════════════════════════════ */
+function abrirLinha(indice){
+  const r = mlLinhas[indice];
+  if(!r) return;
+  const l = mlAoa[r.linha] || [];
+  /* mesma coluna que a tabela mostra: a primeira que parece descrição */
+  const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
+  const desc = iDesc >= 0 ? String(l[iDesc] || '') : '';
+
+  $('linhaTitulo').textContent = desc || ('Linha ' + (r.linha + 1));
+  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+
+  if(r.preco == null){
+    const motivos = (r.avisos || []).map(a => (ML.AVISOS[a] || {}).titulo || a);
+    $('linhaCorpo').innerHTML = `
+      <div class="conta-vazio">
+        <div class="conta-vazio-t">Esta linha não teve preço calculado</div>
+        <div class="conta-vazio-d">${motivos.length
+          ? esc(motivos.join(' · '))
+          : 'Faltou algum dado para a conta fechar.'}</div>
+        <div class="conta-nota">${esc(((ML.AVISOS[(r.avisos||[])[0]] || {}).comoResolver) || 'Confira o custo e o peso dessa linha.')}</div>
+      </div>`;
+    abrirPop('popLinha', 'scrimLinha');
+    return;
+  }
+
+  const p = pml;
+  const linhaConta = (rot, val, cls) =>
+    `<div class="conta-l ${cls || ''}"><span>${rot}</span><b>${val}</b></div>`;
+
+  /* o peso que o frete cobrou pode ser o volumétrico, e é a explicação mais
+     pedida quando o envio sai maior do que a pessoa esperava */
+  const pesoTxt = kg => kg == null || !isFinite(kg) ? '—'
+    : String(+Number(kg).toFixed(4)).replace('.', ',') + ' kg';
+  const volumetrico = r.pesoVolumetrico > 0 && r.pesoUsou === 'volumétrico';
+
+  const linhas = [
+    linhaConta('Preço de venda', ML.brl(r.preco)),
+    linhaConta('Custo do produto', '− ' + ML.brl(r.custo), 'neg'),
+    linhaConta(`Comissão do Mercado Livre · ${(r.comissaoPct * 100).toFixed(0).replace('.', ',')}%`,
+               '− ' + ML.brl(r.comissao), 'neg'),
+  ];
+  if(r.taxaFixa > 0)
+    linhas.push(linhaConta(`Taxa fixa · faixa ${esc(r.faixaPreco || '')}`, '− ' + ML.brl(r.taxaFixa), 'neg'));
+  if(r.frete > 0)
+    linhas.push(linhaConta(
+      `Envio · ${pesoTxt(r.peso)}${volumetrico ? ' (volumétrico)' : ''}, faixa ${esc(r.faixaPeso || '')}`,
+      '− ' + ML.brl(r.frete), 'neg'));
+  if(r.rebate > 0) linhas.push(linhaConta('Desconto que você banca', '− ' + ML.brl(r.rebate), 'neg'));
+  if(r.imposto > 0) linhas.push(linhaConta('Imposto', '− ' + ML.brl(r.imposto), 'neg'));
+  if(r.perdas > 0) linhas.push(linhaConta('Perdas com devolução', '− ' + ML.brl(r.perdas), 'neg'));
+  if(r.embalagem > 0) linhas.push(linhaConta('Embalagem', '− ' + ML.brl(r.embalagem), 'neg'));
+  linhas.push(linhaConta('Lucro líquido', ML.brl(r.lucroLiquido), 'tot'));
+
+  const av = (r.avisos || []).map(a =>
+    `<span class="tag ${(ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
+
+  $('linhaCorpo').innerHTML = `
+    <div class="conta">${linhas.join('')}</div>
+    <div class="conta-tiles">
+      <div class="conta-tile"><i>Margem líquida</i><b>${(r.margemLiquida * 100).toFixed(1).replace('.', ',')}%</b></div>
+      <div class="conta-tile"><i>Markup</i><b>${r.markup.toFixed(2).replace('.', ',')}×</b></div>
+      <div class="conta-tile"><i>Peso da balança</i><b>${pesoTxt(r.pesoReal)}</b></div>
+      <div class="conta-tile"><i>Peso cobrado</i><b>${pesoTxt(r.peso)}</b></div>
+    </div>
+    ${volumetrico ? `<p class="conta-nota"><b>O frete usou o peso volumétrico.</b>
+      A caixa ocupa mais espaço do que pesa, e o Mercado Livre cobra pelo maior
+      entre os dois — por isso o envio saiu acima do que o peso da balança sugeria.</p>` : ''}
+    ${av ? `<p class="conta-nota">${av}</p>` : ''}
+    <p class="conta-nota">Margem pedida no passo 2: <b>${(mlMargem * 100).toFixed(0)}%</b> sobre a venda.
+      Tipo de anúncio: <b>${p.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'}</b>.</p>`;
+
+  abrirPop('popLinha', 'scrimLinha');
+}
+function fecharLinha(){ fecharPop('popLinha', 'scrimLinha'); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESUMO ANTES DE BAIXAR
+   O balanço do lote na hora da decisão. Era tudo confirm() do navegador, que
+   não cabe número nem hierarquia — e por isso ninguém lia.
+   ══════════════════════════════════════════════════════════════════════════ */
+let resumoAcao = null;
+
+function abrirResumo(aoConfirmar){
+  resumoAcao = aoConfirmar;
+  const c = mlConferencia;
+  const ok = mlLinhas.filter(r => r.preco != null);
+  const soma = ok.reduce((s, r) => s + r.lucroLiquido, 0);
+  const erros = c ? c.grupos.filter(g => g.gravidade === 'erro').reduce((s, g) => s + g.n, 0) : 0;
+  const comAnalise = $('mlColunasAnalise').checked;
+
+  const tile = (n, rot, cor) => `<div class="res-tile2">
+    <div class="res-tile2-n" style="color:${cor}">${n}</div>
+    <div class="res-tile2-l">${rot}</div></div>`;
+
+  const pend = !c ? '' : c.grupos.filter(g => g.gravidade !== 'info').map(g => `
+    <div class="res-pend ${g.gravidade}">
+      <span class="res-pend-n">${g.n.toLocaleString('pt-BR')}</span>
+      <span class="res-pend-t">${esc(g.titulo)}</span>
+    </div>`).join('');
+
+  $('resumoCorpo').innerHTML = `
+    <div class="res-tiles">
+      ${tile(mlLinhas.length.toLocaleString('pt-BR'), 'produtos na planilha', 'var(--ink)')}
+      ${tile(ok.length.toLocaleString('pt-BR'), 'com preço calculado', 'var(--green-dk)')}
+      ${tile(ML.brl(soma), 'lucro total estimado', 'var(--green-dk)')}
+      ${tile(ML.brl(soma / (ok.length || 1)), 'lucro médio por venda', 'var(--violet-dk)')}
+    </div>
+
+    ${pend ? `<div class="grp-t" style="margin-top:22px">O QUE FICA PENDENTE</div>
+      <div class="res-pends">${pend}</div>` : `
+      <div class="res-limpo">
+        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        Nada pendente — todos os produtos têm custo, peso e medidas.</div>`}
+
+    ${erros ? `<div class="res-aviso erro">
+      <b>${erros.toLocaleString('pt-BR')} ${erros === 1 ? 'produto precisa' : 'produtos precisam'} de correção.</b>
+      Essas linhas vão para o arquivo com o preço que já estava lá, ou sem preço.
+      O arquivo sai com valores novos e antigos misturados.</div>` : ''}
+
+    <div class="res-aviso">
+      <b>O que vai no arquivo.</b>
+      ${comAnalise
+        ? 'A planilha original com o preço novo, mais as colunas de análise (custo, frete, lucro, margem) para você conferir. <b>Desligue as colunas de análise antes de subir no Bling.</b>'
+        : 'A planilha original com o preço novo gravado na coluna escolhida — pronta para o Bling.'}
+    </div>`;
+
+  abrirPop('popResumo', 'scrimResumo');
+}
+function fecharResumo(){ fecharPop('popResumo', 'scrimResumo'); }
+function resumoConfirmar(){
+  fecharResumo();
+  const f = resumoAcao;
+  resumoAcao = null;
+  if(f) setTimeout(f, 180);   // deixa o modal fechar antes de gerar
+}
+
 /* filtra a tabela por um tipo de problema — inclusive linhas além da centésima.
    Filtrar sem levar até a tabela deixava o usuário olhando o mesmo card: a
    lista mudava 2.000px abaixo, fora da tela, e nada parecia ter acontecido. */
@@ -2157,7 +2299,8 @@ function mlRenderTabela(){
         <td>${tdCusto}</td><td>${tdPeso}</td>
         <td colspan="${tdsVazios - 2}" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
-      return `<tr${grav}>
+      const iReal = mlLinhas.indexOf(r);
+      return `<tr${grav} class="tr-clic" onclick="if(!event.target.closest('input,button,select,a'))abrirLinha(${iReal})" title="Ver a conta desta linha">
         <td class="c-linha">${r.linha + 1}</td>
         <td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
         <td class="c-custo">${tdCusto}</td>
@@ -2223,6 +2366,13 @@ function mlRenderTabela(){
 
 function mlBaixar(){
   if(!mlLinhas.length || !mlBytes) return;
+  /* o balanço do lote antes de gerar: era tudo confirm() do navegador, que
+     não cabe número nem hierarquia — e por isso ninguém lia */
+  abrirResumo(mlBaixarAgora);
+}
+
+function mlBaixarAgora(){
+  if(!mlLinhas.length || !mlBytes) return;
   const id = parseInt($('mlPreco').value);
   const comAnalise = $('mlColunasAnalise').checked;
 
@@ -2237,16 +2387,6 @@ function mlBaixar(){
       `O preço novo vai ser gravado na coluna "${mlCabecalho[id]}", a mesma de onde veio o custo.\n\n`
       + 'No arquivo gerado o custo some — guarde a planilha original, ou ligue as colunas de '
       + 'análise, que salvam o custo à parte.\n\nGerar assim?');
-    if(!ok) return;
-  }
-
-  const semPreco = mlLinhas.filter(r => r.preco == null).length;
-  if(semPreco && id >= 0){
-    const ok = confirm(
-      `${semPreco} ${semPreco === 1 ? 'produto ficou' : 'produtos ficaram'} sem preço calculado.\n\n`
-      + `Nessas linhas a coluna "${mlCabecalho[id]}" mantém o valor que já estava lá — `
-      + 'o arquivo vai ter preços novos e antigos misturados.\n\n'
-      + 'Gerar assim mesmo?');
     if(!ok) return;
   }
 

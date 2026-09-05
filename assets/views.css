@@ -1515,3 +1515,70 @@ body.sem-rolagem{overflow:hidden}
   line-height:1.55;margin-top:4px}
 .an-opt.off{opacity:.55;cursor:not-allowed}
 .an-opt.off:hover{border-color:var(--line)}
+
+/* Caixa de explicação dentro de um passo. Não confundir com .dica, que é o
+   balãozinho redondo e absoluto do canto dos cards do hub — reusar aquele
+   nome espremia o texto dentro de um círculo de 30px. */
+.nota-box{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin-bottom:16px;
+  border-radius:13px;background:color-mix(in srgb,var(--blue) 7%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--blue) 22%,transparent);
+  font-size:13.5px;line-height:1.6;color:var(--sub)}
+.nota-box > svg{width:19px;height:19px;flex:none;margin-top:1px;fill:none;
+  stroke:var(--blue-dk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nota-box b{color:var(--ink);font-weight:700}
+
+/* ═══ A CONTA DE UMA LINHA ═════════════════════════════════
+   O preço aparecia pronto e não havia como saber de onde saiu. */
+.tr-clic{cursor:pointer}
+.tr-clic:hover > td{background:color-mix(in srgb,var(--blue) 7%,var(--sup-2))}
+.conta{display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line)}
+.conta-l{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding:12px 15px;background:var(--sup-2);font-size:14px}
+.conta-l span{color:var(--sub)}
+.conta-l b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);white-space:nowrap}
+.conta-l.neg b{color:var(--red)}
+.conta-l.tot{background:var(--sup-3);padding:15px}
+.conta-l.tot span{color:var(--ink);font-weight:600;font-size:15px}
+.conta-l.tot b{color:var(--green-dk);font-size:19px;font-weight:700}
+.conta-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:9px;margin-top:14px}
+.conta-tile{padding:11px 13px;border-radius:11px;background:var(--sup-2);
+  border:1px solid var(--line)}
+.conta-tile i{display:block;font-style:normal;font-size:11.5px;color:var(--faint);
+  letter-spacing:.4px}
+.conta-tile b{display:block;font-family:var(--display);font-size:17px;font-weight:700;
+  color:var(--ink);margin-top:3px;font-variant-numeric:tabular-nums}
+.conta-nota{font-size:13.5px;color:var(--sub);margin-top:13px;line-height:1.6}
+.conta-nota b{color:var(--ink)}
+.conta-vazio{text-align:center;padding:14px 0}
+.conta-vazio-t{font-family:var(--display);font-size:17px;font-weight:700}
+.conta-vazio-d{font-size:14px;color:var(--amber-dk);margin-top:7px}
+
+/* ═══ RESUMO ANTES DE BAIXAR ═══════════════════════════════ */
+.res-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+.res-tile2{padding:15px 16px;border-radius:13px;background:var(--sup-2);
+  border:1px solid var(--line)}
+.res-tile2-n{font-family:var(--display);font-size:23px;font-weight:800;letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums}
+.res-tile2-l{font-size:12.5px;color:var(--faint);margin-top:3px}
+.res-pends{display:flex;flex-direction:column;gap:7px}
+.res-pend{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;
+  background:var(--sup-2);border:1px solid var(--line);border-left-width:3px}
+.res-pend.erro{border-left-color:var(--red)}
+.res-pend.alerta{border-left-color:var(--amber)}
+.res-pend-n{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--ink);
+  font-variant-numeric:tabular-nums;min-width:52px}
+.res-pend-t{font-size:14px;color:var(--sub)}
+.res-limpo{display:flex;align-items:center;gap:11px;padding:14px 16px;margin-top:18px;
+  border-radius:12px;font-size:14px;color:var(--green-dk);
+  background:color-mix(in srgb,var(--green) 9%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--green) 28%,transparent)}
+.res-limpo svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.res-aviso{margin-top:16px;padding:13px 16px;border-radius:12px;font-size:13.5px;
+  line-height:1.6;color:var(--sub);background:var(--sup-3);border:1px solid var(--line)}
+.res-aviso b{color:var(--ink)}
+.res-aviso.erro{background:color-mix(in srgb,var(--red) 8%,var(--sup));
+  border-color:color-mix(in srgb,var(--red) 30%,transparent)}
+.res-aviso.erro b{color:var(--red)}

@@ -826,7 +826,7 @@
         <div class="panel-t verde"><span class="n">2</span> Trazer os códigos dos anúncios</div>
         <span class="pill pill-alerta">opcional, mas recomendado</span>
       </div>
-      <div class="dica" style="margin-bottom:16px">
+      <div class="nota-box">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
         <div>Cada anúncio no Mercado Livre tem um código <b>ITEM_ID</b> (MLB…), e é ele que
           diz ao ML qual anúncio atualizar. Esse código não se inventa: vem do arquivo que você
@@ -1547,6 +1547,48 @@
   <div class="cat-barra"><i id="progBarra"></i></div>
   <div class="prog-n" id="progNumero"></div>
   <div class="prog-passos" id="progPassos"></div>
+</div>
+
+<!-- ═══ POP-UP: A CONTA DE UMA LINHA ═══
+     Clicar em qualquer valor da tabela abre a conta daquela linha. Antes o
+     preço aparecia pronto e não havia como saber de onde ele saiu — o que
+     mais gera desconfiança em quem vai publicar 5 mil produtos. -->
+<div class="scrim" id="scrimLinha" onclick="fecharLinha()"></div>
+<div class="pop" id="popLinha" role="dialog" aria-modal="true" aria-labelledby="linhaTitulo">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t" id="linhaTitulo">—</div>
+      <div class="pop-s" id="linhaSub">A CONTA DESTE PREÇO</div>
+    </div>
+    <button class="x" onclick="fecharLinha()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b" id="linhaCorpo"></div>
+</div>
+
+<!-- ═══ POP-UP: RESUMO ANTES DE BAIXAR ═══
+     O balanço do lote na hora em que a decisão é tomada. Vinha tudo por
+     confirm() do navegador, que não cabe número nem hierarquia. -->
+<div class="scrim" id="scrimResumo" onclick="fecharResumo()"></div>
+<div class="pop pop-largo" id="popResumo" role="dialog" aria-modal="true" aria-labelledby="resumoTitulo">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t" id="resumoTitulo">Antes de baixar</div>
+      <div class="pop-s">O QUE VAI NO ARQUIVO</div>
+    </div>
+    <button class="x" onclick="fecharResumo()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b" id="resumoCorpo"></div>
+  <div class="pop-f">
+    <button class="btn btn-ghost" onclick="fecharResumo()">Voltar e conferir</button>
+    <button class="btn btn-green" style="flex:1" id="resumoOk" onclick="resumoConfirmar()">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      Baixar a planilha
+    </button>
+  </div>
 </div>
 
 <!-- ═══ POP-UP: CUSTOS OFICIAIS ═══ -->
