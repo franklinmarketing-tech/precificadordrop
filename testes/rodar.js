@@ -10,6 +10,7 @@ const MF = require('../assets/ml-fretes.js');
 const PE = require('../assets/planilha-engine.js');
 const AE = require('../assets/anuncios-engine.js');
 const MK = require('../assets/mkt-engine.js');
+const AZ = require('../assets/mkt-amazon.js');
 
 let passou = 0, falhou = 0;
 const falhas = [];
@@ -512,6 +513,80 @@ secao('10. Motor genérico de marketplace');
   ok(av(5).includes('peso_alto'), 'aponta peso acima do limite do canal');
   ok(lote.linhas.find(x => x.linha === 1).avisos.length === 0,
      'linha completa não gera aviso', JSON.stringify(av(1)));
+}
+
+secao('11. Amazon Brasil');
+{
+  const semParc = extra => Object.assign({parcelamento:false}, extra || {});
+
+  /* a comissão é por categoria, e a página oficial lista 37 */
+  ok(AZ.CATEGORIAS.length === 37, 'as 37 categorias da tabela oficial',
+     'são ' + AZ.CATEGORIAS.length);
+  ok(AZ.CATEGORIAS.every(c => c.pct >= 0.10 && c.pct <= 0.15),
+     'toda comissão fica entre 10% e 15%');
+
+  const com = (pr, extra) => pr * AZ.comissaoDe(Object.assign({}, AZ.PADRAO, semParc(extra)), pr);
+
+  perto(com(100, {categoria:'outras'}),    15,   '15% de 100 em Demais categorias');
+  perto(com(100, {categoria:'comidas'}),   10,   '10% de 100 em Comidas e bebidas');
+  perto(com(200, {categoria:'roupas'}),    28,   '14% de 200 em Roupas');
+
+  /* piso em reais: produto barato paga o piso, não o percentual */
+  perto(com(10, {categoria:'outras'}),      2,   'piso de R$ 2 vale quando 15% dá menos');
+  perto(com(10, {categoria:'comidas'}),     1,   'piso de R$ 1 no grupo de comidas');
+  perto(com(20, {categoria:'outras'}),      3,   'acima do piso volta a valer o percentual');
+
+  /* escalonadas: percentual cheio até o corte, menor no que passa */
+  perto(com(200, {categoria:'moveis'}),    30,   'móveis: 15% até 200');
+  perto(com(400, {categoria:'moveis'}),    50,   'móveis: 200×15% + 200×10%');
+  perto(com(100, {categoria:'acessorios'}),15,   'acessórios: 15% até 100');
+  perto(com(300, {categoria:'acessorios'}),35,   'acessórios: 100×15% + 200×10%');
+
+  /* parcelamento sem juros entra a partir de R$ 40 */
+  const cp = (pr) => pr * AZ.comissaoDe(Object.assign({}, AZ.PADRAO, {categoria:'outras', parcelamento:true}), pr);
+  perto(cp(100), 16.5, 'parcelamento soma 1,5% acima de R$ 40');
+  perto(cp(30),  4.5,  'abaixo de R$ 40 não tem parcelamento');
+
+  /* logística: abaixo de R$ 79 a tarifa é fixa, sem olhar o peso */
+  const fba = {logistica:'fba'}, dba = {logistica:'dba'};
+  [[25, 5.65], [40, 5.85], [70, 6.05]].forEach(([pr, esperado]) =>
+    perto(AZ.freteDe(pr, 8, Object.assign({}, AZ.PADRAO, fba)), esperado,
+          `FBA R$ ${pr} tem tarifa fixa, mesmo com 8 kg`));
+  [[25, 4.50], [40, 6.50], [70, 6.75]].forEach(([pr, esperado]) =>
+    perto(AZ.freteDe(pr, 8, Object.assign({}, AZ.PADRAO, dba)), esperado, `DBA R$ ${pr}`));
+
+  /* acima de R$ 79 volta a valer peso × faixa de preço */
+  perto(AZ.freteDe(90,  0.05, Object.assign({}, AZ.PADRAO, fba)), 10.05, 'FBA 79–99,99 até 100 g');
+  perto(AZ.freteDe(120, 1.2,  Object.assign({}, AZ.PADRAO, fba)), 16.95, 'FBA 120–149,99 com 1,2 kg');
+  perto(AZ.freteDe(250, 2.9,  Object.assign({}, AZ.PADRAO, fba)), 22.35, 'FBA acima de 200 com 2,9 kg');
+  /* 3,00 kg + 20 g de embalagem = 3,02 e já cai na faixa seguinte */
+  perto(AZ.freteDe(250, 3,    Object.assign({}, AZ.PADRAO, fba)), 23.35,
+        'a embalagem empurra 3 kg exatos para a faixa de 3–4 kg');
+  /* acima de 10 kg soma o adicional por quilo, arredondando para cima */
+  perto(AZ.freteDe(250, 12,   Object.assign({}, AZ.PADRAO, fba)), 61.85,
+        'FBA acima de 10 kg: 51,35 + 3 × 3,50');
+
+  /* os 20 g de embalagem que a Amazon manda somar mudam de faixa no limite */
+  perto(AZ.freteDe(90, 0.07, Object.assign({}, AZ.PADRAO, fba)), 10.05, '70 g fica na 1ª faixa');
+  perto(AZ.freteDe(90, 0.09, Object.assign({}, AZ.PADRAO, fba)), 10.45,
+        '90 g + 20 g de embalagem já passa para a 2ª faixa');
+
+  /* plano individual cobra R$ 2 por item; o profissional é mensalidade */
+  perto(AZ.taxaFixaDe(100, {plano:'individual'}), 2, 'plano individual: R$ 2 por item');
+  perto(AZ.taxaFixaDe(100, {plano:'profissional'}), 0, 'plano profissional não cobra por item');
+
+  /* a volta: o preço calculado entrega a margem pedida */
+  [['casa', 60, 0.25], ['livros', 20, 0.15], ['comidas', 8, 0.30], ['moveis', 300, 0.20]]
+    .forEach(([cat, custo, alvo]) => {
+      const p = {categoria:cat, logistica:'fba'};
+      const pr = AZ.precoPara(custo, alvo, 1.2, p);
+      ok(pr != null, `acha preço em ${cat} para margem ${alvo*100}%`);
+      if (pr != null) {
+        const a = AZ.analisar(pr, custo, 1.2, p);
+        ok(a.margemLiquida >= alvo - 1e-6, `${cat}: margem de ${alvo*100}% é cumprida`,
+           `obtida ${(a.margemLiquida*100).toFixed(2)}%`);
+      }
+    });
 }
 
 if (falhou) {
