@@ -1498,3 +1498,20 @@ body.sem-rolagem{overflow:hidden}
 .an-var-av{margin-top:12px;padding-top:11px;border-top:1px dashed var(--amber);
   font-size:13.5px;line-height:1.55;color:var(--sub)}
 .an-var-av b{color:var(--amber-dk)}
+
+/* ═══ ESCOLHA DE QUAIS PRODUTOS ENTRAM ═════════════════════
+   Radio com explicação embaixo: a diferença entre as duas opções não cabe
+   num rótulo de três palavras e decide se o arquivo sobe ou é recusado. */
+.an-opts{display:flex;flex-direction:column;gap:10px}
+.an-opt{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;cursor:pointer;
+  border-radius:13px;border:1px solid var(--line);background:var(--sup-2);
+  transition:border-color .16s,background .16s}
+.an-opt:hover{border-color:var(--blue)}
+.an-opt:has(input:checked){border-color:var(--blue);
+  background:color-mix(in srgb,var(--blue) 8%,var(--sup))}
+.an-opt input{margin-top:3px;flex:none;accent-color:var(--blue);width:17px;height:17px}
+.an-opt b{display:block;font-size:14.5px;font-weight:700;color:var(--ink)}
+.an-opt i{display:block;font-style:normal;font-size:13px;color:var(--sub);
+  line-height:1.55;margin-top:4px}
+.an-opt.off{opacity:.55;cursor:not-allowed}
+.an-opt.off:hover{border-color:var(--line)}
