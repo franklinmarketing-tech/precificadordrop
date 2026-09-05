@@ -1676,3 +1676,21 @@ body.sem-rolagem{overflow:hidden}
 .mkt{transition:border-color .2s,box-shadow .2s}
 .mkt.aberto{border-color:var(--borda);
   box-shadow:0 1px 0 var(--gloss) inset,0 16px 40px -26px rgba(20,30,60,.5)}
+
+/* ═══ BLOCO RECOLHIDO DE OPÇÕES ════════════════════════════
+   Padrão que serve à maioria fica fechado, com o resumo do que vai ser
+   usado na própria linha. Cinco selects abertos viravam uma parede. */
+.avancado{border:1px solid var(--line);border-radius:13px;background:var(--sup-2);
+  overflow:hidden}
+.avancado summary{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  cursor:pointer;list-style:none;user-select:none}
+.avancado summary::-webkit-details-marker{display:none}
+.avancado summary:hover{background:var(--sup-3)}
+.avancado summary:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.av-t{font-size:14.5px;font-weight:700;color:var(--ink);flex:none}
+.av-resumo{font-size:13px;color:var(--faint);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-seta{width:17px;height:17px;flex:none;fill:none;stroke:var(--faint);stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.avancado[open] .av-seta{transform:rotate(180deg);stroke:var(--blue)}
+.av-corpo{padding:2px 16px 16px}

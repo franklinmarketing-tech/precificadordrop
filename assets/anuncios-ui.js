@@ -8,7 +8,7 @@
 const AE = window.AnunciosEngine;
 
 let anAoaPrecos = null, anCabPrecos = null, anLinhaCabPrecos = 0;
-let anAoaML = null, anModeloML = null, anAnuncios = null;
+let anAoaML = null, anModeloML = null, anAnuncios = null, anBytesML = null;
 let anMontado = null, anFiltro = null, anPagina = 0;
 const AN_POR_PAGINA = 100;
 
@@ -68,7 +68,11 @@ async function anCarregarML(file){
   if(!file) return;
   try{
     await garantirXLSX();
-    const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
+    /* guarda o arquivo como veio: é dentro dele que a planilha final é
+       escrita, e é de lá que vêm as cores do cabeçalho — a biblioteca do
+       app lê formatação, mas não sabe criar */
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(bytes, {type:'array'});
 
     /* procura a aba que tem as colunas obrigatórias, em vez de confiar no nome */
     let aoa = null, modelo = null, nome = '';
@@ -84,6 +88,7 @@ async function anCarregarML(file){
       return;
     }
     anAoaML = aoa; anModeloML = modelo; anModeloML.aba = nome;
+    anBytesML = bytes;
     anAnuncios = AE.indexarAnuncios(aoa, modelo);
 
     $('anMLInfo').innerHTML = anCartao(file.name,
@@ -169,6 +174,22 @@ function anMontarOpcoes(){
   + opc('anEstado', 'Estado do anúncio', ['Ativo','Inativo'], 'Ativo')
   + `<label class="campo"><span>Estoque padrão (quando a planilha não traz)</span>
        <input type="number" id="anEstoque" min="0" step="1" value="1"/></label>`;
+
+  /* o resumo na linha fechada tem de dizer a verdade: se a pessoa mudar uma
+     opção e fechar, o que ela lê ali é o que vai para o arquivo */
+  ['anTipo','anCondicao','anEnvio','anEstado','anEstoque'].forEach(id => {
+    const el = $(id);
+    if(el) el.addEventListener('change', anResumirPadroes);
+  });
+  anResumirPadroes();
+}
+
+function anResumirPadroes(){
+  const alvo = $('anResumoPadroes');
+  if(!alvo || !$('anTipo')) return;
+  const envio = $('anEnvio').value.indexOf('grátis') >= 0 ? 'frete grátis' : 'envio pelo comprador';
+  alvo.textContent = [$('anTipo').value, $('anCondicao').value, $('anEstado').value, envio,
+                      'estoque ' + ($('anEstoque').value || '1')].join(' · ');
 }
 
 /* ── gerar ───────────────────────────────────────────────────────────────── */
@@ -217,7 +238,7 @@ function anGerar(){
 }
 
 function anRecomecar(){
-  anAoaPrecos = anAoaML = anModeloML = anAnuncios = anMontado = null;
+  anAoaPrecos = anAoaML = anModeloML = anAnuncios = anMontado = anBytesML = null;
   anFiltro = null; anPagina = 0;
   ['anStep2','anStep3','anStep4','anPrecosInfo','anMLInfo'].forEach(id => mostrar(id, false));
   $('anFi').value = ''; $('anFi2').value = '';
@@ -383,18 +404,39 @@ async function anBaixar(){
     if(!ok) return;
   }
 
+  if(!anBytesML){
+    const ok = confirm(
+      'A planilha vai sair com a estrutura certa do Mercado Livre, mas SEM as cores '
+      + 'e os grupos do cabeçalho.\n\n'
+      + 'Essa formatação vem do próprio arquivo que o ML entrega — para tê-la, volte ao '
+      + 'passo 2 e envie a planilha baixada em Anúncios → Editar em massa.\n\n'
+      + 'Gerar sem a formatação?');
+    if(!ok) return;
+  }
+
   try{
     await garantirXLSX();
-    const aoa = anMontado.cabecalho.concat(anMontado.linhas.map(l => l.celulas));
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{wch:20},{wch:16},{wch:15},{wch:15},{wch:16},{wch:56},{wch:22},
-                   {wch:11},{wch:11},{wch:8},{wch:12},{wch:34},{wch:14},{wch:13},{wch:9}];
+    const nomeAba = 'Anúncios';
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Anúncios');
+    let saida;
+    if(anBytesML){
+      /* dentro do arquivo do ML, trocando só as linhas de dados: é assim que
+         o cabeçalho colorido sobrevive */
+      saida = await anGerarComMolde(anBytesML, anModeloML.aba,
+                                    anMontado.linhas.map(l => l.celulas), AE.INICIO_DADOS);
+    } else {
+      /* Sem o arquivo do ML não há molde: sai com a estrutura certa, só sem
+         as cores do cabeçalho. O aviso na tela diz isso antes de gerar. */
+      const aoa = anMontado.cabecalho.concat(anMontado.linhas.map(l => l.celulas));
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:20},{wch:16},{wch:15},{wch:15},{wch:16},{wch:56},{wch:22},
+                     {wch:11},{wch:11},{wch:8},{wch:12},{wch:34},{wch:14},{wch:13},{wch:9}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+      saida = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    }
 
     const stamp = new Date().toISOString().slice(0,10);
-    const saida = XLSX.write(wb, {bookType:'xlsx', type:'array'});
     const blob = new Blob([saida], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -481,8 +523,8 @@ async function anBuscarNaApi(){
     }
 
     anAnuncios = mapa;
-    anAoaML = null;          // veio da API, não de arquivo: o cabeçalho é o padrão
-    anModeloML = null;
+    anAoaML = null;          // veio da API, não de arquivo: sem molde para as cores
+    anModeloML = null; anBytesML = null;
     await anVerConta();
     mostrarEstado('ok', `<b>${mapa.size.toLocaleString('pt-BR')} anúncios</b> trazidos do Mercado Livre`
       + (total ? ` (de ${total.toLocaleString('pt-BR')} na conta)` : '') + '.'
@@ -608,4 +650,127 @@ function anCartaoConta(){
         refaça a autorização em <a href="/api/ml-auth" target="_blank" rel="noopener">/api/ml-auth</a>
         usando uma janela anônima.</div></div>
   </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ESCREVER DENTRO DO ARQUIVO DO MERCADO LIVRE, SEM PERDER A FORMATAÇÃO
+
+   A biblioteca que o app usa para planilhas lê cor de célula, mas não sabe
+   gravar: passar o arquivo por ela devolve tudo em branco, e o cabeçalho
+   colorido do Mercado Livre — os grupos "Anúncios", "Informações do
+   produto", "Condições de entrega", "Condições do anúncio" — some.
+
+   Um .xlsx é um zip de XMLs. Aqui trocamos SÓ as linhas de dados dentro do
+   XML da aba e devolvemos o resto do zip intacto: as cinco linhas de
+   cabeçalho continuam com o estilo que vieram, porque nunca são tocadas.
+
+   Os valores vão como texto embutido (inlineStr) em vez de entrar na tabela
+   de textos compartilhados: assim não é preciso mexer em sharedStrings.xml,
+   que é usado por todas as abas ao mesmo tempo.
+   ══════════════════════════════════════════════════════════════════════════ */
+const JSZIP_CDNS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+];
+let zipCarregando = null;
+
+async function garantirZip(){
+  if(window.JSZip) return true;
+  if(!zipCarregando){
+    zipCarregando = (async () => {
+      for(const url of JSZIP_CDNS){
+        try{ await carregarScript(url); if(window.JSZip) return true; }
+        catch(e){ /* tenta o próximo endereço */ }
+      }
+      return false;
+    })();
+  }
+  const ok = await zipCarregando;
+  if(!ok) zipCarregando = null;
+  return ok;
+}
+
+function anColunaLetra(n){
+  let s = '';
+  while(n >= 0){ s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
+  return s;
+}
+function anEscXml(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* Descobre qual XML guarda a aba, seguindo workbook.xml → rels. O nome do
+   arquivo não é fixo: "Anúncios" pode ser sheet3.xml num arquivo e sheet1.xml
+   noutro, conforme a ordem das abas. */
+async function anAcharXmlDaAba(zip, nomeAba){
+  const wbXml = await zip.file('xl/workbook.xml').async('string');
+  const rels  = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+
+  const alvo = nomeAba.toLowerCase();
+  let rid = null;
+  const re = /<sheet[^>]*\sname="([^"]*)"[^>]*\sr:id="([^"]*)"/g;
+  let m;
+  while((m = re.exec(wbXml))){
+    const nome = m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    if(nome.toLowerCase() === alvo){ rid = m[2]; break; }
+  }
+  if(!rid) return null;
+
+  const reRel = new RegExp('Id="' + rid + '"[^>]*Target="([^"]+)"');
+  const mr = rels.match(reRel) || rels.match(new RegExp('Target="([^"]+)"[^>]*Id="' + rid + '"'));
+  if(!mr) return null;
+  let alvoArq = mr[1].replace(/^\/?xl\//, '').replace(/^\//, '');
+  return 'xl/' + alvoArq;
+}
+
+async function anGerarComMolde(bytes, nomeAba, linhas, primeira){
+  if(!await garantirZip()) throw new Error('Não consegui carregar a biblioteca que abre o arquivo.');
+
+  const zip = await window.JSZip.loadAsync(bytes);
+  const caminho = await anAcharXmlDaAba(zip, nomeAba);
+  if(!caminho || !zip.file(caminho)) throw new Error('Não achei a aba "' + nomeAba + '" dentro do arquivo.');
+
+  let xml = await zip.file(caminho).async('string');
+
+  /* estilo de cada coluna, copiado da primeira linha de dados do arquivo
+     original: assim as linhas novas saem com a mesma cara das que vieram */
+  const estilos = {};
+  const mPrim = xml.match(new RegExp('<row r="' + (primeira + 1) + '"[\\s\\S]*?</row>'));
+  if(mPrim){
+    const reC = /<c r="([A-Z]+)\d+"([^>]*)>/g;
+    let mc;
+    while((mc = reC.exec(mPrim[0]))){
+      const s = mc[2].match(/s="(\d+)"/);
+      if(s) estilos[mc[1]] = s[1];
+    }
+  }
+
+  const partes = [];
+  linhas.forEach((celulas, i) => {
+    const r = primeira + 1 + i;
+    const cs = [];
+    celulas.forEach((v, c) => {
+      if(v === '' || v == null) return;
+      const L = anColunaLetra(c);
+      const st = estilos[L] ? ` s="${estilos[L]}"` : '';
+      if(typeof v === 'number' && isFinite(v)){
+        cs.push(`<c r="${L}${r}"${st}><v>${v}</v></c>`);
+      } else {
+        cs.push(`<c r="${L}${r}"${st} t="inlineStr"><is><t xml:space="preserve">${anEscXml(v)}</t></is></c>`);
+      }
+    });
+    partes.push(`<row r="${r}">${cs.join('')}</row>`);
+  });
+
+  const ini = xml.indexOf('<row r="' + (primeira + 1) + '"');
+  const fim = xml.lastIndexOf('</row>');
+  if(ini < 0 || fim < 0) throw new Error('O arquivo não tem linhas de dados onde eu esperava.');
+  xml = xml.slice(0, ini) + partes.join('') + xml.slice(fim + 6);
+
+  const ultima = primeira + linhas.length;
+  xml = xml.replace(/<dimension ref="[^"]*"\/>/,
+                    `<dimension ref="A1:${anColunaLetra(AE.ORDEM.length - 1)}${ultima}"/>`);
+
+  zip.file(caminho, xml);
+  return await zip.generateAsync({type:'uint8array', compression:'DEFLATE'});
 }
