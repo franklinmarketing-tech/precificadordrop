@@ -904,6 +904,79 @@
     </div>
   </div>
 
+  <!-- ═══════════════ VIEW: CALCULADORA DE OUTRO CANAL ═══════════════
+       Uma tela só serve Shopee e Amazon. O que muda entre elas são as
+       perguntas — categoria, plano, quem entrega — e cada canal descreve as
+       suas. O Mercado Livre tem tela própria, mais antiga e mais completa. -->
+  <div id="view-mkt" class="view hide">
+    <div class="ml-head">
+      <div class="mk-marca" id="mkMarca"></div>
+      <div>
+        <h1 id="mkTitulo">Precificar.</h1>
+        <div class="h-sub">Você diz a margem que quer. Comissão, taxa fixa e envio saem das
+          tabelas oficiais do canal.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="mkStep1">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar a planilha de produtos</div></div>
+      <div class="zone" onclick="document.getElementById('mkFi').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')" ondrop="mkDrop(event)">
+        <input id="mkFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mkCarregar(event.target.files[0])"/>
+        <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+        <div class="zone-t">Arraste a planilha aqui</div>
+        <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
+      </div>
+      <div id="mkInfo" class="hide" style="margin-top:14px"></div>
+    </div>
+
+    <div class="panel hide" id="mkStep2">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Colunas, canal e margem</div></div>
+
+      <div class="grp-t">DE ONDE VEM CADA DADO</div>
+      <div class="campos" id="mkColunas"></div>
+
+      <div class="grp-t" style="margin-top:22px">COMO ESTE CANAL COBRA</div>
+      <div class="campos" id="mkParams"></div>
+
+      <div class="grp-t" style="margin-top:22px">QUANTO VOCÊ QUER GANHAR</div>
+      <label class="campo"><span>Margem líquida sobre a venda (%)</span>
+        <input type="number" id="mkMargem" min="1" max="90" step="1" value="20"/></label>
+
+      <button class="btn btn-green btn-block" style="margin-top:18px" onclick="mkCalcular()">
+        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        Calcular preços para todos os produtos
+      </button>
+    </div>
+
+    <div class="hide" id="mkStep3">
+      <div class="stats stats-4" id="mkStats"></div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <div class="panel-t verde">Conferência antes de exportar</div>
+          <span class="pill" id="mkBadge"></span>
+        </div>
+        <div class="checks" id="mkChecks"></div>
+      </div>
+
+      <div class="panel" id="mkPainelTabela">
+        <div class="panel-h"><div class="panel-t verde"><span class="n">3</span> Conferir os preços calculados</div></div>
+        <div class="tbl-wrap"><table id="mkTabela"></table></div>
+        <div id="mkPaginacao"></div>
+        <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="mkRecomecar()">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
+          <button class="btn btn-green" style="flex:1" id="mkBtnDl" onclick="mkBaixar()">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Baixar planilha com os preços
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════ VIEW: MANUAL ═══════════════ -->
   <div id="view-manual" class="view hide">
     <div class="man-head">
@@ -1963,9 +2036,13 @@
 <script src="assets/ml-fretes.js"></script>
 <script src="assets/ml-engine.js"></script>
 <script src="assets/planilha-engine.js"></script>
-<script src="assets/anuncios-engine.js"></script>
+<script src="assets/mkt-engine.js"></script>
+  <script src="assets/mkt-amazon.js"></script>
+  <script src="assets/mkt-shopee.js"></script>
+  <script src="assets/anuncios-engine.js"></script>
   <script src="assets/app.js"></script>
   <script src="assets/anuncios-ui.js"></script>
+  <script src="assets/mkt-ui.js"></script>
 <script src="assets/pwa.js"></script>
 </body>
 </html>

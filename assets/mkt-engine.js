@@ -93,8 +93,9 @@ function criarMotor(canal) {
     const cu = Number(custo) || 0;
     if (!isFinite(pr) || pr <= 0) return null;
 
-    const pctComissao = canal.comissaoDe(p, pr);
-    const comissao = centavos(pr * pctComissao);
+    const parte = canal.comissaoParts(p, pr);
+    const comissao = centavos(pr * parte.pct + parte.fixo);
+    const pctComissao = pr ? comissao / pr : parte.pct;
     const taxaFixa = centavos(canal.taxaFixaDe(pr, p));
     const pesos    = pesoCobravel(peso, dimensoes, p);
     const frete    = centavos(canal.freteDe(pr, pesos.cobravel || Number(p.pesoPadrao) || 0, p));
@@ -148,8 +149,13 @@ function criarMotor(canal) {
 
     let anterior = 0;
     for (const limite of limites) {
+      /* dentro da faixa a comissão é percentual × preço + valor fixo, então a
+         conta fecha em uma linha. Usar a FRAÇÃO de um preço de referência para
+         resolver outro preço dava erro grande: numa faixa com R$ 26 fixos, a
+         fração no piso da faixa não é nem parecida com a do topo. */
       const ref = Math.min(limite, Math.max(anterior + 0.01, 0.01));
-      const base = 1 - canal.comissaoDe(p, ref) - outros;
+      const parte = canal.comissaoParts(p, ref);
+      const base = 1 - parte.pct - outros;
       if (base <= 0) { anterior = limite; continue; }
 
       const fixa = canal.taxaFixaDe(ref, p);
@@ -157,7 +163,7 @@ function criarMotor(canal) {
       const embalagem = Number(p.embalagem) || 0;
       const rebate = Number(p.rebate) || 0;
 
-      let pr = centavos((cu + fixa + frete + embalagem - rebate) / base);
+      let pr = centavos((cu + parte.fixo + fixa + frete + embalagem - rebate) / base);
       /* o arredondamento para centavo pode derrubar a margem por um fio */
       for (let i = 0; i < 3 && !entrega(pr); i++) pr = centavos(pr + 0.01);
 
@@ -196,7 +202,11 @@ function criarMotor(canal) {
     if (preco == null) { avisos.push('margem_inalcancavel'); return {linha, custo, peso:kg, preco:null, avisos}; }
 
     const r = analisar(preco, custo, kg, p, dims);
-    if (p.freteAutomatico && r.frete === 0) avisos.push('frete_zero');
+    /* Frete zero é erro onde o vendedor paga o envio. Na Shopee ele não paga
+       no modelo padrão — lá zero é o valor certo, e avisar seria alarme falso
+       em toda linha. Por isso quem decide é o canal. */
+    if (canal.avisaFreteZero !== false && p.freteAutomatico && r.frete === 0)
+      avisos.push('frete_zero');
     if (r.lucroLiquido <= 0) avisos.push('lucro_negativo');
     if (canal.PRECO_MINIMO && preco < canal.PRECO_MINIMO) avisos.push('preco_baixo');
 
@@ -245,7 +255,12 @@ function criarMotor(canal) {
     arredPeso: ML.arredPeso, detectarCabecalho: ML.detectarCabecalho,
     escolherAba: ML.escolherAba,
     pesoVolumetrico, pesoCobravel,
-    comissaoDe: canal.comissaoDe, taxaFixaDe: canal.taxaFixaDe, freteDe: canal.freteDe,
+    comissaoDe: (p, pr) => {
+      const x = canal.comissaoParts(p, pr);
+      return pr ? x.pct + x.fixo / pr : x.pct;
+    },
+    comissaoParts: canal.comissaoParts,
+    taxaFixaDe: canal.taxaFixaDe, freteDe: canal.freteDe,
     analisar, precoPara, precificarLinha, precificarLote, conferir,
   };
 }

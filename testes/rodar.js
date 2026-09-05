@@ -11,6 +11,7 @@ const PE = require('../assets/planilha-engine.js');
 const AE = require('../assets/anuncios-engine.js');
 const MK = require('../assets/mkt-engine.js');
 const AZ = require('../assets/mkt-amazon.js');
+const SH = require('../assets/mkt-shopee.js');
 
 let passou = 0, falhou = 0;
 const falhas = [];
@@ -461,7 +462,7 @@ secao('10. Motor genérico de marketplace');
     PADRAO:{margemAlvo:0.2, usarPesoVolumetrico:true, divisorVolumetrico:6000,
             freteAutomatico:true, pesoPadrao:0, rebate:0, aliquotaImposto:0,
             taxaDevolucao:0, embalagem:0},
-    comissaoDe: () => 0.10,
+    comissaoParts: () => ({pct: 0.10, fixo: 0}),
     taxaFixaDe: pr => pr < 50 ? 5 : 0,
     freteDe: (pr, kg) => kg ? 10 : 0,
     limites: () => [50],
@@ -587,6 +588,65 @@ secao('11. Amazon Brasil');
            `obtida ${(a.margemLiquida*100).toFixed(2)}%`);
       }
     });
+}
+
+secao('12. Shopee Brasil');
+{
+  const com = (pr, extra) => pr * SH.comissaoDe(Object.assign({}, SH.PADRAO, extra || {}), pr);
+
+  /* o exemplo que a própria Shopee publica: item de R$ 500 paga R$ 96 */
+  perto(com(500), 96, 'item de R$ 500 paga R$ 96 — o exemplo oficial');
+
+  /* a comissão é por FAIXA DE PREÇO, percentual mais valor fixo */
+  perto(com(50),   14,    '50: 20% + R$ 4');
+  perto(com(79.99),20,    '79,99: topo da primeira faixa');
+  perto(com(80),   27.20, '80: passa para 14% + R$ 16');
+  perto(com(100),  34,    '100: 14% + R$ 20');
+  perto(com(200),  54,    '200: 14% + R$ 26');
+  perto(com(1000), 166,   '1000: sem teto — 14% + R$ 26');
+
+  /* o teto de R$ 100 por item acabou em março de 2026; quem calcular com
+     teto acha que produto caro paga menos do que paga */
+  ok(com(2000) > 100, 'não existe mais teto de R$ 100 por item',
+     'deu ' + com(2000).toFixed(2));
+
+  /* o salto na virada dos R$ 80: vale mais vender a 79 do que a 85 */
+  ok(com(85) > com(79.99), 'o produto de R$ 85 paga mais comissão que o de R$ 79,99');
+  const liq79 = 79.99 - com(79.99), liq85 = 85 - com(85);
+  ok(liq79 > liq85, 'e sobra MAIS líquido vendendo a 79,99 do que a 85',
+     `79,99 deixa ${liq79.toFixed(2)} e 85 deixa ${liq85.toFixed(2)}`);
+
+  /* abaixo de R$ 8 o valor fixo vira metade do preço */
+  perto(com(5), 3.50, 'item de R$ 5: 20% + metade do preço');
+  perto(com(4), 2.80, 'item de R$ 4: mesma regra');
+
+  /* CPF só paga o adicional depois de 450 pedidos em 90 dias */
+  perto(com(100, {conta:'cpf', cpfAcimaDe450:false}), 34, 'CPF abaixo do volume paga como CNPJ');
+  perto(com(100, {conta:'cpf', cpfAcimaDe450:true}),  37, 'CPF acima de 450 pedidos: +R$ 3');
+
+  /* programas opcionais entram como percentual */
+  perto(com(100, {antecipacao:'comum'}),      37.5, 'antecipação de 3,5%');
+  perto(com(100, {campanhaDestaque:true}),    37.5, 'campanha de destaque de 3,5%');
+
+  /* no modelo padrão o vendedor NÃO paga frete */
+  perto(SH.freteDe(100, 5, SH.PADRAO), 0, 'logística da Shopee não cobra frete do vendedor');
+  perto(SH.freteDe(100, 5, Object.assign({}, SH.PADRAO, {logistica:'propria', freteManual:40})), 10,
+        'na logística própria a coparticipação tem teto de R$ 10');
+
+  /* a volta: o preço entrega a margem pedida, inclusive cruzando faixas */
+  [[30,0.20],[60,0.25],[150,0.15],[10,0.30],[5,0.20],[400,0.18]].forEach(([custo, alvo]) => {
+    const pr = SH.precoPara(custo, alvo, 1, {});
+    ok(pr != null, `acha preço para custo ${custo} e margem ${alvo*100}%`);
+    if (pr != null) {
+      const a = SH.analisar(pr, custo, 1, {});
+      ok(a.margemLiquida >= alvo - 1e-6, `custo ${custo}: margem de ${alvo*100}% é cumprida`,
+         `obtida ${(a.margemLiquida*100).toFixed(2)}%`);
+      /* e não muito acima: preço inflado é venda perdida. O degrau da faixa
+         pode justificar folga, então o limite é generoso mas existe. */
+      ok(a.margemLiquida <= alvo + 0.08, `custo ${custo}: e não exagera na margem`,
+         `obtida ${(a.margemLiquida*100).toFixed(2)}% para alvo de ${(alvo*100)}%`);
+    }
+  });
 }
 
 if (falhou) {

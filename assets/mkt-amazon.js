@@ -126,7 +126,7 @@ const PADRAO = {
   versao: 1,
   categoria: 'outras',
   plano: 'profissional',        // 'profissional' (R$ 19/mês) ou 'individual' (R$ 2/item)
-  logistica: 'dba',             // 'fba' | 'dba' | 'propria'
+  logistica: 'fba',             // 'fba' tem tabela publicada em toda faixa; o DBA acima de R$ 79 não
   parcelamento: true,           // 1,5% sobre vendas a partir de R$ 40
   pisoComissao: true,           // aplicar o piso em reais da categoria
   freteManual: 0,               // usado na logística própria e acima de R$ 79 no DBA
@@ -149,23 +149,29 @@ function faixaAte(tabela, valor) {
 /* ── comissão ──────────────────────────────────────────────────────────────
    Devolve a FRAÇÃO do preço, para o motor genérico multiplicar. O piso em
    reais e o escalonamento viram fração equivalente àquele preço. */
-function comissaoDe(p, preco) {
+/* Devolve a comissão em duas partes — percentual e valor fixo — porque é
+   assim que ela se comporta dentro de cada faixa, e é o que deixa o cálculo
+   inverso fechar em uma linha:
+
+   • escalonada acima do corte: 200×15% + (P−200)×10% = 0,10·P + 10,
+     ou seja pct 10% e fixo R$ 10;
+   • abaixo do piso: a comissão é o próprio piso, um valor fixo. */
+function comissaoParts(p, preco) {
   const cat = PORID[p.categoria] || PORID.outras;
-  const pr = Number(preco);
-  if (!isFinite(pr) || pr <= 0) return cat.pct;
+  const pr = Number(preco) || 0;
 
-  let valor;
+  let pct, fixo = 0;
   if (cat.corte && pr > cat.corte) {
-    valor = cat.corte * cat.pct + (pr - cat.corte) * cat.pctAcima;
+    pct = cat.pctAcima;
+    fixo = cat.corte * (cat.pct - cat.pctAcima);
   } else {
-    valor = pr * cat.pct;
+    pct = cat.pct;
   }
-  if (p.pisoComissao && valor < cat.min) valor = cat.min;
 
-  /* o parcelamento sem juros é automático e entra a partir de R$ 40 */
-  if (p.parcelamento && pr >= 40) valor += pr * 0.015;
+  if (p.pisoComissao && (pr * pct + fixo) < cat.min) { pct = 0; fixo = cat.min; }
+  if (p.parcelamento && pr >= 40) pct += 0.015;
 
-  return valor / pr;
+  return {pct, fixo};
 }
 
 /* ── taxa fixa ─────────────────────────────────────────────────────────────
@@ -228,10 +234,33 @@ function limites(p) {
 const motor = MK.criarMotor({
   id: 'amazon', nome: 'Amazon',
   PADRAO, PESO_MAXIMO: 22, PRECO_MINIMO: 0,
-  comissaoDe, taxaFixaDe, freteDe, limites, faixaPreco, faixaPeso,
+  comissaoParts, taxaFixaDe, freteDe, limites, faixaPreco, faixaPeso,
 });
 
+/* O que a tela pergunta para este canal. Fica aqui, junto das tarifas, para
+   quem mexer numa coisa ver a outra: mudou a regra, muda a pergunta. */
+const FORM = [
+  {id:'categoria', tipo:'select', rot:'Categoria do produto',
+   ajuda:'A comissão da Amazon muda por categoria, de 10% a 15%',
+   opcoes: CATEGORIAS.map(c => ({v:c.id, t:`${c.nome} — ${(c.pct*100).toFixed(0)}%`}))},
+  {id:'logistica', tipo:'select', rot:'Quem entrega',
+   ajuda:'Abaixo de R$ 79 a tarifa é fixa, sem olhar o peso',
+   opcoes:[{v:'dba', t:'DBA — a Amazon coleta e entrega'},
+           {v:'fba', t:'FBA — estoque no centro da Amazon'},
+           {v:'propria', t:'Logística própria'}]},
+  {id:'plano', tipo:'select', rot:'Seu plano de venda',
+   ajuda:'No individual a Amazon cobra R$ 2 por item vendido',
+   opcoes:[{v:'profissional', t:'Profissional — R$ 19/mês'},
+           {v:'individual', t:'Individual — R$ 2 por item'}]},
+  {id:'parcelamento', tipo:'switch', rot:'Parcelamento sem juros',
+   ajuda:'Soma 1,5% nas vendas a partir de R$ 40. É automático na conta, e dá para desligar no Seller Central'},
+  {id:'freteManual', tipo:'numero', rot:'Frete por conta própria (R$)',
+   ajuda:'Usado na logística própria e no DBA acima de R$ 79 — nessa faixa a Amazon só publica a tabela dentro do Seller Central',
+   quando: p => p.logistica === 'propria' || p.logistica === 'dba'},
+];
+
 return Object.assign({}, motor, {
+  FORM,
   CATEGORIAS, PORID, FBA_PESO, FBA_ATE_79, DBA_ATE_79, EMBALAGEM_KG,
   MENSALIDADE_PROFISSIONAL: 19,
 });
