@@ -1,15 +1,19 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   PLANILHA NO PADRÃO MERCADO LIVRE — tela.
-   O motor vive em anuncios-engine.js; aqui é só o que a pessoa vê: carregar
-   a planilha de preços, opcionalmente o arquivo de anúncios (que traz o
-   ITEM_ID), escolher como montar, conferir e baixar.
+   AJUSTAR PREÇOS DO MERCADO LIVRE — tela
+
+   Dois arquivos entram, um sai. A planilha do Mercado Livre volta igual, com
+   uma única diferença: o preço, tirado da planilha de preços pelo SKU.
+
+   O que a ferramenta NÃO faz, de propósito: não remonta o arquivo, não mexe
+   em título, estoque, condição, envio nem tipo de anúncio, e não cria linha.
+   Quanto menos toca, menos tem como estragar o que já está no ar.
    ══════════════════════════════════════════════════════════════════════════ */
 
 const AE = window.AnunciosEngine;
 
+let anBytesML = null, anAoaML = null, anModeloML = null;
 let anAoaPrecos = null, anCabPrecos = null, anLinhaCabPrecos = 0;
-let anAoaML = null, anModeloML = null, anAnuncios = null, anBytesML = null;
-let anMontado = null, anFiltro = null, anPagina = 0;
+let anResultado = null, anFiltro = null, anPagina = 0;
 const AN_POR_PAGINA = 100;
 
 function anDrop(ev, qual){
@@ -19,63 +23,22 @@ function anDrop(ev, qual){
   if(f) (qual === 'ml' ? anCarregarML : anCarregarPrecos)(f);
 }
 
-/* mesma leitura da calculadora: a aba boa nem sempre é a primeira e o
-   cabeçalho nem sempre está na linha 1 */
-function anLerAbas(wb){
-  const abas = wb.SheetNames.map((nome, i) => ({
-    nome,
-    aoa: XLSX.utils.sheet_to_json(XU.normalizarRef(wb.Sheets[nome]), {header:1, defval:'', raw:false}),
-    oculta: !!(wb.Workbook && wb.Workbook.Sheets && wb.Workbook.Sheets[i]
-               && wb.Workbook.Sheets[i].Hidden),
-  }));
-  const escolha = ML.escolherAba(abas);
-  const nome = escolha.nome || wb.SheetNames[0];
-  return {nome, aoa: (abas.find(a => a.nome === nome) || abas[0]).aoa};
-}
-
 function anCartao(nome, info){
   return `<div class="file-row">
     <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
     <div><div class="file-n">${esc(nome)}</div><div class="file-i">${info}</div></div></div>`;
 }
 
-/* ── passo 1: a planilha de preços ───────────────────────────────────────── */
-async function anCarregarPrecos(file){
-  if(!file) return;
-  try{
-    await garantirXLSX();
-    const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
-    const lido = anLerAbas(wb);
-    const det = ML.detectarCabecalho(lido.aoa);
-    anLinhaCabPrecos = det && det.linha != null ? det.linha : 0;
-    anAoaPrecos = lido.aoa;
-    anCabPrecos = (lido.aoa[anLinhaCabPrecos] || []).map(v => v == null ? '' : String(v));
-
-    const linhas = Math.max(0, lido.aoa.length - anLinhaCabPrecos - 1);
-    $('anPrecosInfo').innerHTML = anCartao(file.name,
-      `aba <b>${esc(lido.nome)}</b> · <b>${linhas.toLocaleString('pt-BR')}</b> produtos · ${anCabPrecos.length} colunas`);
-    mostrar('anPrecosInfo', true);
-    mostrar('anStep2', true);
-    anMostrarGuardado();
-    anMontarOpcoes();
-    $('anStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
-  }catch(e){
-    alert('Não consegui ler a planilha de preços.\n\n' + (e && e.message ? e.message : e));
-  }
-}
-
-/* ── passo 2: o arquivo de anúncios (opcional) ───────────────────────────── */
+/* ── a planilha do Mercado Livre ─────────────────────────────────────────── */
 async function anCarregarML(file){
   if(!file) return;
   try{
     await garantirXLSX();
-    /* guarda o arquivo como veio: é dentro dele que a planilha final é
-       escrita, e é de lá que vêm as cores do cabeçalho — a biblioteca do
-       app lê formatação, mas não sabe criar */
+    /* guarda o arquivo como veio: é dentro dele que o preço é trocado */
     const bytes = new Uint8Array(await file.arrayBuffer());
     const wb = XLSX.read(bytes, {type:'array'});
 
-    /* procura a aba que tem as colunas obrigatórias, em vez de confiar no nome */
+    /* acha a aba pelas colunas obrigatórias, não pelo nome: o ML já mudou */
     let aoa = null, modelo = null, nome = '';
     for(const cand of wb.SheetNames){
       const a = XLSX.utils.sheet_to_json(wb.Sheets[cand], {header:1, raw:true, defval:null});
@@ -83,45 +46,62 @@ async function anCarregarML(file){
       if(m.ok){ nome = cand; aoa = a; modelo = m; break; }
     }
     if(!modelo){
-      alert('Este arquivo não tem a estrutura de anúncios do Mercado Livre.\n\n'
-        + 'Ele precisa ter as colunas ITEM_ID, SKU e PRICE na primeira linha.\n\n'
+      alert('Esta não parece a planilha de anúncios do Mercado Livre.\n\n'
+        + 'Ela precisa ter as colunas ITEM_ID, SKU e PRICE na primeira linha.\n\n'
         + 'Baixe em: Anúncios → Editar em massa → Baixar planilha.');
       return;
     }
-    anAoaML = aoa; anModeloML = modelo; anModeloML.aba = nome;
-    anBytesML = bytes;
-    anAnuncios = AE.indexarAnuncios(aoa, modelo);
-
+    anBytesML = bytes; anAoaML = aoa; anModeloML = modelo; anModeloML.aba = nome;
     $('anMLInfo').innerHTML = anCartao(file.name,
-      `aba <b>${esc(nome)}</b> · <b>${modelo.total.toLocaleString('pt-BR')}</b> anúncios · `
-      + `<b>${anAnuncios.size.toLocaleString('pt-BR')}</b> códigos por SKU`);
+      `<b>${modelo.total.toLocaleString('pt-BR')}</b> anúncios · aba ${esc(nome)}`);
     mostrar('anMLInfo', true);
-    anGuardar(anAnuncios, 'arquivo');   // na próxima vez não precisa subir de novo
-    anMostrarGuardado();
-    anMostrarPasso3();
+    $('arqML').classList.add('pronto');
+    anTentarCasar();
   }catch(e){
-    alert('Não consegui ler o arquivo de anúncios.\n\n' + (e && e.message ? e.message : e));
+    alert('Não consegui ler a planilha do Mercado Livre.\n\n' + (e && e.message ? e.message : e));
   }
 }
 
-function anPularML(){
-  anAoaML = null; anModeloML = null; anAnuncios = null;
-  mostrar('anMLInfo', false);
-  anMostrarPasso3();
+/* ── a planilha de preços ────────────────────────────────────────────────── */
+async function anCarregarPrecos(file){
+  if(!file) return;
+  try{
+    await garantirXLSX();
+    const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
+    /* mesma leitura da calculadora: a aba boa nem sempre é a primeira e o
+       cabeçalho nem sempre está na linha 1 */
+    const abas = wb.SheetNames.map((nome, i) => ({
+      nome,
+      aoa: XLSX.utils.sheet_to_json(XU.normalizarRef(wb.Sheets[nome]), {header:1, defval:'', raw:false}),
+      oculta: !!(wb.Workbook && wb.Workbook.Sheets && wb.Workbook.Sheets[i]
+                 && wb.Workbook.Sheets[i].Hidden),
+    }));
+    const escolha = ML.escolherAba(abas);
+    const nomeAba = escolha.nome || wb.SheetNames[0];
+    const aoa = (abas.find(a => a.nome === nomeAba) || abas[0]).aoa;
+
+    const det = ML.detectarCabecalho(aoa);
+    anLinhaCabPrecos = det && det.linha != null ? det.linha : 0;
+    anAoaPrecos = aoa;
+    anCabPrecos = (aoa[anLinhaCabPrecos] || []).map(v => v == null ? '' : String(v));
+
+    const n = Math.max(0, aoa.length - anLinhaCabPrecos - 1);
+    $('anPrecosInfo').innerHTML = anCartao(file.name,
+      `<b>${n.toLocaleString('pt-BR')}</b> produtos · aba ${esc(nomeAba)}`);
+    mostrar('anPrecosInfo', true);
+    $('arqPrecos').classList.add('pronto');
+    anTentarCasar();
+  }catch(e){
+    alert('Não consegui ler a planilha de preços.\n\n' + (e && e.message ? e.message : e));
+  }
 }
 
-function anMostrarPasso3(){
-  anMontarOpcoes();
-  mostrar('anStep3', true);
-  $('anStep3').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
-}
+/* ── com os dois na mão, casa sozinho ────────────────────────────────────── */
+function anTentarCasar(){
+  if(!anModeloML || !anAoaPrecos) return;
 
-/* ── passo 3: as escolhas ────────────────────────────────────────────────── */
-function anMontarOpcoes(){
-  if(!anCabPrecos) return;
-
-  /* adivinha as colunas e deixa corrigir: errar o SKU ou o preço estraga o
-     arquivo inteiro, e o nome da coluna muda de fornecedor para fornecedor */
+  /* adivinha as colunas; o seletor só aparece se errar, para não pedir
+     decisão que o app já sabe tomar */
   const acha = alvos => {
     for(const a of alvos){
       const i = anCabPrecos.findIndex(c => c.trim().toLowerCase() === a);
@@ -133,106 +113,43 @@ function anMontarOpcoes(){
     }
     return -1;
   };
-  const sel = (id, escolhido, comVazio) => `<select id="${id}">`
-    + (comVazio ? `<option value="-1"${escolhido < 0 ? ' selected' : ''}>— não usar —</option>` : '')
+  const iSku = acha(['sku','código','codigo','ref']);
+  const iPreco = acha(['preço de venda ml','preço de venda','preço','preco','valor']);
+
+  const sel = (id, escolhido) => `<select id="${id}" onchange="anCasar()">`
     + anCabPrecos.map((c, i) => `<option value="${i}"${i === escolhido ? ' selected' : ''}>${esc(c || 'coluna ' + (i+1))}</option>`).join('')
     + '</select>';
-
   $('anMapa').innerHTML = `
-    <label class="campo"><span>SKU do produto</span>${sel('anColSku', acha(['sku','código','codigo','ref']))}</label>
-    <label class="campo"><span>Título do anúncio</span>${sel('anColTitulo', acha(['nome do produto','título','titulo','nome','descrição','descricao']))}</label>
-    <label class="campo"><span>Preço de venda</span>${sel('anColPreco', acha(['preço de venda ml','preço de venda','preço','preco','valor']))}</label>
-    <label class="campo"><span>Estoque (opcional)</span>${sel('anColEstoque', acha(['estoque','quantidade','qtd']), true)}</label>`;
-
-  const temML = !!(anAnuncios && anAnuncios.size);
-  $('anQuais').innerHTML = `
-    <div class="an-opts">
-      <label class="an-opt">
-        <input type="radio" name="anIncluir" value="todos" checked/>
-        <div><b>Todos os produtos da planilha</b>
-          <i>${temML
-            ? 'Quem já tem anúncio sai com o código preenchido e sobe direto. Quem não tem sai com o código em branco — o Mercado Livre não publica anúncio novo por esta planilha, mas você fica com a lista do que falta criar.'
-            : 'Sem o arquivo de anúncios, todas as linhas saem sem o código ITEM_ID.'}</i></div>
-      </label>
-      <label class="an-opt${temML ? '' : ' off'}">
-        <input type="radio" name="anIncluir" value="comAnuncio" ${temML ? '' : 'disabled'}/>
-        <div><b>Só os que já têm anúncio no Mercado Livre</b>
-          <i>${temML
-            ? 'Arquivo enxuto, só com linhas que o Mercado Livre aceita de fato. Mais seguro para subir sem erro.'
-            : 'Precisa do arquivo de anúncios do passo 2 para saber quais já existem.'}</i></div>
-      </label>
+    <div class="grp-t">DA PLANILHA DE PREÇOS, O APP USA</div>
+    <div class="campos">
+      <label class="campo"><span>Coluna do SKU</span>${sel('anColSku', iSku)}</label>
+      <label class="campo"><span>Coluna do preço de venda</span>${sel('anColPreco', iPreco)}</label>
     </div>`;
+  mostrar('anMapa', true);
 
-  const opc = (id, rot, vals, padrao, ajuda) => `
-    <label class="campo"><span>${rot}${ajuda ? ' ' + ajuda : ''}</span>
-      <select id="${id}">${vals.map(v =>
-        `<option value="${esc(v)}"${v === padrao ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
-
-  $('anPadroes').innerHTML =
-    opc('anTipo', 'Tipo de anúncio', ['Clássico','Premium'], 'Clássico', '(Clássico = 13%, Premium = 18%)')
-  + opc('anCondicao', 'Condição', ['Novo','Usado','Recondicionado'], 'Novo')
-  + opc('anEnvio', 'Forma de entrega',
-        ['Mercado Envios por conta do comprador','Mercado Envios grátis'],
-        'Mercado Envios por conta do comprador')
-  + opc('anEstado', 'Estado do anúncio', ['Ativo','Inativo'], 'Ativo')
-  + `<label class="campo"><span>Estoque padrão (quando a planilha não traz)</span>
-       <input type="number" id="anEstoque" min="0" step="1" value="1"/></label>`;
-
-  /* o resumo na linha fechada tem de dizer a verdade: se a pessoa mudar uma
-     opção e fechar, o que ela lê ali é o que vai para o arquivo */
-  ['anTipo','anCondicao','anEnvio','anEstado','anEstoque'].forEach(id => {
-    const el = $(id);
-    if(el) el.addEventListener('change', anResumirPadroes);
-  });
-  anResumirPadroes();
-}
-
-function anResumirPadroes(){
-  const alvo = $('anResumoPadroes');
-  if(!alvo || !$('anTipo')) return;
-  const envio = $('anEnvio').value.indexOf('grátis') >= 0 ? 'frete grátis' : 'envio pelo comprador';
-  alvo.textContent = [$('anTipo').value, $('anCondicao').value, $('anEstado').value, envio,
-                      'estoque ' + ($('anEstoque').value || '1')].join(' · ');
-}
-
-/* ── gerar ───────────────────────────────────────────────────────────────── */
-function anGerar(){
-  const cols = {
-    sku: parseInt($('anColSku').value),
-    titulo: parseInt($('anColTitulo').value),
-    preco: parseInt($('anColPreco').value),
-    estoque: parseInt($('anColEstoque').value),
-  };
-  if(isNaN(cols.sku) || isNaN(cols.preco)) return;
-  if(cols.sku === cols.preco){
-    alert('SKU e preço estão apontando para a mesma coluna. Escolha colunas diferentes.');
+  if(iSku < 0 || iPreco < 0){
+    alert('Não achei sozinho as colunas de SKU e preço.\n\nEscolha nas listas abaixo.');
     return;
   }
+  anCasar();
+}
 
-  const prods = AE.lerProdutos(anAoaPrecos, cols, anLinhaCabPrecos);
-  if(!prods.itens.length){
-    alert(`A coluna "${anCabPrecos[cols.sku]}" não tem SKUs preenchidos. Escolha outra coluna.`);
+function anCasar(){
+  const iSku = parseInt($('anColSku').value);
+  const iPreco = parseInt($('anColPreco').value);
+  if(isNaN(iSku) || isNaN(iPreco)) return;
+
+  const precos = AE.indexarPrecos(anAoaPrecos, iSku, iPreco, anLinhaCabPrecos);
+  if(!precos.mapa.size){
+    alert(`A coluna "${anCabPrecos[iSku]}" não tem SKUs preenchidos. Escolha outra.`);
     return;
   }
-
-  const marcado = document.querySelector('input[name="anIncluir"]:checked');
-  const padroes = {
-    incluir: marcado ? marcado.value : 'todos',
-    tipo: $('anTipo').value,
-    condicao: $('anCondicao').value,
-    envio: $('anEnvio').value,
-    estado: $('anEstado').value,
-    estoque: Math.max(0, parseInt($('anEstoque').value) || 1),
-    atualizarTitulo: $('anAtualizarTitulo').checked,
-  };
-
-  anMontado = AE.montarML(prods.itens, anAnuncios, padroes, anAoaML);
-  anMontado.duplicados = prods.duplicados;
+  anResultado = AE.casar(anAoaML, anModeloML, precos);
   anFiltro = null; anPagina = 0;
 
-  if(!anMontado.linhas.length){
-    alert('Nenhum produto entrou no arquivo.\n\n'
-      + 'Você escolheu "só os que já têm anúncio", e nenhum SKU da planilha bateu com os anúncios do Mercado Livre.');
+  if(!anResultado.conferencia.atualizados){
+    alert('Nenhum SKU da planilha do Mercado Livre foi encontrado na de preços.\n\n'
+      + 'Confira se as colunas escolhidas estão certas — e se os SKUs são os mesmos nos dois arquivos.');
     return;
   }
   anRenderStats(); anRenderChecks(); anRenderTabela();
@@ -241,21 +158,22 @@ function anGerar(){
 }
 
 function anRecomecar(){
-  anAoaPrecos = anAoaML = anModeloML = anAnuncios = anMontado = anBytesML = null;
+  anBytesML = anAoaML = anModeloML = anAoaPrecos = anResultado = null;
   anFiltro = null; anPagina = 0;
-  ['anStep2','anStep3','anStep4','anPrecosInfo','anMLInfo'].forEach(id => mostrar(id, false));
+  ['anStep4','anMapa','anMLInfo','anPrecosInfo'].forEach(id => mostrar(id, false));
+  ['arqML','arqPrecos'].forEach(id => $(id).classList.remove('pronto'));
   $('anFi').value = ''; $('anFi2').value = '';
   window.scrollTo({top:0, behavior: reduzido ? 'instant' : 'smooth'});
 }
 
 /* ── números do lote ─────────────────────────────────────────────────────── */
 function anRenderStats(){
-  const r = anMontado.resumo;
+  const c = anResultado.conferencia;
   const cards = [
-    {n: r.total.toLocaleString('pt-BR'),      l:'Linhas no arquivo',         cor:'var(--ink)'},
-    {n: r.comAnuncio.toLocaleString('pt-BR'), l:'Sobem direto (com código)', cor:'var(--green-dk)'},
-    {n: r.novos.toLocaleString('pt-BR'),      l:'Ainda sem anúncio',         cor: r.novos ? 'var(--amber-dk)' : 'var(--faint)'},
-    {n: r.semPreco.toLocaleString('pt-BR'),   l:'Sem preço',                 cor: r.semPreco ? 'var(--red)' : 'var(--faint)'},
+    {n: c.total.toLocaleString('pt-BR'),        l:'Anúncios na planilha',  cor:'var(--ink)'},
+    {n: c.atualizados.toLocaleString('pt-BR'),  l:'Com preço novo',        cor:'var(--green-dk)'},
+    {n: c.intocados.toLocaleString('pt-BR'),    l:'Seguem como estão',     cor: c.intocados ? 'var(--amber-dk)' : 'var(--faint)'},
+    {n: c.semAnuncio.toLocaleString('pt-BR'),   l:'Produtos sem anúncio',  cor:'var(--faint)'},
   ];
   $('anStats').innerHTML = cards.map((x,i) => `
     <div class="stat" style="animation-delay:${i*.04}s">
@@ -265,19 +183,19 @@ function anRenderStats(){
 
 /* ── conferência ─────────────────────────────────────────────────────────── */
 function anRenderChecks(){
-  const c = anMontado.conferencia, r = anMontado.resumo;
+  const c = anResultado.conferencia;
   const badge = $('anBadge');
   badge.textContent = c.comErro ? `${c.comErro} PRECISAM DE CORREÇÃO`
-    : (r.novos ? `${r.novos.toLocaleString('pt-BR')} SEM ANÚNCIO` : 'PRONTO PARA SUBIR');
-  badge.className = 'pill ' + (c.comErro ? 'pill-bad' : (r.novos ? 'pill-alerta' : 'pill-ok'));
+    : (c.intocados ? `${c.intocados.toLocaleString('pt-BR')} SEM PREÇO NOVO` : 'PRONTO PARA SUBIR');
+  badge.className = 'pill ' + (c.comErro ? 'pill-bad' : (c.intocados ? 'pill-alerta' : 'pill-ok'));
 
-  /* O retrato do lote vem antes da lista: numa carga real quase toda linha cai
-     em "preço muda muito", e um alerta que marca tudo não informa nada. */
-  const v = r.variacao;
+  /* o retrato do lote antes da lista: numa carga real quase toda linha cai em
+     "preço muda muito", e um alerta que marca tudo não informa nada */
+  const v = c.variacao;
   const pct = x => (x > 0 ? '+' : '') + Math.round(x * 100) + '%';
   $('anResumo').innerHTML = !v ? '' : `
     <div class="an-var ${(v.sobem === v.n || v.descem === v.n) ? 'unilateral' : ''}">
-      <div class="an-var-t">O que muda no preço de ${v.n.toLocaleString('pt-BR')} anúncios que já estão no ar</div>
+      <div class="an-var-t">O que muda no preço de ${v.n.toLocaleString('pt-BR')} anúncios</div>
       <div class="an-var-g">
         <span class="l-sobe"><b>${v.sobem.toLocaleString('pt-BR')}</b> sobem</span>
         <span class="l-desce"><b>${v.descem.toLocaleString('pt-BR')}</b> descem</span>
@@ -290,17 +208,9 @@ function anRenderChecks(){
       </div>
       ${(v.sobem === v.n || v.descem === v.n) ? `<div class="an-var-av">
         <b>Confira antes de subir.</b> ${v.sobem === v.n ? 'Todos os preços sobem' : 'Todos os preços descem'} —
-        quando a mudança vai toda para o mesmo lado, costuma ser a margem usada na precificação ou a coluna
-        de preço escolhida, não o mercado. São ${v.n.toLocaleString('pt-BR')} anúncios de uma vez.</div>` : ''}
+        quando a mudança vai toda para o mesmo lado, costuma ser a margem usada na precificação
+        ou a coluna de preço escolhida, não o mercado.</div>` : ''}
     </div>`;
-
-  const extras = (anMontado.duplicados && anMontado.duplicados.length) ? `
-    <div class="chk alerta">
-      <div class="chk-i"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
-      <div><div class="chk-t">SKU repetido na planilha <span class="chk-n">${anMontado.duplicados.length.toLocaleString('pt-BR')} linhas</span></div>
-        <div class="chk-d">O mesmo SKU aparece mais de uma vez. Cada SKU vira uma linha só no arquivo — valeu a primeira.</div>
-        <div class="chk-r"><b>O que fazer agora</b>Deixe um preço por SKU na planilha de origem, senão o preço que sobe pode não ser o que você quer.</div></div>
-    </div>` : '';
 
   $('anChecks').innerHTML = c.grupos.map(g => `
     <div class="chk ${g.gravidade === 'erro' ? 'bad' : (g.gravidade === 'alerta' ? 'alerta' : 'ok')}">
@@ -310,10 +220,10 @@ function anRenderChecks(){
       <div><div class="chk-t">${esc(g.titulo)} <span class="chk-n">${g.n.toLocaleString('pt-BR')} ${g.n === 1 ? 'produto' : 'produtos'}</span></div>
         <div class="chk-d">${esc(g.descricao)}</div>
         ${g.comoResolver ? `<div class="chk-r"><b>O que fazer agora</b>${esc(g.comoResolver)}</div>` : ''}</div>
-      <button class="chk-btn${anFiltro === g.id ? ' on' : ''}" onclick="anVerLinhas('${g.id}')">
+      ${g.soLeitura ? '' : `<button class="chk-btn${anFiltro === g.id ? ' on' : ''}" onclick="anVerLinhas('${g.id}')">
         ${anFiltro === g.id ? 'ver todos' : `ver ${g.n === 1 ? 'a linha' : 'as linhas'}`}
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
-    </div>`).join('') + extras;
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>`}
+    </div>`).join('');
 }
 
 function anVerLinhas(id){
@@ -330,9 +240,9 @@ function anIrPagina(n){ anPagina = n; anRenderTabela(); }
 
 /* ── tabela ──────────────────────────────────────────────────────────────── */
 function anRenderTabela(){
-  const c = anMontado.conferencia;
+  const c = anResultado.conferencia;
   const grupo = anFiltro ? c.grupos.find(g => g.id === anFiltro) : null;
-  const alvo = grupo ? grupo.linhas.map(i => anMontado.linhas[i]) : anMontado.linhas;
+  const alvo = grupo ? grupo.linhas.map(i => anResultado.linhas[i]) : anResultado.linhas;
 
   const total = alvo.length;
   const paginas = Math.max(1, Math.ceil(total / AN_POR_PAGINA));
@@ -340,28 +250,27 @@ function anRenderTabela(){
   const inicio = anPagina * AN_POR_PAGINA;
   const pagina = alvo.slice(inicio, inicio + AN_POR_PAGINA);
 
-  $('anTabInfo').textContent = `${anMontado.resumo.total.toLocaleString('pt-BR')} linhas`;
+  $('anTabInfo').textContent = `${c.atualizados.toLocaleString('pt-BR')} com preço novo`;
 
   $('anTabela').innerHTML =
     `<thead><tr><th>Código do anúncio</th><th>SKU</th><th>Título</th>
       <th class="c-num">Preço hoje</th><th class="c-num">Preço novo</th>
-      <th class="c-num">Variação</th><th class="c-num">Estoque</th><th>Situação</th></tr></thead><tbody>` +
+      <th class="c-num">Variação</th><th>Situação</th></tr></thead><tbody>` +
     pagina.map(l => {
-      const grav = l.avisos.some(a => (AE.AVISOS_MONTAGEM[a]||{}).gravidade === 'erro') ? ' class="tr-erro"'
-        : (l.avisos.some(a => (AE.AVISOS_MONTAGEM[a]||{}).gravidade === 'alerta') ? ' class="tr-alerta"' : '');
+      const grav = l.avisos.some(a => (AE.AVISOS[a]||{}).gravidade === 'erro') ? ' class="tr-erro"'
+        : (l.avisos.some(a => (AE.AVISOS[a]||{}).gravidade === 'alerta') ? ' class="tr-alerta"' : '');
       const varTxt = l.variacao == null ? '—' : (l.variacao > 0 ? '+' : '') + (l.variacao*100).toFixed(0) + '%';
       const varCor = l.variacao == null ? 'var(--faint)' : (l.variacao > 0 ? 'var(--green-dk)' : 'var(--red)');
       const sit = l.avisos.length
-        ? l.avisos.map(a => `<span class="tag ${(AE.AVISOS_MONTAGEM[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((AE.AVISOS_MONTAGEM[a]||{}).titulo || a)}</span>`).join(' ')
+        ? l.avisos.map(a => `<span class="tag ${(AE.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((AE.AVISOS[a]||{}).titulo || a)}</span>`).join(' ')
         : '<span style="color:var(--green-dk)">ok</span>';
       return `<tr${grav}>
-        <td class="c-linha">${esc(l.itemId) || '<i style="color:var(--faint)">sem código</i>'}</td>
-        <td class="c-desc">${esc(l.sku)}</td>
+        <td class="c-linha">${esc(l.itemId)}</td>
+        <td class="c-desc">${esc(l.sku) || '—'}</td>
         <td class="c-desc" title="${esc(l.titulo)}">${esc(l.titulo.slice(0,60)) || '—'}</td>
         <td class="c-num c-taxa">${isNaN(l.precoAtual) ? '—' : ML.brl(l.precoAtual)}</td>
-        <td class="c-num c-preco">${l.preco === '' ? '—' : ML.brl(l.preco)}</td>
+        <td class="c-num c-preco">${l.precoNovo == null ? '—' : ML.brl(l.precoNovo)}</td>
         <td class="c-num" style="color:${varCor};font-weight:600">${varTxt}</td>
-        <td class="c-num c-peso">${esc(String(l.celulas[7]))}</td>
         <td>${sit}</td></tr>`;
     }).join('') + '</tbody>';
 
@@ -375,175 +284,168 @@ function anRenderTabela(){
   if(grupo){
     $('anFiltroBar').innerHTML = `<div class="filtro-bar"><div class="f-ativo ${grupo.gravidade === 'erro' ? 'grave' : ''}">
       <div class="f-ativo-ic"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></div>
-      <div><div class="f-ativo-t">Mostrando ${grupo.n.toLocaleString('pt-BR')} produtos: <b>${esc(grupo.titulo)}</b></div>
+      <div><div class="f-ativo-t">Mostrando ${grupo.n.toLocaleString('pt-BR')} anúncios: <b>${esc(grupo.titulo)}</b></div>
         ${grupo.comoResolver ? `<div class="f-ajuda"><b>O que fazer agora</b>${esc(grupo.comoResolver)}</div>` : ''}</div>
-      <button onclick="anVerLinhas('${grupo.id}')">ver todas as ${anMontado.linhas.length.toLocaleString('pt-BR')}</button>
+      <button onclick="anVerLinhas('${grupo.id}')">ver todos os ${anResultado.linhas.length.toLocaleString('pt-BR')}</button>
     </div></div>`;
     mostrar('anFiltroBar', true);
   } else mostrar('anFiltroBar', false);
 }
 
-/* ── baixar ──────────────────────────────────────────────────────────────── */
+/* ── baixar: a mesma planilha, só com o preço trocado ────────────────────── */
 async function anBaixar(){
-  if(!anMontado) return;
-  const r = anMontado.resumo;
+  if(!anResultado || !anBytesML) return;
+  const c = anResultado.conferencia;
 
-  if(r.novos){
+  if(c.intocados){
     const ok = confirm(
-      `${r.novos.toLocaleString('pt-BR')} ${r.novos === 1 ? 'produto sai' : 'produtos saem'} sem o código do anúncio.\n\n`
-      + 'A planilha de edição do Mercado Livre não publica anúncio novo — essas linhas servem como '
-      + 'lista do que falta criar, e o ML vai recusá-las se você subir assim.\n\n'
-      + 'Quer gerar mesmo assim? (Para um arquivo só com o que sobe, volte e escolha '
-      + '"só os que já têm anúncio".)');
+      `${c.intocados.toLocaleString('pt-BR')} ${c.intocados === 1 ? 'anúncio fica' : 'anúncios ficam'} com o preço atual — `
+      + 'o SKU deles não foi encontrado na planilha de preços.\n\n'
+      + 'A planilha vai ter preços novos e antigos misturados. Gerar assim?');
     if(!ok) return;
   }
-  const v = r.variacao;
+  const v = c.variacao;
   if(v && (v.sobem === v.n || v.descem === v.n) && v.n > 20){
     const ok = confirm(
       `Todos os ${v.n.toLocaleString('pt-BR')} preços ${v.sobem === v.n ? 'SOBEM' : 'DESCEM'}, `
       + `e metade muda mais de ${Math.round(Math.abs(v.mediana)*100)}%.\n\n`
-      + 'Quando a mudança vai toda para o mesmo lado, costuma ser a margem da precificação ou a '
-      + 'coluna de preço escolhida — não o mercado.\n\nGerar assim?');
-    if(!ok) return;
-  }
-
-  if(!anBytesML){
-    const ok = confirm(
-      'A planilha vai sair com a estrutura certa do Mercado Livre, mas SEM as cores '
-      + 'e os grupos do cabeçalho.\n\n'
-      + 'Essa formatação vem do próprio arquivo que o ML entrega — para tê-la, volte ao '
-      + 'passo 2 e envie a planilha baixada em Anúncios → Editar em massa.\n\n'
-      + 'Gerar sem a formatação?');
+      + 'Quando a mudança vai toda para o mesmo lado, costuma ser a margem da precificação '
+      + 'ou a coluna de preço escolhida — não o mercado.\n\nGerar assim?');
     if(!ok) return;
   }
 
   try{
-    await garantirXLSX();
-    const nomeAba = 'Anúncios';
-
-    let saida;
-    if(anBytesML){
-      /* dentro do arquivo do ML, trocando só as linhas de dados: é assim que
-         o cabeçalho colorido sobrevive */
-      saida = await anGerarComMolde(anBytesML, anModeloML.aba,
-                                    anMontado.linhas.map(l => l.celulas), AE.INICIO_DADOS);
-    } else {
-      /* Sem o arquivo do ML não há molde: sai com a estrutura certa, só sem
-         as cores do cabeçalho. O aviso na tela diz isso antes de gerar. */
-      const aoa = anMontado.cabecalho.concat(anMontado.linhas.map(l => l.celulas));
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols'] = [{wch:20},{wch:16},{wch:15},{wch:15},{wch:16},{wch:56},{wch:22},
-                     {wch:11},{wch:11},{wch:8},{wch:12},{wch:34},{wch:14},{wch:13},{wch:9}];
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, nomeAba);
-      saida = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    }
+    /* só as células de preço mudam: o arquivo que sai é o que entrou */
+    const novos = new Map();
+    anResultado.linhas.forEach(l => {
+      if(l.precoNovo != null) novos.set(l.fisica, l.precoNovo);
+    });
+    const r = await anTrocarPrecos(anBytesML, anModeloML.aba, anModeloML.idx.PRICE, novos);
 
     const stamp = new Date().toISOString().slice(0,10);
-    const blob = new Blob([saida], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const blob = new Blob([r.bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `mercado-livre-${stamp}.xlsx`;
+    a.download = `mercado-livre-precos-${stamp}.xlsx`;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 
     $('anBtnDl').innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
-      + `Baixado — ${r.total.toLocaleString('pt-BR')} linhas no padrão do Mercado Livre`;
+      + `Baixado — ${r.trocados.toLocaleString('pt-BR')} preços trocados`;
   }catch(e){
-    alert('Não consegui gerar o arquivo.\n\n' + (e && e.message ? e.message : e));
+    alert('Não consegui gerar a planilha.\n\n' + (e && e.message ? e.message : e));
   }
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   ESCREVER DENTRO DO ARQUIVO DO MERCADO LIVRE, SEM PERDER A FORMATAÇÃO
+
+   A biblioteca que o app usa para planilhas lê cor de célula, mas não sabe
+   gravar: passar o arquivo por ela devolve tudo em branco, e o cabeçalho
+   colorido do Mercado Livre — os grupos "Anúncios", "Informações do
+   produto", "Condições de entrega", "Condições do anúncio" — some.
+
+   Um .xlsx é um zip de XMLs. Aqui trocamos SÓ as linhas de dados dentro do
+   XML da aba e devolvemos o resto do zip intacto: as cinco linhas de
+   cabeçalho continuam com o estilo que vieram, porque nunca são tocadas.
+
+   Os valores vão como texto embutido (inlineStr) em vez de entrar na tabela
+   de textos compartilhados: assim não é preciso mexer em sharedStrings.xml,
+   que é usado por todas as abas ao mesmo tempo.
+   ══════════════════════════════════════════════════════════════════════════ */
+const JSZIP_CDNS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+];
+let zipCarregando = null;
+
+async function garantirZip(){
+  if(window.JSZip) return true;
+  if(!zipCarregando){
+    zipCarregando = (async () => {
+      for(const url of JSZIP_CDNS){
+        try{ await carregarScript(url); if(window.JSZip) return true; }
+        catch(e){ /* tenta o próximo endereço */ }
+      }
+      return false;
+    })();
+  }
+  const ok = await zipCarregando;
+  if(!ok) zipCarregando = null;
+  return ok;
+}
+
+function anColunaLetra(n){
+  let s = '';
+  while(n >= 0){ s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
+  return s;
+}
+function anEscXml(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* Descobre qual XML guarda a aba, seguindo workbook.xml → rels. O nome do
+   arquivo não é fixo: "Anúncios" pode ser sheet3.xml num arquivo e sheet1.xml
+   noutro, conforme a ordem das abas. */
+async function anAcharXmlDaAba(zip, nomeAba){
+  const wbXml = await zip.file('xl/workbook.xml').async('string');
+  const rels  = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+
+  const alvo = nomeAba.toLowerCase();
+  let rid = null;
+  const re = /<sheet[^>]*\sname="([^"]*)"[^>]*\sr:id="([^"]*)"/g;
+  let m;
+  while((m = re.exec(wbXml))){
+    const nome = m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    if(nome.toLowerCase() === alvo){ rid = m[2]; break; }
+  }
+  if(!rid) return null;
+
+  const reRel = new RegExp('Id="' + rid + '"[^>]*Target="([^"]+)"');
+  const mr = rels.match(reRel) || rels.match(new RegExp('Target="([^"]+)"[^>]*Id="' + rid + '"'));
+  if(!mr) return null;
+  let alvoArq = mr[1].replace(/^\/?xl\//, '').replace(/^\//, '');
+  return 'xl/' + alvoArq;
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BUSCAR OS ANÚNCIOS DIRETO NO MERCADO LIVRE
+   TROCAR SÓ O PREÇO DENTRO DA PLANILHA DO MERCADO LIVRE
 
-   O que interessa do arquivo "Editar em massa" é o ITEM_ID de cada SKU, e a
-   API entrega isso sem ninguém precisar baixar e subir planilha. Vem em
-   páginas porque conta grande não cabe numa função serverless de 10 s.
+   É o coração da ferramenta: o arquivo que sai tem de ser o mesmo que entrou,
+   com uma única diferença — o preço. Nada de remontar linhas: mexer só na
+   célula de preço garante que título, código, estoque, condição, envio, as
+   cores do cabeçalho e as outras abas cheguem do outro lado idênticos.
+
+   Um .xlsx é um zip de XMLs, e a biblioteca de planilhas do app não grava
+   formatação — por isso a troca é feita no XML, à mão.
    ══════════════════════════════════════════════════════════════════════════ */
-async function anBuscarNaApi(){
-  const btn = $('anBtnApi');
-  const caixa = $('anApiEstado');
-  const antes = btn.innerHTML;
-  btn.disabled = true;
-  mostrar('anApiEstado', true);
+async function anTrocarPrecos(bytes, nomeAba, colPreco, novos){
+  if(!await garantirZip()) throw new Error('Não consegui carregar a biblioteca que abre o arquivo.');
 
-  const mostrarEstado = (cls, html) => {
-    caixa.className = 'api-estado ' + (cls || '');
-    caixa.innerHTML = html;
-  };
+  const zip = await window.JSZip.loadAsync(bytes);
+  const caminho = await anAcharXmlDaAba(zip, nomeAba);
+  if(!caminho || !zip.file(caminho)) throw new Error('Não achei a aba "' + nomeAba + '" dentro do arquivo.');
 
-  try{
-    mostrarEstado('', 'Falando com o Mercado Livre…');
-    const mapa = new Map();
-    let scroll = '', paginas = 0, total = null;
+  let xml = await zip.file(caminho).async('string');
+  const L = anColunaLetra(colPreco);
+  let trocados = 0;
 
-    while(paginas < 200){                    // trava de segurança contra laço infinito
-      const r = await fetch('/api/ml-meus-anuncios' + (scroll ? '?scroll=' + encodeURIComponent(scroll) : ''));
-      const d = await r.json().catch(() => ({}));
+  novos.forEach((preco, linha) => {
+    const ref = L + (linha + 1);              // linha física → referência do Excel
+    /* a célula pode vir fechada (<c .../>) ou com conteúdo (<c ...>…</c>);
+       o t="s" some porque o valor deixa de ser texto compartilhado */
+    const re = new RegExp('<c r="' + ref + '"([^>]*?)(/>|>[\\s\\S]*?</c>)');
+    if(!re.test(xml)) return;
+    xml = xml.replace(re, (todo, attrs) => {
+      const estilo = (attrs.match(/\ss="(\d+)"/) || [null, null])[1];
+      trocados++;
+      return '<c r="' + ref + '"' + (estilo ? ' s="' + estilo + '"' : '') + '><v>' + preco + '</v></c>';
+    });
+  });
 
-      if(!r.ok){
-        if(d.precisaAutorizar){
-          mostrarEstado('erro',
-            '<b>Falta autorizar a conta que vende.</b> A ligação de hoje é do aplicativo, e com ela o '
-            + 'Mercado Livre deixa consultar categorias e tarifas, mas não deixa ver nem mexer nos seus anúncios. '
-            + 'Isso é uma autorização à parte, e só você pode dar:'
-            + '<ol class="api-passos">'
-            + '<li>Abra <a href="/api/ml-auth" target="_blank" rel="noopener">/api/ml-auth</a> e entre com a conta que vende.</li>'
-            + '<li>Autorize o aplicativo.</li>'
-            + '<li>Copie o <b>refresh_token</b> que aparece e guarde na variável <b>ML_REFRESH_TOKEN</b> do projeto na Vercel.</li>'
-            + '</ol>'
-            + 'Enquanto isso, o caminho do arquivo abaixo funciona igual.');
-          return;
-        }
-        throw new Error(d.erro || ('O Mercado Livre respondeu ' + r.status));
-      }
-
-      (d.itens || []).forEach(it => {
-        if(!it.sku || mapa.has(it.sku)) return;
-        mapa.set(it.sku, {
-          FAMILY_ID: '', ITEM_ID: it.id, PRODUCT_NUMBER: '', VARIATION_ID: '',
-          TITLE: it.titulo || '', PRICE: it.preco == null ? NaN : it.preco,
-          QUANTITY: it.estoque == null ? '' : it.estoque,
-        });
-      });
-
-      paginas++;
-      if(total == null && d.total != null) total = d.total;
-      mostrarEstado('', `Trazendo seus anúncios… <b>${mapa.size.toLocaleString('pt-BR')}</b>`
-        + (total ? ` de ${total.toLocaleString('pt-BR')}` : '') + ' com SKU.');
-
-      scroll = d.scroll || '';
-      if(d.acabou || !scroll) break;
-    }
-
-    if(!mapa.size){
-      mostrarEstado('erro',
-        '<b>Nenhum anúncio com SKU.</b> Vieram anúncios da sua conta, mas nenhum tem SKU preenchido — '
-        + 'e é pelo SKU que a planilha encontra cada anúncio. Preencha o SKU nos anúncios do Mercado Livre '
-        + 'ou use o arquivo abaixo.');
-      return;
-    }
-
-    anAnuncios = mapa;
-    anGuardar(mapa, 'api');             // vale para a próxima visita
-    anMostrarGuardado();
-    anAoaML = null;          // veio da API, não de arquivo: sem molde para as cores
-    anModeloML = null; anBytesML = null;
-    await anVerConta();
-    mostrarEstado('ok', `<b>${mapa.size.toLocaleString('pt-BR')} anúncios</b> trazidos do Mercado Livre`
-      + (total ? ` (de ${total.toLocaleString('pt-BR')} na conta)` : '') + '.'
-      + anCartaoConta());
-    mostrar('anMLInfo', false);
-    anMostrarPasso3();
-  }catch(e){
-    mostrarEstado('erro', '<b>Não consegui buscar.</b> ' + esc(e && e.message ? e.message : String(e)));
-  }finally{
-    btn.disabled = false;
-    btn.innerHTML = antes;
-  }
+  zip.file(caminho, xml);
+  return {bytes: await zip.generateAsync({type:'uint8array', compression:'DEFLATE'}), trocados};
 }
-
 /* ══════════════════════════════════════════════════════════════════════════
    PUBLICAR OS PREÇOS DIRETO NO MERCADO LIVRE
 
@@ -657,128 +559,6 @@ function anCartaoConta(){
   </div>`;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   ESCREVER DENTRO DO ARQUIVO DO MERCADO LIVRE, SEM PERDER A FORMATAÇÃO
-
-   A biblioteca que o app usa para planilhas lê cor de célula, mas não sabe
-   gravar: passar o arquivo por ela devolve tudo em branco, e o cabeçalho
-   colorido do Mercado Livre — os grupos "Anúncios", "Informações do
-   produto", "Condições de entrega", "Condições do anúncio" — some.
-
-   Um .xlsx é um zip de XMLs. Aqui trocamos SÓ as linhas de dados dentro do
-   XML da aba e devolvemos o resto do zip intacto: as cinco linhas de
-   cabeçalho continuam com o estilo que vieram, porque nunca são tocadas.
-
-   Os valores vão como texto embutido (inlineStr) em vez de entrar na tabela
-   de textos compartilhados: assim não é preciso mexer em sharedStrings.xml,
-   que é usado por todas as abas ao mesmo tempo.
-   ══════════════════════════════════════════════════════════════════════════ */
-const JSZIP_CDNS = [
-  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-];
-let zipCarregando = null;
-
-async function garantirZip(){
-  if(window.JSZip) return true;
-  if(!zipCarregando){
-    zipCarregando = (async () => {
-      for(const url of JSZIP_CDNS){
-        try{ await carregarScript(url); if(window.JSZip) return true; }
-        catch(e){ /* tenta o próximo endereço */ }
-      }
-      return false;
-    })();
-  }
-  const ok = await zipCarregando;
-  if(!ok) zipCarregando = null;
-  return ok;
-}
-
-function anColunaLetra(n){
-  let s = '';
-  while(n >= 0){ s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
-  return s;
-}
-function anEscXml(t){
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-/* Descobre qual XML guarda a aba, seguindo workbook.xml → rels. O nome do
-   arquivo não é fixo: "Anúncios" pode ser sheet3.xml num arquivo e sheet1.xml
-   noutro, conforme a ordem das abas. */
-async function anAcharXmlDaAba(zip, nomeAba){
-  const wbXml = await zip.file('xl/workbook.xml').async('string');
-  const rels  = await zip.file('xl/_rels/workbook.xml.rels').async('string');
-
-  const alvo = nomeAba.toLowerCase();
-  let rid = null;
-  const re = /<sheet[^>]*\sname="([^"]*)"[^>]*\sr:id="([^"]*)"/g;
-  let m;
-  while((m = re.exec(wbXml))){
-    const nome = m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-    if(nome.toLowerCase() === alvo){ rid = m[2]; break; }
-  }
-  if(!rid) return null;
-
-  const reRel = new RegExp('Id="' + rid + '"[^>]*Target="([^"]+)"');
-  const mr = rels.match(reRel) || rels.match(new RegExp('Target="([^"]+)"[^>]*Id="' + rid + '"'));
-  if(!mr) return null;
-  let alvoArq = mr[1].replace(/^\/?xl\//, '').replace(/^\//, '');
-  return 'xl/' + alvoArq;
-}
-
-async function anGerarComMolde(bytes, nomeAba, linhas, primeira){
-  if(!await garantirZip()) throw new Error('Não consegui carregar a biblioteca que abre o arquivo.');
-
-  const zip = await window.JSZip.loadAsync(bytes);
-  const caminho = await anAcharXmlDaAba(zip, nomeAba);
-  if(!caminho || !zip.file(caminho)) throw new Error('Não achei a aba "' + nomeAba + '" dentro do arquivo.');
-
-  let xml = await zip.file(caminho).async('string');
-
-  /* estilo de cada coluna, copiado da primeira linha de dados do arquivo
-     original: assim as linhas novas saem com a mesma cara das que vieram */
-  const estilos = {};
-  const mPrim = xml.match(new RegExp('<row r="' + (primeira + 1) + '"[\\s\\S]*?</row>'));
-  if(mPrim){
-    const reC = /<c r="([A-Z]+)\d+"([^>]*)>/g;
-    let mc;
-    while((mc = reC.exec(mPrim[0]))){
-      const s = mc[2].match(/s="(\d+)"/);
-      if(s) estilos[mc[1]] = s[1];
-    }
-  }
-
-  const partes = [];
-  linhas.forEach((celulas, i) => {
-    const r = primeira + 1 + i;
-    const cs = [];
-    celulas.forEach((v, c) => {
-      if(v === '' || v == null) return;
-      const L = anColunaLetra(c);
-      const st = estilos[L] ? ` s="${estilos[L]}"` : '';
-      if(typeof v === 'number' && isFinite(v)){
-        cs.push(`<c r="${L}${r}"${st}><v>${v}</v></c>`);
-      } else {
-        cs.push(`<c r="${L}${r}"${st} t="inlineStr"><is><t xml:space="preserve">${anEscXml(v)}</t></is></c>`);
-      }
-    });
-    partes.push(`<row r="${r}">${cs.join('')}</row>`);
-  });
-
-  const ini = xml.indexOf('<row r="' + (primeira + 1) + '"');
-  const fim = xml.lastIndexOf('</row>');
-  if(ini < 0 || fim < 0) throw new Error('O arquivo não tem linhas de dados onde eu esperava.');
-  xml = xml.slice(0, ini) + partes.join('') + xml.slice(fim + 6);
-
-  const ultima = primeira + linhas.length;
-  xml = xml.replace(/<dimension ref="[^"]*"\/>/,
-                    `<dimension ref="A1:${anColunaLetra(AE.ORDEM.length - 1)}${ultima}"/>`);
-
-  zip.file(caminho, xml);
-  return await zip.generateAsync({type:'uint8array', compression:'DEFLATE'});
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    GUARDAR OS ANÚNCIOS NO NAVEGADOR
