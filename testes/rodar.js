@@ -9,6 +9,7 @@ const ML = require('../assets/ml-engine.js');
 const MF = require('../assets/ml-fretes.js');
 const PE = require('../assets/planilha-engine.js');
 const AE = require('../assets/anuncios-engine.js');
+const MK = require('../assets/mkt-engine.js');
 
 let passou = 0, falhou = 0;
 const falhas = [];
@@ -448,6 +449,69 @@ secao('9. Anúncios do Mercado Livre');
   const r2 = AE.casar(modeloAoa, m, px2);
   ok(r2.conferencia.atualizados === 0, 'preço zero ou texto não vira preço novo');
   ok(r2.linhas[0].avisos.includes('preco_invalido'), 'marca preço inválido');
+}
+
+secao('10. Motor genérico de marketplace');
+{
+  /* canal de mentira, com taxas simples de conferir na mão: comissão 10%,
+     taxa fixa de R$ 5 abaixo de 50, frete de R$ 10 quando há peso */
+  const teste = MK.criarMotor({
+    id:'teste', nome:'Teste', PESO_MAXIMO:30, PRECO_MINIMO:2,
+    PADRAO:{margemAlvo:0.2, usarPesoVolumetrico:true, divisorVolumetrico:6000,
+            freteAutomatico:true, pesoPadrao:0, rebate:0, aliquotaImposto:0,
+            taxaDevolucao:0, embalagem:0},
+    comissaoDe: () => 0.10,
+    taxaFixaDe: pr => pr < 50 ? 5 : 0,
+    freteDe: (pr, kg) => kg ? 10 : 0,
+    limites: () => [50],
+  });
+
+  const r = teste.analisar(100, 50, 1, {});
+  perto(r.comissao, 10, 'comissão de 10% sobre 100');
+  perto(r.taxaFixa, 0, 'acima de 50 não tem taxa fixa');
+  perto(r.frete, 10, 'frete de 10 com peso');
+  perto(r.lucroLiquido, 30, 'lucro = 100 - 10 - 10 - 50');
+  perto(r.margemLiquida, 0.30, 'margem líquida de 30%', 0.001);
+
+  const r2 = teste.analisar(40, 10, 1, {});
+  perto(r2.taxaFixa, 5, 'abaixo de 50 tem taxa fixa');
+
+  /* o inverso tem de devolver o alvo, não um valor perto */
+  [[50, 0.20], [10, 0.30], [200, 0.15], [7.5, 0.10]].forEach(([custo, alvo]) => {
+    const pr = teste.precoPara(custo, alvo, 1, {});
+    ok(pr != null, `acha preço para custo ${custo} e margem ${alvo*100}%`);
+    if (pr != null) {
+      const a = teste.analisar(pr, custo, 1, {});
+      ok(a.margemLiquida >= alvo - 1e-6,
+         `custo ${custo} margem ${alvo*100}% é cumprida`,
+         `obtida ${(a.margemLiquida*100).toFixed(2)}%`);
+    }
+  });
+
+  /* margem impossível: 10% de comissão + 95% de margem passa de 100% */
+  ok(teste.precoPara(50, 0.95, 1, {}) === null, 'recusa margem que não cabe');
+
+  /* peso volumétrico manda quando a caixa é grande e leve */
+  const vol = teste.pesoCobravel(1, {altura:30, largura:40, comprimento:50}, teste.PADRAO);
+  perto(vol.volumetrico, 10, 'volumétrico 30x40x50 ÷ 6000 = 10 kg', 0.001);
+  ok(vol.usou === 'volumétrico', 'usa o volumétrico quando ele é maior');
+
+  /* os avisos de linha */
+  const lote = teste.precificarLote([
+    {linha:1, custo:50,  peso:1, dimensoes:{altura:10,largura:10,comprimento:10}},
+    {linha:2, custo:'',  peso:1},
+    {linha:3, custo:20,  peso:''},
+    {linha:4, custo:'abc', peso:1},
+    {linha:5, custo:20,  peso:99},
+  ], {margemAlvo:0.2});
+  perto(lote.conferencia.total, 5, 'conta as cinco linhas');
+  const av = l => lote.linhas.find(x => x.linha === l).avisos;
+  ok(av(2).includes('sem_custo'), 'aponta custo vazio');
+  ok(av(3).includes('sem_peso'), 'aponta peso vazio');
+  ok(av(4).includes('custo_invalido'), 'aponta custo que é texto');
+  ok(av(5).includes('peso_alto'), 'aponta peso acima do limite do canal');
+  ok(lote.linhas.find(x => x.linha === 1).avisos.length === 0,
+     'linha completa não gera aviso', JSON.stringify(av(1)));
 }
 
 if (falhou) {
