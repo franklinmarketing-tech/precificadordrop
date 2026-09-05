@@ -483,8 +483,10 @@ async function anBuscarNaApi(){
     anAnuncios = mapa;
     anAoaML = null;          // veio da API, não de arquivo: o cabeçalho é o padrão
     anModeloML = null;
+    await anVerConta();
     mostrarEstado('ok', `<b>${mapa.size.toLocaleString('pt-BR')} anúncios</b> trazidos do Mercado Livre`
-      + (total ? ` (de ${total.toLocaleString('pt-BR')} na conta)` : '') + '.');
+      + (total ? ` (de ${total.toLocaleString('pt-BR')} na conta)` : '') + '.'
+      + anCartaoConta());
     mostrar('anMLInfo', false);
     anMostrarPasso3();
   }catch(e){
@@ -517,8 +519,10 @@ async function anPublicarPrecos(){
     ? `\n\nATENÇÃO: todos os preços ${v.sobem === v.n ? 'SOBEM' : 'DESCEM'}, metade mais de `
       + `${Math.round(Math.abs(v.mediana)*100)}%.`
     : '';
+  if(!anConta) await anVerConta();
+  const quem = anConta ? 'CONTA: ' + (anConta.apelido || anConta.nome || anConta.id) + '\n\n' : '';
   const ok = confirm(
-    `Isto muda o preço de ${alvo.length.toLocaleString('pt-BR')} anúncios no ar, agora.\n\n`
+    quem + `Isto muda o preço de ${alvo.length.toLocaleString('pt-BR')} anúncios no ar, agora.\n\n`
     + 'Quem estiver vendo o anúncio passa a ver o preço novo. O Mercado Livre não tem desfazer — '
     + 'para voltar seria preciso publicar os preços antigos de novo.' + aviso
     + '\n\nQuer publicar?');
@@ -571,4 +575,37 @@ async function anPublicarPrecos(){
   }finally{
     btn.disabled = false;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   QUAL CONTA ESTÁ LIGADA
+
+   A tela de autorização do Mercado Livre usa a conta logada no navegador, sem
+   perguntar — autorizar pela conta errada é fácil, e o erro só apareceria com
+   os preços já publicados na loja errada. Por isso o apelido da conta aparece
+   antes de qualquer publicação, e a confirmação repete o nome.
+   ══════════════════════════════════════════════════════════════════════════ */
+let anConta = null;
+
+async function anVerConta(){
+  try{
+    const r = await fetch('/api/ml-conta');
+    const d = await r.json().catch(() => ({}));
+    anConta = r.ok ? d : null;
+    return anConta;
+  }catch(e){
+    anConta = null;
+    return null;
+  }
+}
+
+function anCartaoConta(){
+  if(!anConta) return '';
+  return `<div class="conta-ml">
+    <div class="conta-ml-ic"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div><div class="conta-ml-t">Conectado como <b>${esc(anConta.apelido || anConta.nome || ('conta ' + anConta.id))}</b></div>
+      <div class="conta-ml-d">Os preços vão para os anúncios desta conta. Se não for ela,
+        refaça a autorização em <a href="/api/ml-auth" target="_blank" rel="noopener">/api/ml-auth</a>
+        usando uma janela anônima.</div></div>
+  </div>`;
 }
