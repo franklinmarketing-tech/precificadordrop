@@ -1649,3 +1649,30 @@ body.sem-rolagem{overflow:hidden}
 .conta-ml-t{font-size:14px;color:var(--sub)}
 .conta-ml-t b{color:var(--ink);font-weight:700}
 .conta-ml-d{font-size:12.5px;color:var(--faint);line-height:1.55;margin-top:3px}
+
+/* ═══ CARDS DA HOME QUE ABREM ══════════════════════════════
+   Fechados mostram só a marca do canal e quantas ferramentas tem. A lista
+   aparece quando a pessoa escolhe o canal — antes tudo ficava aberto ao
+   mesmo tempo e a home virava uma parede de opções. */
+.mkt-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%;
+  padding:0;margin:0;border:none;background:none;cursor:pointer;font-family:inherit;
+  text-align:left}
+.mkt-h:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:12px}
+.mkt-seta{width:18px;height:18px;margin-left:auto;flex:none;fill:none;stroke:var(--faint);
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.mkt.aberto .mkt-seta{transform:rotate(180deg);stroke:var(--blue)}
+.mkt-h:hover .mkt-seta{stroke:var(--blue)}
+
+/* a gaveta: fechada não ocupa espaço nem recebe foco de teclado */
+/* max-height e não o truque de grid 0fr: aquele colapsa só a primeira linha,
+   e a gaveta tem vários filhos (ferramentas, consultas, chegando) — os de
+   baixo ganhavam linha automática e o card continuava alto e vazio. */
+.mkt-corpo{max-height:0;overflow:hidden;opacity:0;visibility:hidden;margin-top:0;
+  transition:max-height .28s ease,opacity .2s ease,margin-top .28s ease}
+.mkt.aberto .mkt-corpo{max-height:1400px;opacity:1;visibility:visible;margin-top:14px}
+@media(prefers-reduced-motion:reduce){.mkt-corpo{transition:none}}
+
+/* fechado o card fica compacto; aberto ganha destaque na cor do canal */
+.mkt{transition:border-color .2s,box-shadow .2s}
+.mkt.aberto{border-color:var(--borda);
+  box-shadow:0 1px 0 var(--gloss) inset,0 16px 40px -26px rgba(20,30,60,.5)}

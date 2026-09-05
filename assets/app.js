@@ -3152,3 +3152,30 @@ function plBaixar(){
 /* ══ início ═══════════════════════════════════════════════════════════════ */
 montarContexto();
 daHash();
+
+/* ── os cards da home abrem ao clicar ────────────────────────────────────────
+   A home mostra só a marca de cada canal; as ferramentas aparecem quando a
+   pessoa escolhe o canal. Abre um por vez: dois cards abertos empurram o
+   resto da página para baixo e a comparação some. */
+function mktAbrir(botao){
+  const card = botao.closest('.mkt');
+  const abrindo = !card.classList.contains('aberto');
+  document.querySelectorAll('.mkt.aberto').forEach(c => {
+    c.classList.remove('aberto');
+    const b = c.querySelector('.mkt-h');
+    if(b) b.setAttribute('aria-expanded', 'false');
+  });
+  card.classList.toggle('aberto', abrindo);
+  botao.setAttribute('aria-expanded', String(abrindo));
+  try{ localStorage.setItem('drop-mkt', abrindo ? card.className.match(/mkt-[a-z]+/)[0] : ''); }catch(e){}
+}
+
+/* reabre o canal que a pessoa estava usando da última vez */
+try{
+  const salvo = localStorage.getItem('drop-mkt');
+  if(salvo){
+    const c = document.querySelector('.' + salvo);
+    const b = c && c.querySelector('.mkt-h');
+    if(b) { c.classList.add('aberto'); b.setAttribute('aria-expanded','true'); }
+  }
+}catch(e){}

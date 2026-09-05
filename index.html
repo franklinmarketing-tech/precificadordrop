@@ -285,7 +285,7 @@
            soltas no topo e as dos outros marketplaces apareciam bem abaixo,
            sem que desse para ver de relance o que existe para cada canal. -->
       <section class="mkt mkt-ml">
-        <div class="mkt-h">
+        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
           <span class="mkt-selo ml">
             <svg viewBox="0 0 44 30" aria-hidden="true">
               <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
@@ -294,7 +294,9 @@
             <span>Mercado&nbsp;Livre</span>
           </span>
           <span class="mkt-n">2 ferramentas · 6 consultas</span>
-        </div>
+          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mkt-corpo">
 
         <div class="minis minis-g">
           <button class="mini mini-alto" onclick="ir('ml')">
@@ -323,10 +325,11 @@
         <div class="chips">
           <button class="chip off" disabled>Base já publicada</button>
         </div>
+        </div>
       </section>
 
       <section class="mkt mkt-ferramentas">
-        <div class="mkt-h">
+        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
           <span class="mkt-selo ferramentas">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M14.7 6.3a4 4 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8 0l-2.2-2.2a2 2 0 0 1 0-2.8z"
@@ -335,8 +338,10 @@
             </svg>
             <span>Ferramentas</span>
           </span>
-          <span class="mkt-n">servem a qualquer canal</span>
-        </div>
+          <span class="mkt-n">2 ferramentas</span>
+          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mkt-corpo">
 
         <div class="minis minis-g">
           <button class="mini mini-alto" onclick="ir('planilha')">
@@ -350,10 +355,11 @@
             <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
         </div>
+        </div>
       </section>
 
       <section class="mkt mkt-shopee">
-        <div class="mkt-h">
+        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
           <span class="mkt-selo shopee">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4.5 8h15l-1.1 11.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"
@@ -364,7 +370,9 @@
             <span>Shopee</span>
           </span>
           <span class="mkt-n">em preparação</span>
-        </div>
+          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mkt-corpo">
         <div class="chips">
           <button class="chip off" disabled>Precificar Shopee</button>
           <button class="chip off" disabled>Base da Shopee</button>
@@ -372,10 +380,11 @@
         <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre — comissão,
           taxa fixa, frete grátis e cupom do vendedor entram em outra conta. Por isso pede
           ferramenta própria, e não um botão a mais na de hoje.</div>
+        </div>
       </section>
 
       <section class="mkt mkt-amazon">
-        <div class="mkt-h">
+        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
           <span class="mkt-selo amazon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M2.6 14.8c4.4 3.2 10.2 4.3 15.4 2.4"
@@ -389,13 +398,16 @@
             <span>Amazon</span>
           </span>
           <span class="mkt-n">em preparação</span>
-        </div>
+          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mkt-corpo">
         <div class="chips">
           <button class="chip off" disabled>Precificar Amazon</button>
           <button class="chip off" disabled>Base da Amazon</button>
         </div>
         <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de fechamento
           em algumas delas. Outra conta, outra ferramenta.</div>
+        </div>
       </section>
 
 
