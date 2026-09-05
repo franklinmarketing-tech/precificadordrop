@@ -1135,11 +1135,11 @@ function revisarSecaoPeso(){
         <div class="pz-sub">de ${r.n} produtos com peso preenchido</div></div>
     </div>
 
-    <p class="pz-p"><b>Como o app identifica.</b> São os pesos que aparecem como número
-    redondo e acima de ${ML.PISO_GRAMAS} — como <b>${numBr(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b>
-    ou <b>${numBr(r.maior)}</b>. Peso em quilo de produto de dropshipping tem casa decimal
-    (0,9 · 2,575) e dificilmente passa de ${ML.PISO_GRAMAS} kg; peso em grama vem redondo.
-    O Mercado Livre nem entrega acima de ${ML.LIMITE_ML} kg.</p>
+    <p class="pz-p"><b>Como o app identifica.</b> Duas situações: peso <b>redondo e acima
+    de ${ML.PISO_GRAMAS}</b> — como <b>${numBr(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b> —,
+    porque quilo de dropshipping tem casa decimal (0,9 · 2,575) e grama vem redondo;
+    e <b>qualquer peso acima de ${ML.LIMITE_ML} kg</b>, com decimal ou sem, já que o
+    Mercado Livre não entrega nessa faixa e nenhum produto real chega lá.</p>
 
     <p class="pz-p"><b>Por que importa.</b> Lido como quilo, o produto cai nas últimas faixas
     da tabela e o frete sai em dezenas ou centenas de reais. Esse valor entra no preço
@@ -1936,12 +1936,30 @@ function mlChecksCategoria(){
   return saida;
 }
 
-/* filtra a tabela por um tipo de problema — inclusive linhas além da centésima */
+/* filtra a tabela por um tipo de problema — inclusive linhas além da centésima.
+   Filtrar sem levar até a tabela deixava o usuário olhando o mesmo card: a
+   lista mudava 2.000px abaixo, fora da tela, e nada parecia ter acontecido. */
 function mlVerLinhas(id){
-  mlFiltro = (mlFiltro === id) ? null : id;
+  const ligando = mlFiltro !== id;
+  mlFiltro = ligando ? id : null;
   mlPagina = 0;
+  mlBusca = '';
   mlRenderChecks();
   mlRenderTabela();
+  if(ligando) mlIrParaTabela();
+}
+
+/* leva à tabela já filtrada e pisca a primeira linha com problema, para o olho
+   achar onde continuar em vez de cair numa grade de números */
+function mlIrParaTabela(){
+  const alvo = $('mlPainelTabela');
+  if(!alvo) return;
+  alvo.scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block: 'start'});
+  const linha = alvo.querySelector('tr.tr-erro, tr.tr-alerta');
+  if(!linha || reduzido) return;
+  linha.classList.remove('tr-achei');
+  void linha.offsetWidth;            // reinicia a animação a cada clique
+  linha.classList.add('tr-achei');
 }
 function mlIrPagina(n){ mlPagina = n; mlRenderTabela(); }
 
@@ -2118,14 +2136,14 @@ function mlRenderTabela(){
         <td colspan="${tdsVazios - 2}" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
       return `<tr${grav}>
-        <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
-        <td style="color:var(--amber)">${tdCusto}</td>
-        <td>${tdPeso}</td>
-        <td style="font-weight:700">${ML.brl(r.preco)}</td>
-        <td style="color:var(--red)">${ML.brl(-r.comissao)}</td>
-        <td style="color:var(--red)">${ML.brl(-r.frete)}</td>
-        <td style="color:${r.lucroLiquido > 0 ? 'var(--green-dk)' : 'var(--red)'}">${ML.brl(r.lucroLiquido)}</td>
+        <td class="c-linha">${r.linha + 1}</td>
+        <td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
+        <td class="c-custo">${tdCusto}</td>
+        <td class="c-peso">${tdPeso}</td>
+        <td class="c-preco">${ML.brl(r.preco)}</td>
+        <td class="c-taxa">${ML.brl(-r.comissao)}</td>
+        <td class="c-taxa">${ML.brl(-r.frete)}</td>
+        <td class="c-lucro ${r.lucroLiquido > 0 ? 'pos' : 'neg'}">${ML.brl(r.lucroLiquido)}</td>
         <td>${situacao(r)}</td>
       </tr>`;
     }).join('') + '</tbody>';
@@ -2148,10 +2166,14 @@ function mlRenderTabela(){
       <input type="search" class="busca" placeholder="Buscar por descrição ou código…"
         value="${esc(mlBusca)}" oninput="mlBuscar(this.value)"/>
       <div class="f-atalhos"><span class="f-titulo">Clique para ver só os produtos com problema</span>${atalhos}</div>
-      ${grupo ? `<div class="f-ativo">
-          <div><b>${esc(grupo.titulo)}</b> — ${grupo.n} produto${grupo.n === 1 ? '' : 's'}
-            ${grupo.comoResolver ? `<div class="f-ajuda">${esc(grupo.comoResolver)}</div>` : ''}</div>
-          <button onclick="mlVerLinhas('${grupo.id}')">ver todas as linhas</button>
+      ${grupo ? `<div class="f-ativo ${grupo.gravidade === 'erro' ? 'grave' : ''}">
+          <div class="f-ativo-ic">${grupo.gravidade === 'erro'
+            ? '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+            : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'}</div>
+          <div>
+            <div class="f-ativo-t">Mostrando ${grupo.n} produto${grupo.n === 1 ? '' : 's'}: <b>${esc(grupo.titulo)}</b></div>
+            ${grupo.comoResolver ? `<div class="f-ajuda"><b>O que fazer agora</b>${esc(grupo.comoResolver)}</div>` : ''}</div>
+          <button onclick="mlVerLinhas('${grupo.id}')">ver todas as ${mlLinhas.length.toLocaleString('pt-BR')} linhas</button>
         </div>` : ''}
       ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}
       ${nEd ? `<span class="ed-aviso"><b>${nEd}</b> linha${nEd === 1 ? '' : 's'} corrigida${nEd === 1 ? '' : 's'} aqui</span>

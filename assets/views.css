@@ -616,6 +616,28 @@ body.view-hub{overflow-x:hidden}
 .filtro-bar .ed-aviso{color:var(--amber-dk,#96690a)}
 
 /* linha com problema: a cor no fundo acha o erro numa página de 600 */
+/* ── peso das colunas ──────────────────────────────────────
+   Preço, lucro e peso são o que o usuário veio conferir; linha e descrição
+   são referência. Antes tudo saía no mesmo cinza de 11,5px e a leitura ficava
+   plana — daí a sensação de "não sei o que preciso fazer". */
+.tbl-wrap .c-linha{color:var(--faint);font-size:11.5px}
+.tbl-wrap .c-desc{color:var(--sub)}
+.tbl-wrap .c-custo{color:var(--amber);font-weight:600}
+.tbl-wrap .c-peso{font-weight:600}
+.tbl-wrap .c-preco{font-family:var(--display);font-weight:700;font-size:13.5px;color:var(--ink)}
+.tbl-wrap .c-taxa{color:var(--red);font-size:11.5px;opacity:.85}
+.tbl-wrap .c-lucro{font-family:var(--display);font-weight:700;font-size:13px}
+.tbl-wrap .c-lucro.pos{color:var(--green-dk)}
+.tbl-wrap .c-lucro.neg{color:var(--red)}
+
+/* a linha que o filtro foi buscar: pisca uma vez ao chegar, senão a tabela
+   filtrada parece igual à de antes e o usuário não sabe onde olhar */
+@keyframes achei{
+  0%{background:rgba(79,124,255,.3)}
+  100%{background:transparent}
+}
+.tbl-wrap tr.tr-achei > td{animation:achei 1.6s ease-out}
+
 .tbl-wrap tr.tr-erro > td{background:rgba(229,72,77,.055)}
 .tbl-wrap tr.tr-alerta > td{background:rgba(245,158,11,.055)}
 .tbl-wrap tr.tr-erro:hover > td{background:rgba(229,72,77,.1)}
@@ -658,12 +680,36 @@ body.view-hub{overflow-x:hidden}
    não pareciam clicáveis — e são o caminho para achar o que está errado. */
 /* filtro ligado: além de dizer o que está filtrando, diz o que fazer com essas
    linhas — é aqui que o usuário está olhando quando precisa da instrução */
-.f-ativo{display:flex;align-items:flex-start;gap:12px;width:100%;padding:11px 13px;
-  border-radius:10px;background:#fff;border:1px solid rgba(79,124,255,.28);font-size:12px}
-.f-ativo > div{flex:1;min-width:0}
+.f-ativo{display:flex;align-items:flex-start;gap:12px;width:100%;padding:13px 15px;
+  border-radius:12px;background:#fff;border:1px solid rgba(79,124,255,.28);font-size:12px;
+  box-shadow:0 2px 10px -4px rgba(20,30,60,.14)}
+.f-ativo.grave{border-color:rgba(229,72,77,.35);background:linear-gradient(100deg,rgba(229,72,77,.05),#fff 60%)}
+/* o seletor generico esticava tambem o icone, que virava uma faixa larga
+   atravessando a barra — so o bloco de texto cresce */
+.f-ativo > div:not(.f-ativo-ic){flex:1;min-width:0}
 .f-ativo b{color:var(--ink)}
-.f-ajuda{font-size:11.5px;color:var(--sub);line-height:1.5;margin-top:4px}
+.f-ativo-ic{width:26px;height:26px;flex:0 0 26px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(160deg,#fbbf24,#b45309);
+  box-shadow:0 4px 10px -3px rgba(245,158,11,.5)}
+.f-ativo.grave .f-ativo-ic{background:linear-gradient(160deg,#ff7a7d,#d63a3f);
+  box-shadow:0 4px 10px -3px rgba(229,72,77,.6)}
+.f-ativo-ic svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.f-ativo-t{font-size:13px;color:var(--sub)}
+.f-ativo-t b{font-family:var(--display);font-weight:700}
+/* a instrução é o motivo de a pessoa estar aqui: destacada, não em nota de
+   rodapé cinza — era a queixa de "não sei o que preciso fazer" */
+.f-ajuda{font-size:12px;color:var(--sub);line-height:1.55;margin-top:7px;
+  padding-left:11px;border-left:2px solid rgba(79,124,255,.35)}
+.f-ativo.grave .f-ajuda{border-left-color:rgba(229,72,77,.4)}
+.f-ajuda b{display:block;font-size:9.5px;font-weight:700;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--blue-dk);margin-bottom:2px}
+.f-ativo.grave .f-ajuda b{color:var(--red)}
 .f-ativo button{flex:none;align-self:center}
+@media(max-width:600px){
+  .f-ativo{flex-wrap:wrap}
+  .f-ativo button{width:100%;margin-top:4px}
+}
 
 .f-atalhos{display:flex;gap:8px;flex-wrap:wrap;width:100%}
 .filtro-bar .f-atalho{font-size:12px;font-weight:600;padding:10px 14px;min-height:40px;

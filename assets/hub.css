@@ -239,11 +239,16 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 .panel{min-width:0}
 @media(max-width:880px){.tbl-wrap{max-height:min(62vh,600px)}}
 table{border-collapse:collapse;width:100%;font-size:12px}
-thead{position:sticky;top:0;background:#f7f9fd;z-index:2}
-th{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:9.5px;font-weight:600;
-  letter-spacing:1px;color:var(--faint);white-space:nowrap;text-transform:uppercase}
-td{font-variant-numeric:tabular-nums;padding:9px 14px;border-bottom:1px solid #f0f3f9;font-size:11.5px;
-  white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+thead{position:sticky;top:0;background:#f7f9fd;z-index:2;box-shadow:0 1px 0 var(--line)}
+/* o cabeçalho some quando é do mesmo cinza dos dados; escuro e mais firme ele
+   volta a funcionar como régua das colunas ao rolar */
+th{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:10px;font-weight:700;
+  letter-spacing:.9px;color:var(--sub);white-space:nowrap;text-transform:uppercase}
+/* 11,5px cinza em tudo fazia preço, custo e lucro pesarem igual — o olho não
+   achava o número que importa. Agora o corpo é maior e mais escuro, e cada
+   coluna-chave recebe seu próprio peso abaixo. */
+td{font-variant-numeric:tabular-nums;padding:11px 14px;border-bottom:1px solid #f0f3f9;font-size:12.5px;
+  color:var(--ink);white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
 tbody tr:hover td{background:#f8faff}
 
 /* ── abas ───────────────────────────────────────────────── */
