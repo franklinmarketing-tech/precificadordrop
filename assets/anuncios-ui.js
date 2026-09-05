@@ -56,6 +56,7 @@ async function anCarregarPrecos(file){
       `aba <b>${esc(lido.nome)}</b> · <b>${linhas.toLocaleString('pt-BR')}</b> produtos · ${anCabPrecos.length} colunas`);
     mostrar('anPrecosInfo', true);
     mostrar('anStep2', true);
+    anMostrarGuardado();
     anMontarOpcoes();
     $('anStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
   }catch(e){
@@ -95,6 +96,8 @@ async function anCarregarML(file){
       `aba <b>${esc(nome)}</b> · <b>${modelo.total.toLocaleString('pt-BR')}</b> anúncios · `
       + `<b>${anAnuncios.size.toLocaleString('pt-BR')}</b> códigos por SKU`);
     mostrar('anMLInfo', true);
+    anGuardar(anAnuncios, 'arquivo');   // na próxima vez não precisa subir de novo
+    anMostrarGuardado();
     anMostrarPasso3();
   }catch(e){
     alert('Não consegui ler o arquivo de anúncios.\n\n' + (e && e.message ? e.message : e));
@@ -523,6 +526,8 @@ async function anBuscarNaApi(){
     }
 
     anAnuncios = mapa;
+    anGuardar(mapa, 'api');             // vale para a próxima visita
+    anMostrarGuardado();
     anAoaML = null;          // veio da API, não de arquivo: sem molde para as cores
     anModeloML = null; anBytesML = null;
     await anVerConta();
@@ -773,4 +778,99 @@ async function anGerarComMolde(bytes, nomeAba, linhas, primeira){
 
   zip.file(caminho, xml);
   return await zip.generateAsync({type:'uint8array', compression:'DEFLATE'});
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GUARDAR OS ANÚNCIOS NO NAVEGADOR
+
+   O que interessa do arquivo do Mercado Livre é o código de cada SKU, e isso
+   muda pouco: anúncio novo entra de vez em quando, o resto continua igual.
+   Baixar e subir a planilha toda vez para buscar a mesma coisa é trabalho à
+   toa — então o app guarda depois do primeiro envio e oferece na volta.
+
+   Fica só neste navegador. São ~320 KB para 2.650 anúncios; o limite costuma
+   ser 5 MB, mas se estourar o app segue funcionando sem guardar.
+   ══════════════════════════════════════════════════════════════════════════ */
+const AN_CHAVE = 'drop-anuncios';
+
+/* formato enxuto: array de arrays em vez de objetos com nome de campo
+   repetido 2.650 vezes — cabe quase o dobro no mesmo espaço */
+function anGuardar(mapa, origem){
+  try{
+    const linhas = [];
+    mapa.forEach((a, sku) => linhas.push([
+      sku, a.ITEM_ID, a.FAMILY_ID || '', a.PRODUCT_NUMBER || '',
+      a.VARIATION_ID || '', a.TITLE || '',
+      (isNaN(a.PRICE) ? 0 : a.PRICE), a.QUANTITY === '' ? '' : a.QUANTITY,
+    ]));
+    localStorage.setItem(AN_CHAVE, JSON.stringify({
+      versao: 1, em: Date.now(), origem: origem || 'arquivo', linhas,
+    }));
+    return true;
+  }catch(e){
+    /* cota estourada ou navegador em modo restrito: não é erro que mereça
+       parar o fluxo, só não vai ter atalho na próxima vez */
+    return false;
+  }
+}
+
+function anLerGuardado(){
+  try{
+    const cru = localStorage.getItem(AN_CHAVE);
+    if(!cru) return null;
+    const d = JSON.parse(cru);
+    if(!d || d.versao !== 1 || !Array.isArray(d.linhas) || !d.linhas.length) return null;
+    const mapa = new Map();
+    d.linhas.forEach(L => mapa.set(L[0], {
+      ITEM_ID: L[1], FAMILY_ID: L[2], PRODUCT_NUMBER: L[3], VARIATION_ID: L[4],
+      TITLE: L[5], PRICE: Number(L[6]) || NaN, QUANTITY: L[7],
+    }));
+    return {mapa, em: d.em, origem: d.origem};
+  }catch(e){ return null; }
+}
+
+function anEsquecer(){
+  try{ localStorage.removeItem(AN_CHAVE); }catch(e){}
+  anAnuncios = null;
+  anMostrarGuardado();
+}
+
+function anDataCurta(ms){
+  const d = new Date(ms);
+  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})
+       + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+/* o atalho aparece no passo 2, antes de pedir o arquivo de novo */
+function anMostrarGuardado(){
+  const caixa = $('anGuardado');
+  if(!caixa) return;
+  const g = anLerGuardado();
+  if(!g){ mostrar('anGuardado', false); return; }
+
+  caixa.innerHTML = `
+    <div class="an-salvo">
+      <div class="an-salvo-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div class="an-salvo-txt">
+        <b>${g.mapa.size.toLocaleString('pt-BR')} anúncios já guardados aqui</b>
+        <i>${g.origem === 'api' ? 'buscados no Mercado Livre' : 'do arquivo que você enviou'}
+           em ${esc(anDataCurta(g.em))} · ficam só neste navegador</i>
+      </div>
+      <div class="an-salvo-btns">
+        <button class="btn btn-green" onclick="anUsarGuardado()">Usar estes</button>
+        <button class="btn btn-ghost" onclick="anEsquecer()">Apagar</button>
+      </div>
+    </div>`;
+  mostrar('anGuardado', true);
+}
+
+function anUsarGuardado(){
+  const g = anLerGuardado();
+  if(!g) return;
+  anAnuncios = g.mapa;
+  anAoaML = null; anModeloML = null; anBytesML = null;   // sem arquivo: sem molde de cor
+  $('anMLInfo').innerHTML = anCartao('Anúncios guardados',
+    `<b>${g.mapa.size.toLocaleString('pt-BR')}</b> códigos por SKU · de ${esc(anDataCurta(g.em))}`);
+  mostrar('anMLInfo', true);
+  anMostrarPasso3();
 }
