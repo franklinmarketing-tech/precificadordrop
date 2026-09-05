@@ -7,6 +7,27 @@ const ML = MLEngine;
 const PE = PlanilhaEngine;
 const brl = ML.brl;
 const reduzido = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ── tema ────────────────────────────────────────────────────────────────────
+   Escuro por padrão, claro por escolha. Não segue o sistema operacional de
+   propósito: segue o botão. O <head> já aplicou a escolha salva antes da
+   primeira pintura; aqui só ficam a troca e o rótulo do botão. */
+function temaAplicar(t){
+  const claro = t === 'claro';
+  if(claro) document.documentElement.setAttribute('data-tema', 'claro');
+  else document.documentElement.removeAttribute('data-tema');
+  const b = document.getElementById('btnTema');
+  if(b){
+    const alvo = claro ? 'escuro' : 'claro';
+    b.setAttribute('aria-label', 'Mudar para o tema ' + alvo);
+    b.setAttribute('title', 'Mudar para o tema ' + alvo);
+  }
+  try{ localStorage.setItem('drop-tema', t); }catch(e){}
+}
+function alternarTema(){
+  const claroAgora = document.documentElement.getAttribute('data-tema') === 'claro';
+  temaAplicar(claroAgora ? 'escuro' : 'claro');
+}
 const preciso  = matchMedia('(hover:hover) and (pointer:fine)').matches;
 
 const XU = XlsxUtils;
@@ -86,7 +107,7 @@ function ir(v, semHash){
   mostrar('topoTool', !SIMPLES.includes(v));
   
   mostrar('btnParams', v === 'planilha');
-  mostrar('passos', v === 'ml');
+  mostrar('trilho', v === 'ml');
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
   mostrar('btnVoltar', v !== 'hub');
 

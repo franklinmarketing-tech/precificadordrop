@@ -2,19 +2,61 @@
    Precificador Drop — design system do hub
    Uma linguagem visual só para o hub e todas as ferramentas.
    ══════════════════════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 *{box-sizing:border-box;margin:0;padding:0}
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA — escuro por padrão, claro por escolha
+   Os nomes dos tokens são os mesmos de sempre (--ink, --sub, --line…), só os
+   valores mudaram: assim o app inteiro acompanha sem reescrever cada regra.
+   Atenção ao inverter: os tons "-dk" existiam para escrever sobre fundo
+   claro. No escuro eles precisam ficar mais CLAROS, não mais escuros.
+   O tema não segue o sistema operacional de propósito — segue o botão, e a
+   escolha fica gravada no navegador.
+   ══════════════════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#eef1f8; --ink:#0e1018; --sub:#666d7e; --faint:#9aa1b1; --line:#e4e8f0;
-  --blue:#4f7cff; --blue-dk:#2f5ae0; --violet:#8b5cf6; --violet-dk:#6d3fe0;
-  --green:#12b76a; --green-dk:#088350;
-  --orange:#ff7a1a; --orange-dk:#d95d05;
-  --pink:#ff4d84; --pink-dk:#e02a63;
-  --red:#e5484d; --amber:#f79009;
-  --sans:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  --display:'Sora','Plus Jakarta Sans',sans-serif;
-  --sombra-card:0 1px 0 rgba(255,255,255,.95) inset,0 2px 4px rgba(20,30,60,.04),0 18px 40px -24px rgba(20,30,60,.3);
+  /* paleta base */
+  --midnight:#020B1B; --navy:#07182F; --cyan:#22D7FF;
+
+  --bg:#020B1B; --ink:#F5F7FF; --sub:#A8B8D0; --faint:#6B7F9E;
+  --line:rgba(180,210,255,.11); --line-2:rgba(180,210,255,.2);
+
+  /* superfícies: onde antes havia #fff cravado */
+  --sup:#07182F; --sup-2:#0C2242; --sup-3:#123055;
+  --sup-t:rgba(255,255,255,.03); --sup-t2:rgba(255,255,255,.06);
+  --gloss:rgba(255,255,255,.05);
+
+  --blue:#168CFF; --blue-dk:#5FB0FF; --violet:#7848FF; --violet-dk:#A98BFF;
+  --green:#2BE08D; --green-dk:#4EE9A2;
+  --orange:#FF9147; --orange-dk:#FFAE7C;
+  --pink:#FF4D84; --pink-dk:#FF85AC;
+  --red:#FF4D6A; --amber:#FFB020; --amber-dk:#FFC757;
+
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --display:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  --sombra-card:0 1px 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.3),0 18px 44px -24px rgba(0,0,0,.8);
+  --topo-1:#061428; --topo-2:#040E1D;
+  --veu-1:rgba(2,11,27,.72); --veu-2:rgba(2,11,27,.9);
+  --malha:rgba(150,190,255,.13);
+}
+[data-tema="claro"]{
+  --bg:#EEF1F8; --ink:#0E1018; --sub:#666D7E; --faint:#9AA1B1;
+  --line:#E4E8F0; --line-2:#D3DAE8;
+
+  --sup:#FFFFFF; --sup-2:#FFFFFF; --sup-3:#F1F4FB;
+  --sup-t:rgba(255,255,255,.7); --sup-t2:rgba(255,255,255,.85);
+  --gloss:rgba(255,255,255,.95);
+
+  --blue:#0B6FD8; --blue-dk:#2F5AE0; --violet:#8B5CF6; --violet-dk:#6D3FE0;
+  --green:#12B76A; --green-dk:#088350;
+  --orange:#FF7A1A; --orange-dk:#D95D05;
+  --pink:#FF4D84; --pink-dk:#E02A63;
+  --red:#E5484D; --amber:#F79009; --amber-dk:#96690A;
+  --sombra-card:0 1px 0 var(--gloss) inset,0 2px 4px rgba(20,30,60,.04),0 18px 40px -24px rgba(20,30,60,.3);
+  --topo-1:#E8ECF8; --topo-2:#E2E7F6;
+  --veu-1:rgba(238,241,248,.74); --veu-2:rgba(238,241,248,.9);
+  --malha:rgba(20,30,60,.16);
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;position:relative}
@@ -40,10 +82,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     radial-gradient(580px 580px at 44% 104%, rgba(18,183,106,.20), transparent 62%),
     radial-gradient(420px 420px at 92% 96%,  rgba(255,122,26,.16), transparent 62%)}
 
-.mesh{position:absolute;inset:0;background-image:radial-gradient(rgba(20,30,60,.16) 1px,transparent 1px);background-size:26px 26px;
+.mesh{position:absolute;inset:0;background-image:radial-gradient(var(--malha) 1px,transparent 1px);background-size:26px 26px;
   -webkit-mask-image:radial-gradient(ellipse 75% 65% at 50% 45%,#000 40%,transparent 100%);
   mask-image:radial-gradient(ellipse 75% 65% at 50% 45%,#000 40%,transparent 100%);opacity:.5}
-.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(238,241,248,.74),rgba(238,241,248,.9))}
+.veil{position:absolute;inset:0;background:linear-gradient(180deg,var(--veu-1),var(--veu-2))}
 .grain{position:absolute;inset:0;opacity:.4;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E")}
 
@@ -55,15 +97,16 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 /* O cabeçalho acompanha a rolagem e tem faixa própria — mais escura que a
    página — para se ler como cabeçalho e não como o começo do conteúdo. */
 .topbar{position:sticky;top:0;z-index:150;
-  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
+  /* o nome do app pede largura própria; quem cede espaço é a faixa do meio */
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;
   margin:-22px -32px 18px;padding:11px 32px;
   /* opaca de propósito: o backdrop-filter saiu daqui por custo de pintura, e
      sem ele qualquer transparência deixa o conteúdo aparecer através da barra */
-  background:linear-gradient(180deg,#e8ecf8,#e2e7f6);
-  border-bottom:1px solid rgba(20,30,60,.09);
-  box-shadow:0 1px 0 rgba(255,255,255,.7) inset}
+  background:linear-gradient(180deg,var(--topo-1),var(--topo-2));
+  border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 var(--gloss) inset}
 /* ganha profundidade só depois que a página desce */
-.topbar.rolou{box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 26px -14px rgba(20,30,60,.45)}
+.topbar.rolou{box-shadow:0 1px 0 var(--gloss) inset,0 10px 26px -14px rgba(20,30,60,.45)}
 @media(max-width:700px){.topbar{margin:-22px -18px 16px;padding:10px 18px}}
 .logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;background:none;border:none;font-family:inherit;cursor:pointer;padding:0;text-align:left}
 /* A gota 3D não fica dentro de uma pastilha: ela flutua solta, com o próprio
@@ -138,8 +181,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   padding:12px 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
   transition:all .22s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
 .btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.btn-ghost{background:linear-gradient(180deg,#fff,#f2f5fc);color:var(--sub);box-shadow:0 1px 0 #fff inset,0 4px 12px -5px rgba(20,30,60,.25)}
-.btn-ghost:hover{transform:translateY(-2px);box-shadow:0 1px 0 #fff inset,0 10px 20px -8px rgba(20,30,60,.3);color:var(--ink)}
+.btn-ghost{background:linear-gradient(180deg,var(--sup),var(--sup-3));color:var(--sub);box-shadow:0 1px 0 var(--gloss) inset,0 4px 12px -5px rgba(20,30,60,.25)}
+.btn-ghost:hover{transform:translateY(-2px);box-shadow:0 1px 0 var(--gloss) inset,0 10px 20px -8px rgba(20,30,60,.3);color:var(--ink)}
 .btn-primary{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 8px 18px -6px rgba(79,124,255,.7)}
 .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 14px 26px -8px rgba(79,124,255,.75)}
 .btn-green{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 18px -6px rgba(18,183,106,.7)}
@@ -160,7 +203,7 @@ h1 .grad{background:linear-gradient(100deg,var(--blue-dk),var(--blue) 30%,#8fb6f
 .h-sub{color:var(--sub);font-size:13.5px;max-width:560px;line-height:1.7;margin-top:7px}
 
 /* ── cartões e blocos ───────────────────────────────────── */
-.panel{background:linear-gradient(165deg,rgba(255,255,255,.985),rgba(246,249,255,.97));
+.panel{background:linear-gradient(165deg,var(--sup),var(--sup-2));
   border:1px solid rgba(255,255,255,.9);border-radius:20px;padding:24px;margin-bottom:18px;box-shadow:var(--sombra-card)}
 .panel-h{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
 .panel-t{font-family:var(--display);font-weight:700;font-size:16px;display:flex;align-items:center;gap:9px}
@@ -172,7 +215,7 @@ h1 .grad{background:linear-gradient(100deg,var(--blue-dk),var(--blue) 30%,#8fb6f
 .lbl{font-size:10.5px;font-weight:600;letter-spacing:1.2px;color:var(--blue-dk);margin-bottom:8px;text-transform:uppercase}
 .lbl.verde{color:var(--green-dk)}
 .nota{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.55}
-select,input[type=text],input[type=number],textarea{width:100%;background:#fff;border:1px solid #d9e0ee;border-radius:12px;
+select,input[type=text],input[type=number],textarea{width:100%;background:var(--sup);border:1px solid #d9e0ee;border-radius:12px;
   padding:11px 14px;font-family:inherit;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s}
 select:focus,input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,124,255,.15)}
 textarea{resize:vertical;min-height:88px;line-height:1.6}
@@ -182,7 +225,7 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 
 /* ── dropzone ───────────────────────────────────────────── */
 .zone{border:2px dashed #cdd5e6;border-radius:18px;padding:42px 24px;text-align:center;cursor:pointer;
-  transition:all .25s cubic-bezier(.16,1,.3,1);background:rgba(255,255,255,.55)}
+  transition:all .25s cubic-bezier(.16,1,.3,1);background:var(--sup-t)}
 .zone:hover,.zone.drag{border-color:var(--blue);background:rgba(79,124,255,.06);transform:translateY(-2px)}
 .zone-ic{width:56px;height:56px;margin:0 auto 14px;border-radius:17px;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(160deg,#7ea1ff,#2f5ae0);box-shadow:0 10px 22px -8px rgba(79,124,255,.85);animation:float 3.4s ease-in-out infinite}
@@ -206,7 +249,7 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 @media(max-width:800px){.stats-4,.stats-5{grid-template-columns:1fr 1fr}}
 /* em tela estreita o valor em reais não cabe em meia largura */
 @media(max-width:430px){.stats-4,.stats-5{grid-template-columns:1fr}}
-.stat{background:linear-gradient(165deg,#fff,#f5f8ff);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+.stat{background:linear-gradient(165deg,var(--sup),var(--sup-2));border:1px solid var(--line);border-radius:14px;padding:14px 16px;
   min-width:0;transition:transform .22s ease;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
 .stat:hover{transform:translateY(-3px)}
 .stat-n{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:800;font-size:25px;line-height:1.05;
@@ -234,12 +277,12 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
    numa janelinha rolante era o que mais atrapalhava. */
 /* min-width:0 é o que impede a tabela larga de esticar o painel e, com ele, a
    página inteira: sem isso a rolagem lateral vaza para o body no celular */
-.tbl-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;
+.tbl-wrap{background:var(--sup);border:1px solid var(--line);border-radius:14px;overflow:auto;
   min-width:0;max-height:min(72vh,900px)}
 .panel{min-width:0}
 @media(max-width:880px){.tbl-wrap{max-height:min(62vh,600px)}}
 table{border-collapse:collapse;width:100%;font-size:12px}
-thead{position:sticky;top:0;background:#f7f9fd;z-index:2;box-shadow:0 1px 0 var(--line)}
+thead{position:sticky;top:0;background:var(--sup-3);z-index:2;box-shadow:0 1px 0 var(--line)}
 /* o cabeçalho some quando é do mesmo cinza dos dados; escuro e mais firme ele
    volta a funcionar como régua das colunas ao rolar */
 th{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:10px;font-weight:700;
@@ -247,14 +290,14 @@ th{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-si
 /* 11,5px cinza em tudo fazia preço, custo e lucro pesarem igual — o olho não
    achava o número que importa. Agora o corpo é maior e mais escuro, e cada
    coluna-chave recebe seu próprio peso abaixo. */
-td{font-variant-numeric:tabular-nums;padding:11px 14px;border-bottom:1px solid #f0f3f9;font-size:12.5px;
+td{font-variant-numeric:tabular-nums;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12.5px;
   color:var(--ink);white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
-tbody tr:hover td{background:#f8faff}
+tbody tr:hover td{background:var(--sup-3)}
 
 /* ── abas ───────────────────────────────────────────────── */
 .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .tab{padding:9px 16px;border-radius:100px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;
-  border:1px solid var(--line);background:rgba(255,255,255,.7);color:var(--sub);transition:all .2s;
+  border:1px solid var(--line);background:var(--sup-t);color:var(--sub);transition:all .2s;
   display:inline-flex;align-items:center;gap:7px}
 .tab svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tab.active{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;box-shadow:0 6px 14px -5px rgba(79,124,255,.8)}
@@ -264,7 +307,7 @@ tbody tr:hover td{background:#f8faff}
 .steps{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .step{display:flex;align-items:center;gap:7px}
 .step-dot{width:23px;height:23px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:600;transition:all .25s;border:1px solid var(--line);background:#fff;color:var(--faint)}
+  font-size:10px;font-weight:600;transition:all .25s;border:1px solid var(--line);background:var(--sup);color:var(--faint)}
 .step-dot.on{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;box-shadow:0 5px 12px -4px rgba(79,124,255,.8)}
 .step-dot.done{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;border-color:transparent}
 .step-lbl{font-size:10px;font-weight:600;letter-spacing:.8px;color:var(--faint);transition:color .25s}
@@ -279,7 +322,7 @@ tbody tr:hover td{background:#f8faff}
    com quatro alertas na tela virava um bloco de âmbar onde nada se destacava,
    e o erro vermelho — o único que pede ação — se perdia no meio. */
 .chk{position:relative;display:flex;align-items:flex-start;gap:13px;overflow:hidden;
-  padding:14px 16px 14px 19px;border-radius:14px;background:#fff;
+  padding:14px 16px 14px 19px;border-radius:14px;background:var(--sup);
   border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);
   transition:box-shadow .18s,transform .18s,border-color .18s}
 /* overflow:hidden no card recorta a barra no raio da borda — sem ele o
@@ -289,7 +332,7 @@ tbody tr:hover td{background:#f8faff}
 .chk:hover{box-shadow:0 6px 20px -8px rgba(20,30,60,.18);transform:translateY(-1px)}
 .chk.ok{--chk-cor:linear-gradient(180deg,#28dd8a,#079254)}
 .chk.bad{--chk-cor:linear-gradient(180deg,#ff7a7d,#d63a3f);border-color:rgba(229,72,77,.28);
-  background:linear-gradient(100deg,rgba(229,72,77,.055),rgba(229,72,77,.012) 45%,#fff 75%)}
+  background:linear-gradient(100deg,rgba(229,72,77,.09),rgba(229,72,77,.02) 45%,var(--sup-2) 75%)}
 /* alerta é âmbar, não verde: um card verde com ícone de aviso dizia
    "está tudo bem" e "atenção" ao mesmo tempo */
 .chk.alerta{--chk-cor:linear-gradient(180deg,#fbbf24,#b45309)}
@@ -315,13 +358,13 @@ tbody tr:hover td{background:#f8faff}
 .chk.bad{--chk-guia:rgba(229,72,77,.35)}
 .chk.bad .chk-r b{color:var(--red)}
 .chk.alerta{--chk-guia:rgba(245,158,11,.4)}
-.chk.alerta .chk-r b{color:#9a5b00}
+.chk.alerta .chk-r b{color:var(--amber-dk)}
 
 /* a contagem é o dado que dimensiona o problema: ganha peso e cor própria */
 .chk-n{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:10.5px;
-  font-weight:700;padding:3px 9px;border-radius:100px;background:#eef1f8;color:var(--sub);letter-spacing:0}
+  font-weight:700;padding:3px 9px;border-radius:100px;background:var(--sup-3);color:var(--sub);letter-spacing:0}
 .chk.bad .chk-n{background:rgba(229,72,77,.12);color:var(--red)}
-.chk.alerta .chk-n{background:rgba(245,158,11,.16);color:#9a5b00}
+.chk.alerta .chk-n{background:rgba(245,158,11,.16);color:var(--amber-dk)}
 .chk.ok .chk-n{background:rgba(18,183,106,.12);color:var(--green-dk)}
 
 @media(max-width:600px){
@@ -332,7 +375,7 @@ tbody tr:hover td{background:#f8faff}
    dizia o principal — que a grande maioria dos produtos está pronta. A barra
    dá a proporção num relance; os números dizem quantos e de que tipo. */
 .chk-resumo{margin-bottom:14px}
-.chk-barra{display:flex;height:7px;border-radius:100px;overflow:hidden;background:#eef1f8;gap:2px}
+.chk-barra{display:flex;height:7px;border-radius:100px;overflow:hidden;background:var(--sup-3);gap:2px}
 .chk-barra i{display:block;transition:width .5s cubic-bezier(.4,0,.2,1)}
 .chk-barra .b-ok{background:linear-gradient(90deg,#28dd8a,#079254)}
 .chk-barra .b-alerta{background:linear-gradient(90deg,#fbbf24,#d98a06)}
@@ -367,18 +410,18 @@ tbody tr:hover td{background:#f8faff}
    marcado. */
 .menu{justify-self:center;display:flex;align-items:center;gap:5px;padding:4px 4px 4px 11px;
   border-radius:100px;
-  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(244,247,253,.75));
+  background:linear-gradient(180deg,var(--sup),var(--sup-2));
   border:1px solid rgba(255,255,255,.9);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(20,30,60,.04) inset,
+  box-shadow:0 1px 0 var(--gloss) inset,0 -1px 0 rgba(20,30,60,.04) inset,
              0 4px 14px -6px rgba(20,30,60,.2)}
 .mn{position:relative}
 
 
 .mn-t{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:100px;
-  background:rgba(255,255,255,.75);border:1px solid rgba(20,30,60,.09);
+  background:var(--sup-t);border:1px solid rgba(20,30,60,.09);
   font-family:inherit;font-size:12.5px;font-weight:600;
   color:var(--sub);cursor:pointer;position:relative;white-space:nowrap;
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 1px 2px rgba(20,30,60,.05);
+  box-shadow:0 1px 0 var(--gloss) inset,0 1px 2px rgba(20,30,60,.05);
   transition:background .25s ease,color .25s ease,box-shadow .25s ease,border-color .25s ease,transform .3s cubic-bezier(.16,1,.3,1)}
 .mn-t svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
@@ -392,15 +435,15 @@ tbody tr:hover td{background:#f8faff}
 .mn:nth-child(5) .mn-v{animation:setaChama 1.1s ease-out 1.65s 2}
 @keyframes setaChama{0%,100%{transform:translateY(0)}30%{transform:translateY(3px)}60%{transform:translateY(0)}}
 .mn-t:hover,.mn:hover .mn-t,.mn-t:focus-visible{
-  background:#fff;color:var(--ink);outline:none;transform:translateY(-1px);
+  background:var(--sup);color:var(--ink);outline:none;transform:translateY(-1px);
   border-color:var(--marca,rgba(79,124,255,.5));
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 6px 16px -6px rgba(20,30,60,.32)}
+  box-shadow:0 1px 0 var(--gloss) inset,0 6px 16px -6px rgba(20,30,60,.32)}
 .mn:hover .mn-v{animation:none}
 .mn:hover .mn-v{transform:rotate(180deg);opacity:.75}
 
 /* o marketplace da tela em que você está fica marcado */
-.mn-t.aqui{background:#fff;color:var(--ink);border-color:var(--marca,var(--blue));
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 4px 12px -4px rgba(20,30,60,.28)}
+.mn-t.aqui{background:var(--sup);color:var(--ink);border-color:var(--marca,var(--blue));
+  box-shadow:0 1px 0 var(--gloss) inset,0 4px 12px -4px rgba(20,30,60,.28)}
 .mn-t.aqui::after{content:'';position:absolute;left:50%;bottom:3px;transform:translateX(-50%);
   width:14px;height:2px;border-radius:100px;background:var(--marca,var(--blue))}
 .mn-t[data-mkt="ml"]{--marca:#f5cb00}
@@ -410,9 +453,9 @@ tbody tr:hover td{background:#f8faff}
 
 .mn-drop{position:absolute;top:calc(100% + 8px);left:0;width:288px;padding:8px;
   border-radius:16px;z-index:60;
-  background:linear-gradient(170deg,rgba(255,255,255,.99),rgba(246,248,253,.99));
+  background:linear-gradient(170deg,var(--sup),var(--sup-2));
   border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(16px);
-  box-shadow:0 1px 0 #fff inset,0 18px 40px -16px rgba(20,30,60,.3),0 4px 10px -4px rgba(20,30,60,.15);
+  box-shadow:0 1px 0 var(--gloss) inset,0 18px 40px -16px rgba(20,30,60,.3),0 4px 10px -4px rgba(20,30,60,.15);
   opacity:0;visibility:hidden;transform:translateY(-7px);
   transition:opacity .25s ease,transform .3s cubic-bezier(.16,1,.3,1),visibility .25s}
 /* a ponte invisível evita que o menu feche ao atravessar o vão de 8px */
@@ -450,7 +493,7 @@ tbody tr:hover td{background:#f8faff}
 /* fica acima do fundo decorativo: sem isso o véu do .bg passa por cima e o
    rodapé some, mesmo com o texto na cor certa */
 .pe{position:relative;z-index:1;margin-top:auto;padding:26px 32px 22px;
-  background:linear-gradient(180deg,rgba(232,236,248,.5),rgba(224,229,245,.85));
+  background:var(--sup-3);
   border-top:1px solid rgba(20,30,60,.09)}
 .pe-in{max-width:1300px;margin:0 auto;display:flex;align-items:center;
   justify-content:space-between;gap:22px;flex-wrap:wrap}
@@ -464,7 +507,7 @@ tbody tr:hover td{background:#f8faff}
 .pe-links button{background:none;border:none;font-family:inherit;font-size:11.5px;
   color:var(--sub);cursor:pointer;padding:6px 11px;border-radius:9px;
   transition:background .2s ease,color .2s ease}
-.pe-links button:hover{background:rgba(255,255,255,.8);color:var(--ink)}
+.pe-links button:hover{background:var(--sup-t2);color:var(--ink)}
 .pe-fim{display:flex;flex-direction:column;gap:2px;text-align:right}
 .pe-fim a{font-size:11.5px;color:var(--sub);text-decoration:none;font-weight:600;
   transition:color .2s ease}
@@ -478,13 +521,13 @@ tbody tr:hover td{background:#f8faff}
 /* botão de voltar, no canto esquerdo do cabeçalho */
 .voltar{width:36px;height:36px;flex:none;border-radius:11px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(180deg,#fff,#f1f4fb);border:1px solid rgba(20,30,60,.1);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px -2px rgba(20,30,60,.2);
+  background:linear-gradient(180deg,var(--sup),var(--sup-3));border:1px solid rgba(20,30,60,.1);
+  box-shadow:0 1px 0 var(--gloss) inset,0 2px 6px -2px rgba(20,30,60,.2);
   transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .25s ease,border-color .25s ease}
 .voltar svg{width:17px;height:17px;fill:none;stroke:var(--sub);stroke-width:2.1;
   stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
 .voltar:hover{transform:translateX(-2px);border-color:rgba(79,124,255,.45);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 6px 16px -6px rgba(47,90,224,.5)}
+  box-shadow:0 1px 0 var(--gloss) inset,0 6px 16px -6px rgba(47,90,224,.5)}
 .voltar:hover svg{stroke:var(--blue-dk);transform:translateX(-2px)}
 .voltar:focus-visible{outline:none;border-color:var(--blue);
   box-shadow:0 0 0 3px rgba(79,124,255,.28)}
@@ -509,8 +552,8 @@ tbody tr:hover td{background:#f8faff}
    de chegar em Shopee, Amazon ou no Guia fora da home. */
 .mn-hamb{display:none;width:38px;height:38px;flex:none;border-radius:11px;cursor:pointer;
   align-items:center;justify-content:center;margin-left:auto;
-  background:linear-gradient(180deg,#fff,#f1f4fb);border:1px solid rgba(20,30,60,.1);
-  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px -2px rgba(20,30,60,.2)}
+  background:linear-gradient(180deg,var(--sup),var(--sup-3));border:1px solid rgba(20,30,60,.1);
+  box-shadow:0 1px 0 var(--gloss) inset,0 2px 6px -2px rgba(20,30,60,.2)}
 .mn-hamb svg{width:18px;height:18px;fill:none;stroke:var(--sub);stroke-width:2.1;
   stroke-linecap:round}
 .mn-hamb:hover{border-color:rgba(79,124,255,.45)}
@@ -525,9 +568,9 @@ tbody tr:hover td{background:#f8faff}
 .menu-mobile .menu-rot{display:none}
 .menu-mobile .mn{width:100%}
 .menu-mobile .mn-t{width:100%;justify-content:space-between;padding:13px 14px;
-  border-radius:13px;font-size:14px;background:rgba(255,255,255,.6)}
-.menu-mobile .mn-t.aqui{background:#fff}
-.menu-mobile .mn:hover .mn-t{background:rgba(255,255,255,.6)}   /* tira o hover: aqui quem manda é o toque */
+  border-radius:13px;font-size:14px;background:var(--sup-t)}
+.menu-mobile .mn-t.aqui{background:var(--sup)}
+.menu-mobile .mn:hover .mn-t{background:var(--sup-t)}   /* tira o hover: aqui quem manda é o toque */
 .menu-mobile .mn-v{transition:transform .3s cubic-bezier(.16,1,.3,1)}
 .menu-mobile .mn.aberto .mn-v{transform:rotate(180deg)}
 
@@ -538,3 +581,58 @@ tbody tr:hover td{background:#f8faff}
   transition:max-height .35s cubic-bezier(.16,1,.3,1),padding .35s ease}
 .menu-mobile .mn.aberto .mn-drop{max-height:900px;padding:6px 4px 10px}
 .menu-mobile .mn-i,.menu-mobile .mn-g{padding:11px 12px}
+
+/* ── botão de tema ──────────────────────────────────────────
+   Escuro é o padrão. O claro é escolha, gravada no navegador e aplicada
+   antes da primeira pintura (script no <head>) para não piscar branco. */
+.topo-dir{display:flex;align-items:center;gap:10px;justify-content:flex-end;min-width:0}
+/* Como item de flex o bloco de ferramentas pode encolher — e deve, senão
+   transborda por cima do menu. O que não pode quebrar é o trilho de etapas:
+   sem isto ele vira uma coluna de quatro linhas. "Voltar ao hub" desce para a
+   linha de baixo quando faltar espaço, que era o comportamento de antes. */
+.topo-dir > #topoTool{min-width:0}
+.topo-dir .steps{flex-wrap:nowrap}
+.tema-btn{width:36px;height:36px;flex:none;border-radius:11px;cursor:pointer;
+  display:grid;place-items:center;font-family:inherit;
+  border:1px solid var(--line-2);background:var(--sup-t2);color:var(--sub);
+  transition:color .16s,border-color .16s,transform .16s}
+.tema-btn:hover{color:var(--ink);border-color:var(--blue);transform:translateY(-1px)}
+.tema-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.tema-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* mostra o ícone do tema para onde o clique leva */
+.tema-btn .t-lua{display:none}
+.tema-btn .t-sol{display:block}
+[data-tema="claro"] .tema-btn .t-lua{display:block}
+[data-tema="claro"] .tema-btn .t-sol{display:none}
+
+/* ── faixa de etapas ────────────────────────────────────────
+   Fora da barra do topo, onde disputava espaço com o menu e era cortada.
+   Aqui cabe inteira e o cliente vê em que ponto do processo está. */
+.trilho{margin:-4px 0 18px;padding:11px 16px;border-radius:14px;
+  background:var(--sup);border:1px solid var(--line);box-shadow:var(--sombra-card)}
+.trilho .steps{justify-content:center;flex-wrap:wrap;gap:9px}
+@media(max-width:700px){
+  .trilho{padding:10px 12px;margin-bottom:14px}
+  .trilho .steps{gap:6px}
+}
+
+/* O nome do app transbordava a coluna e o menu — desenhado depois — passava
+   por cima. Truncar resolve sem encurtar o texto em tela larga. */
+.topo-esq{min-width:0}
+.logo{min-width:0}
+.logo > div{min-width:0}
+.logo-title,.logo-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* O submenu do último item abre alinhado à esquerda e vazava a tela em telas
+   médias, criando rolagem lateral na página inteira. O último ancora à direita. */
+.menu .mn:last-of-type .mn-drop{left:auto;right:0}
+
+/* No celular o menu vira gaveta, então sobram logo + tema + hambúrguer: em
+   grade de três colunas eles empilhavam em três linhas. Uma linha só. */
+@media(max-width:880px){
+  .topbar{display:flex;align-items:center;gap:10px}
+  .topo-esq{flex:1;min-width:0}
+  .topo-dir{order:2;flex:none}
+  .mn-hamb{order:3}
+}
