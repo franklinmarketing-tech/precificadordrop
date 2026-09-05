@@ -3161,7 +3161,6 @@ daHash();
    numa tela e o que existe está sempre à vista. */
 const WS_CANAIS = {
   ml:          {classe:'mkt-ml',          marca:'<img src="assets/img/logo-ml.svg" alt="Mercado Livre"/>'},
-  ferramentas: {classe:'mkt-ferramentas', marca:'<span class="ws-txt">Ferramentas</span>'},
   shopee:      {classe:'mkt-shopee',      marca:'<img src="assets/img/logo-shopee.svg" alt="Shopee"/>'},
   amazon:      {classe:'mkt-amazon',      marca:'<img src="assets/img/logo-amazon.svg" alt="Amazon"/>'},
 };
@@ -3173,9 +3172,13 @@ function wsAbrir(canal){
   /* a grade muda conforme o canal: com principais, seis colunas (duas
      retangulares em cima ocupando três cada, o apoio embaixo); sem
      principais, os quadros se distribuem sozinhos */
-  const temDestaque = (WS_FERRAMENTAS[canal] || []).some(f => f.destaque);
+  /* a largura de cada principal sai da conta: seis colunas divididas pelo
+     número delas. Com duas, cada uma ocupa três; com três, duas. Assim a
+     primeira linha sempre fecha certo em vez de sobrar meia coluna. */
+  const nDest = (WS_FERRAMENTAS[canal] || []).filter(f => f.destaque).length;
+  const cls = nDest ? ' com-destaque d' + nDest : '';
   $('wsPainelCorpo').innerHTML =
-    `<div class="ws-minis${temDestaque ? ' com-destaque' : ''}">` + wsCards(canal) + '</div>';
+    `<div class="ws-minis${cls}">` + wsCards(canal) + '</div>';
   $('wsPainel').className = 'ws-painel ws-' + canal;
   mostrar('wsGrade', false);
   mostrar('wsPainel', true);
@@ -3204,13 +3207,24 @@ document.addEventListener('keydown', e => {
 const WS_FERRAMENTAS = {
   ml: [
     {nome:'Precificar Mercado Livre', img:'assets/img/ic-ml.webp', acao:"ir('ml')", destaque:true,
+     fluxo:['Planilha do Bling','Preços calculados'],
      resumo:'O preço que entrega a margem que você pediu.',
      itens:['Tarifa real da categoria, consultada no ML',
             'Custo fixo por faixa de preço, pela tabela oficial',
             'Frete pela sua reputação, peso e faixa de preço',
             'Peso volumétrico: cobra pelo maior entre ele e o real',
             'Sai um arquivo pronto para o Bling']},
+    {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"ir('planilha')", destaque:true,
+     fluxo:['Planilha do fornecedor','Bling'],
+     resumo:'Arruma a estrutura do arquivo para subir no Bling sem erro.',
+     itens:['Encurta a descrição para os 60 caracteres do anúncio',
+            'Tira o bloco cadastral colado no fim da descrição',
+            'Preenche a condição do produto como NOVO',
+            'Gera a coluna Modelo, que o Mercado Livre exige',
+            'Remove termos que o marketplace não aceita',
+            'Confere 8 pontos antes de gerar o arquivo']},
     {nome:'Ajustar preços no ML', img:'assets/img/ic-base-ml.webp', acao:"ir('anuncios')", destaque:true,
+     fluxo:['Preços calculados','Mercado Livre'],
      resumo:'A planilha do ML volta igual, só com o preço trocado.',
      itens:['Você sobe a planilha do ML e a de preços',
             'Ele casa por SKU e troca só a coluna de preço',
@@ -3236,20 +3250,6 @@ const WS_FERRAMENTAS = {
      resumo:'Modalidades ativas no site.',
      itens:['Formas de entrega', 'Regra de cada uma']},
   ],
-  ferramentas: [
-    {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"ir('planilha')", destaque:true,
-     resumo:'O catálogo do fornecedor pronto para o marketplace.',
-     itens:['Encurta a descrição para os 60 caracteres do anúncio',
-            'Tira o bloco cadastral colado no fim da descrição',
-            'Preenche a condição do produto como NOVO',
-            'Gera a coluna Modelo, que o ML exige',
-            'Confere 8 pontos antes de gerar']},
-    {nome:'Guia do Drop', img:'assets/img/ic-base-shop.webp', acao:"ir('manual')", destaque:true,
-     resumo:'Como cada conta funciona, do começo ao fim.',
-     itens:['Passo a passo de cada marketplace',
-            'O que muda de um canal para o outro',
-            'Erros que custam dinheiro e como evitar']},
-  ],
   shopee: [
     {nome:'Precificar Shopee', img:'assets/img/ic-shopee.webp', breve:true,
      resumo:'Comissão e taxa fixa da Shopee.',
@@ -3274,6 +3274,18 @@ const WS_FERRAMENTAS = {
 
 /* Monta os quadros de dentro do canal. Mesmo desenho da home — quadrados,
    iguais entre si — só que menores, porque aqui já se sabe qual é o canal. */
+/* De onde o arquivo vem e para onde vai. Uma ferramenta de planilha só faz
+   sentido quando se sabe o que entra e o que sai — sem isso a pessoa abre
+   para descobrir, e às vezes abre a errada. */
+function wsFluxo(f){
+  const [de, para] = f;
+  return `<span class="ws-fluxo">
+    <span class="ws-fluxo-p">${esc(de)}</span>
+    <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    <span class="ws-fluxo-p">${esc(para)}</span>
+  </span>`;
+}
+
 function wsCards(canal){
   const lista = WS_FERRAMENTAS[canal] || [];
   return lista.map((f, i) => {
@@ -3288,6 +3300,7 @@ function wsCards(canal){
       <span class="ws-mini-txt">
         <span class="ws-mini-n">${esc(f.nome)}</span>
         ${f.destaque ? `<span class="ws-mini-r">${esc(f.resumo)}</span>` : ''}
+        ${f.destaque && f.fluxo ? wsFluxo(f.fluxo) : ''}
       </span>
       ${f.breve ? '<span class="ws-mini-tag">em breve</span>' : ''}
     </button>`;
@@ -3308,6 +3321,7 @@ function wsExplicar(el, canal, i){
       <div><div class="ws-pop-t">${esc(f.nome)}</div>
         <div class="ws-pop-s">${esc(f.resumo)}</div></div>
     </div>
+    ${f.fluxo ? wsFluxo(f.fluxo) : ''}
     <ul class="ws-pop-l">${(f.itens || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
     ${f.breve ? '<div class="ws-pop-breve">Ainda não está no ar — está sendo preparada.</div>' : ''}`;
 
