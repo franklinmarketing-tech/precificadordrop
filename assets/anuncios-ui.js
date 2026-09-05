@@ -193,23 +193,56 @@ function anRenderChecks(){
      "preço muda muito", e um alerta que marca tudo não informa nada */
   const v = c.variacao;
   const pct = x => (x > 0 ? '+' : '') + Math.round(x * 100) + '%';
+  const uni = v && (v.sobem === v.n || v.descem === v.n);
+  const fatia = x => v.n ? (x / v.n * 100).toFixed(2) + '%' : '0%';
   $('anResumo').innerHTML = !v ? '' : `
-    <div class="an-var ${(v.sobem === v.n || v.descem === v.n) ? 'unilateral' : ''}">
-      <div class="an-var-t">O que muda no preço de ${v.n.toLocaleString('pt-BR')} anúncios</div>
-      <div class="an-var-g">
-        <span class="l-sobe"><b>${v.sobem.toLocaleString('pt-BR')}</b> sobem</span>
-        <span class="l-desce"><b>${v.descem.toLocaleString('pt-BR')}</b> descem</span>
-        <span class="l-igual"><b>${v.iguais.toLocaleString('pt-BR')}</b> ficam iguais</span>
+    <div class="an-var ${uni ? 'unilateral' : ''}">
+      <div class="an-var-topo">
+        <div>
+          <div class="an-var-lbl">O que muda no preço</div>
+          <div class="an-var-h"><em>${v.n.toLocaleString('pt-BR')}</em> anúncios comparados</div>
+        </div>
+        <div class="an-var-mediana">
+          <span>mediana</span>
+          <b class="${v.mediana >= 0 ? 'sobe' : 'desce'}">${pct(v.mediana)}</b>
+        </div>
       </div>
-      <div class="an-var-e">
-        <span>metade muda mais de <b>${pct(v.mediana)}</b></span>
-        <span>faixa comum: <b>${pct(v.p10)}</b> a <b>${pct(v.p90)}</b></span>
-        <span>extremos: <b>${pct(v.min)}</b> e <b>${pct(v.max)}</b></span>
+
+      <div class="an-var-barra">
+        ${v.sobem ? `<i class="b-sobe" style="width:${fatia(v.sobem)}"></i>` : ''}
+        ${v.iguais ? `<i class="b-igual" style="width:${fatia(v.iguais)}"></i>` : ''}
+        ${v.descem ? `<i class="b-desce" style="width:${fatia(v.descem)}"></i>` : ''}
       </div>
-      ${(v.sobem === v.n || v.descem === v.n) ? `<div class="an-var-av">
-        <b>Confira antes de subir.</b> ${v.sobem === v.n ? 'Todos os preços sobem' : 'Todos os preços descem'} —
+
+      <div class="an-var-tiles">
+        <div class="an-tile t-sobe">
+          <span class="an-tile-ic"><svg viewBox="0 0 24 24"><path d="M12 19V6m0 0-6 6m6-6 6 6"/></svg></span>
+          <span class="an-tile-n">${v.sobem.toLocaleString('pt-BR')}</span>
+          <span class="an-tile-l">sobem</span>
+        </div>
+        <div class="an-tile t-desce">
+          <span class="an-tile-ic"><svg viewBox="0 0 24 24"><path d="M12 5v13m0 0 6-6m-6 6-6-6"/></svg></span>
+          <span class="an-tile-n">${v.descem.toLocaleString('pt-BR')}</span>
+          <span class="an-tile-l">descem</span>
+        </div>
+        <div class="an-tile t-igual">
+          <span class="an-tile-ic"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></svg></span>
+          <span class="an-tile-n">${v.iguais.toLocaleString('pt-BR')}</span>
+          <span class="an-tile-l">iguais</span>
+        </div>
+        <div class="an-tile t-faixa">
+          <span class="an-tile-l">faixa comum</span>
+          <span class="an-tile-f">${pct(v.p10)} <i>a</i> ${pct(v.p90)}</span>
+          <span class="an-tile-x">extremos ${pct(v.min)} · ${pct(v.max)}</span>
+        </div>
+      </div>
+
+      ${uni ? `<div class="an-var-av">
+        <span class="an-var-av-ic"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg></span>
+        <span><b>Confira antes de subir.</b> ${v.sobem === v.n ? 'Todos os preços sobem' : 'Todos os preços descem'} —
         quando a mudança vai toda para o mesmo lado, costuma ser a margem usada na precificação
-        ou a coluna de preço escolhida, não o mercado.</div>` : ''}
+        ou a coluna de preço escolhida, não o mercado.</span>
+      </div>` : ''}
     </div>`;
 
   $('anChecks').innerHTML = c.grupos.map(g => `
