@@ -1694,3 +1694,155 @@ body.sem-rolagem{overflow:hidden}
   stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
 .avancado[open] .av-seta{transform:rotate(180deg);stroke:var(--blue)}
 .av-corpo{padding:2px 16px 16px}
+
+/* ═══ WORKSPACE DA HOME ════════════════════════════════════
+   Quatro quadros grandes, um por canal, ocupando a tela sem rolagem. A marca
+   é o que a pessoa procura primeiro — ela reconhece o logo antes de ler
+   qualquer rótulo —, então o logo é o centro do quadro e o resto é apoio. */
+/* Quadrados de verdade: as colunas seguem o conteúdo e cada quadro tem
+   aspect-ratio 1, então a largura acompanha a altura disponível. Centralizado,
+   porque com quadrado sobra faixa nas laterais em tela larga. */
+/* A faixa recebe a altura que sobra; a grade dentro dela tira a LARGURA
+   dessa altura (aspect-ratio), e só então os quadros saem quadrados. Fazer a
+   grade sozinha calcular pelos quadros invertia a conta: eles cresciam pela
+   largura da tela e empurravam o rodapé para fora. */
+.ws{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding-bottom:6px}
+.ws-grade{height:100%;aspect-ratio:1.02;max-width:100%;display:grid;gap:16px;
+  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.ws-card{min-height:0;min-width:0}
+
+/* Só a home cabe inteira na tela. O rodapé do site é filho do <body>, não do
+   shell — por isso mandar o shell ocupar 100vh não bastava: sobrava a altura
+   do rodapé. O body vira a coluna: shell ocupa o que sobra, rodapé fica com
+   a altura dele. */
+body.view-hub{height:100vh;min-height:0;overflow:hidden;
+  display:flex;flex-direction:column}
+body.view-hub .shell{flex:1 1 0;min-height:0;height:auto}
+body.view-hub .wrap{min-height:0;overflow:hidden}
+body.view-hub > footer{flex:none}
+
+.ws-card{position:relative;overflow:hidden;cursor:pointer;font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  padding:26px;border-radius:22px;border:1px solid var(--line);
+  background:var(--sup);box-shadow:var(--sombra-card);
+  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s,border-color .2s}
+.ws-card::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 0%,var(--tinta,transparent),transparent 62%);
+  opacity:.5;transition:opacity .2s}
+.ws-card:hover{transform:translateY(-4px);border-color:var(--aro,var(--blue));
+  box-shadow:0 1px 0 var(--gloss) inset,0 26px 50px -26px var(--aro,rgba(20,30,60,.5))}
+.ws-card:hover::before{opacity:1}
+.ws-card:focus-visible{outline:3px solid var(--aro,var(--blue));outline-offset:3px}
+
+/* cada canal na sua cor, sem pintar o quadro inteiro */
+.ws-ml         {--tinta:rgba(255,230,0,.22);  --aro:rgba(255,214,0,.75)}
+.ws-ferramentas{--tinta:rgba(79,124,255,.16); --aro:rgba(79,124,255,.7)}
+.ws-shopee     {--tinta:rgba(238,77,45,.14);  --aro:rgba(238,77,45,.6)}
+.ws-amazon     {--tinta:rgba(255,153,0,.16);  --aro:rgba(255,153,0,.7)}
+
+.ws-marca{position:relative;display:flex;align-items:center;justify-content:center;
+  flex:1;min-height:0;width:100%}
+.ws-marca img{max-width:min(72%,300px);max-height:100%;object-fit:contain;
+  transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.ws-card:hover .ws-marca img{transform:scale(1.05)}
+/* o card de ferramentas não tem logo de marca: leva ícone e nome */
+.ws-marca-txt{flex-direction:column;gap:12px;color:var(--blue-dk);
+  font-family:var(--display);font-weight:800;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.5px}
+.ws-marca-txt svg{width:clamp(38px,4vw,54px);height:clamp(38px,4vw,54px);fill:none;
+  stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+.ws-pe{position:relative;text-align:center}
+.ws-pe b{display:block;font-size:15px;font-weight:700;color:var(--ink)}
+.ws-pe i{display:block;font-style:normal;font-size:13px;color:var(--faint);margin-top:2px}
+.ws-seta{position:absolute;right:20px;bottom:20px;width:34px;height:34px;border-radius:50%;
+  display:grid;place-items:center;background:var(--sup-3);border:1px solid var(--line);
+  transition:transform .2s,background .2s,border-color .2s}
+.ws-seta svg{width:15px;height:15px;fill:none;stroke:var(--sub);stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+.ws-card:hover .ws-seta{transform:translateX(4px);border-color:var(--aro)}
+
+/* o quadro aberto ocupa o lugar da grade */
+.ws-painel{flex:1;min-height:0;display:flex;flex-direction:column;
+  border-radius:22px;border:1px solid var(--aro,var(--line));background:var(--sup);
+  box-shadow:var(--sombra-card);overflow:hidden}
+.ws-painel-h{display:flex;align-items:center;gap:16px;padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--tinta,transparent),transparent)}
+.ws-painel-marca{display:flex;align-items:center;margin-left:auto}
+.ws-painel-marca img{height:30px;object-fit:contain}
+.ws-txt{font-family:var(--display);font-weight:800;font-size:18px;color:var(--blue-dk)}
+.ws-voltar{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;
+  font-size:14px;font-weight:600;color:var(--sub);padding:9px 15px;border-radius:11px;
+  border:1px solid var(--line);background:var(--sup-2);transition:all .15s}
+.ws-voltar:hover{color:var(--ink);border-color:var(--blue);transform:translateX(-2px)}
+.ws-voltar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* o conteúdo é o único lugar que rola, e só quando não couber */
+.ws-painel-b{flex:1;min-height:0;overflow-y:auto;padding:18px}
+
+@media(max-width:820px){
+  .ws{grid-template-columns:1fr;grid-template-rows:none;
+    grid-auto-rows:minmax(150px,1fr);overflow-y:auto}
+  .ws-card{padding:20px;gap:12px}
+  .ws-seta{display:none}
+}
+
+/* ═══ QUADROS DENTRO DO CANAL ══════════════════════════════
+   Mesmo desenho da home — quadrados e iguais entre si — só que menores:
+   aqui a pessoa já escolheu o canal, e o que ela procura agora é a
+   ferramenta, não a marca. */
+.ws-minis{display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.ws-mini{aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
+  font-family:inherit;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;padding:16px;border-radius:18px;
+  border:1px solid var(--line);background:var(--sup-2);
+  box-shadow:0 1px 0 var(--gloss) inset,0 6px 18px -12px rgba(20,30,60,.4);
+  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s,border-color .2s}
+.ws-mini:hover:not(:disabled){transform:translateY(-4px);border-color:var(--blue);
+  box-shadow:0 1px 0 var(--gloss) inset,0 18px 34px -18px rgba(47,90,224,.6)}
+.ws-mini:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.ws-mini-ic{width:54px;height:54px;display:grid;place-items:center;flex:none}
+.ws-mini-ic img{width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 5px 9px rgba(20,30,60,.24));
+  transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.ws-mini:hover:not(:disabled) .ws-mini-ic img{transform:translateY(-3px) scale(1.08)}
+.ws-mini-n{font-size:13.5px;font-weight:700;color:var(--ink);text-align:center;
+  line-height:1.3}
+.ws-mini-tag{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--faint);padding:3px 9px;border-radius:100px;background:var(--sup-3)}
+
+/* As principais ganham relevo: borda em degradê e sombra mais funda. São as
+   que a pessoa vem usar — as outras são apoio e não disputam atenção. */
+.ws-mini.destaque{background:linear-gradient(168deg,var(--sup),var(--sup-2));
+  border-color:transparent;
+  box-shadow:0 0 0 1.5px var(--aro,rgba(79,124,255,.5)),
+             0 1px 0 var(--gloss) inset,
+             0 16px 30px -16px rgba(20,30,60,.45)}
+.ws-mini.destaque .ws-mini-ic{width:64px;height:64px}
+.ws-mini.destaque:hover{transform:translateY(-6px) scale(1.02);
+  box-shadow:0 0 0 2px var(--aro,var(--blue)),
+             0 1px 0 var(--gloss) inset,
+             0 26px 46px -20px rgba(20,30,60,.6)}
+.ws-mini.breve{opacity:.55;cursor:default;border-style:dashed;box-shadow:none}
+
+/* ═══ BALÃO DE EXPLICAÇÃO ══════════════════════════════════
+   O quadro é pequeno de propósito; a lista do que a ferramenta faz não
+   caberia dentro dele. Abre ao lado, preso à tela. */
+.ws-pop{position:fixed;z-index:180;width:min(340px,calc(100vw - 24px));
+  padding:16px 18px;border-radius:16px;pointer-events:none;
+  background:var(--sup);border:1px solid var(--line-2);
+  box-shadow:0 24px 60px -24px rgba(20,30,60,.55),0 1px 0 var(--gloss) inset;
+  animation:popEntra .16s ease}
+@keyframes popEntra{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ws-pop{animation:none}}
+.ws-pop-h{display:flex;align-items:flex-start;gap:12px}
+.ws-pop-h img{width:38px;height:38px;flex:none;object-fit:contain}
+.ws-pop-t{font-family:var(--display);font-size:15.5px;font-weight:700;color:var(--ink)}
+.ws-pop-s{font-size:13px;color:var(--sub);margin-top:2px;line-height:1.5}
+.ws-pop-l{margin:12px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.ws-pop-l li{font-size:13px;color:var(--sub);line-height:1.5}
+.ws-pop-l li::marker{color:var(--blue)}
+.ws-pop-breve{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:12.5px;color:var(--amber-dk)}

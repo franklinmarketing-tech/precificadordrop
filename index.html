@@ -277,7 +277,74 @@
       </div>
     </div>
 
-    <div class="secoes secoes-4">
+    <!-- ═══ WORKSPACE: quatro quadros, um por canal ═══
+         A home inteira cabe numa tela. Cada quadro leva a marca do canal e
+         quantas ferramentas tem; clicar abre o quadro em cima da grade, com
+         as ferramentas daquele canal, e o botão volta. Sem rolagem: o que
+         existe está sempre à vista. -->
+    <div class="ws" id="wsGrade">
+      <div class="ws-grade">
+      <button class="ws-card ws-ml" onclick="wsAbrir('ml')">
+        <span class="ws-marca"><img src="assets/img/logo-ml.svg" alt="Mercado Livre" loading="lazy"/></span>
+        <span class="ws-pe">
+          <b>2 ferramentas</b>
+          <i>6 consultas de apoio</i>
+        </span>
+        <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </button>
+
+      <button class="ws-card ws-ferramentas" onclick="wsAbrir('ferramentas')">
+        <span class="ws-marca ws-marca-txt">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.7 6.3a4 4 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8 0l-2.2-2.2a2 2 0 0 1 0-2.8z"/>
+            <path d="m16 3 5 5"/>
+          </svg>
+          <span>Ferramentas</span>
+        </span>
+        <span class="ws-pe">
+          <b>2 ferramentas</b>
+          <i>servem a qualquer canal</i>
+        </span>
+        <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </button>
+
+      <button class="ws-card ws-shopee" onclick="wsAbrir('shopee')">
+        <span class="ws-marca"><img src="assets/img/logo-shopee.svg" alt="Shopee" loading="lazy"/></span>
+        <span class="ws-pe">
+          <b>em preparação</b>
+          <i>2 ferramentas chegando</i>
+        </span>
+        <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </button>
+
+      <button class="ws-card ws-amazon" onclick="wsAbrir('amazon')">
+        <span class="ws-marca"><img src="assets/img/logo-amazon.svg" alt="Amazon" loading="lazy"/></span>
+        <span class="ws-pe">
+          <b>em preparação</b>
+          <i>2 ferramentas chegando</i>
+        </span>
+        <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </button>
+      </div>
+    </div>
+
+    <!-- o quadro aberto ocupa o lugar da grade -->
+    <div class="ws-painel hide" id="wsPainel">
+      <div class="ws-painel-h">
+        <button class="ws-voltar" onclick="wsFechar()">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Todos os canais
+        </button>
+        <span class="ws-painel-marca" id="wsPainelMarca"></span>
+      </div>
+      <div class="ws-painel-b" id="wsPainelCorpo"></div>
+    </div>
+
+    <!-- explicação que abre ao passar o mouse num quadro -->
+    <div class="ws-pop hide" id="wsPop" role="tooltip"></div>
+
+
+    <div class="secoes secoes-4 hide" id="secoesFonte">
 
       <!-- ═══ OS QUATRO CARDS ═══
            Um card por marketplace, mais um de ferramentas que servem a

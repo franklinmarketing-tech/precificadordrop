@@ -3153,29 +3153,165 @@ function plBaixar(){
 montarContexto();
 daHash();
 
-/* ── os cards da home abrem ao clicar ────────────────────────────────────────
-   A home mostra só a marca de cada canal; as ferramentas aparecem quando a
-   pessoa escolhe o canal. Abre um por vez: dois cards abertos empurram o
-   resto da página para baixo e a comparação some. */
-function mktAbrir(botao){
-  const card = botao.closest('.mkt');
-  const abrindo = !card.classList.contains('aberto');
-  document.querySelectorAll('.mkt.aberto').forEach(c => {
-    c.classList.remove('aberto');
-    const b = c.querySelector('.mkt-h');
-    if(b) b.setAttribute('aria-expanded', 'false');
-  });
-  card.classList.toggle('aberto', abrindo);
-  botao.setAttribute('aria-expanded', String(abrindo));
-  try{ localStorage.setItem('drop-mkt', abrindo ? card.className.match(/mkt-[a-z]+/)[0] : ''); }catch(e){}
+
+/* ── workspace da home ───────────────────────────────────────────────────────
+   Quatro quadros, um por canal. Clicar abre o quadro no lugar da grade com as
+   ferramentas daquele canal — o conteúdo vem das seções que já existiam, só
+   que agora escondidas e usadas como fonte. Sem rolagem: a home inteira cabe
+   numa tela e o que existe está sempre à vista. */
+const WS_CANAIS = {
+  ml:          {classe:'mkt-ml',          marca:'<img src="assets/img/logo-ml.svg" alt="Mercado Livre"/>'},
+  ferramentas: {classe:'mkt-ferramentas', marca:'<span class="ws-txt">Ferramentas</span>'},
+  shopee:      {classe:'mkt-shopee',      marca:'<img src="assets/img/logo-shopee.svg" alt="Shopee"/>'},
+  amazon:      {classe:'mkt-amazon',      marca:'<img src="assets/img/logo-amazon.svg" alt="Amazon"/>'},
+};
+
+function wsAbrir(canal){
+  const info = WS_CANAIS[canal];
+  if(!info) return;
+  $('wsPainelMarca').innerHTML = info.marca;
+  $('wsPainelCorpo').innerHTML = '<div class="ws-minis">' + wsCards(canal) + '</div>';
+  $('wsPainel').className = 'ws-painel ws-' + canal;
+  mostrar('wsGrade', false);
+  mostrar('wsPainel', true);
+  const primeiro = $('wsPainelCorpo').querySelector('button:not(:disabled)');
+  if(primeiro) primeiro.focus({preventScroll:true});
+  try{ localStorage.setItem('drop-canal', canal); }catch(e){}
 }
 
-/* reabre o canal que a pessoa estava usando da última vez */
-try{
-  const salvo = localStorage.getItem('drop-mkt');
-  if(salvo){
-    const c = document.querySelector('.' + salvo);
-    const b = c && c.querySelector('.mkt-h');
-    if(b) { c.classList.add('aberto'); b.setAttribute('aria-expanded','true'); }
-  }
-}catch(e){}
+function wsFechar(){
+  mostrar('wsPainel', false);
+  mostrar('wsGrade', true);
+  try{ localStorage.removeItem('drop-canal'); }catch(e){}
+}
+
+/* Esc fecha, como em qualquer painel que cobre o conteúdo */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && !$('wsPainel').classList.contains('hide')) wsFechar();
+});
+
+
+/* ── o que existe em cada canal ──────────────────────────────────────────────
+   Catálogo em um lugar só: os quadros internos são gerados daqui, e é daqui
+   que sai também a explicação que abre ao passar o mouse. Antes a descrição
+   de cada ferramenta vivia espalhada pelo HTML e ninguém sabia dizer, de
+   fora, o que a ferramenta fazia sem abrir. */
+const WS_FERRAMENTAS = {
+  ml: [
+    {nome:'Precificar Mercado Livre', img:'assets/img/ic-ml.webp', acao:"ir('ml')", destaque:true,
+     resumo:'O preço que entrega a margem que você pediu.',
+     itens:['Tarifa real da categoria, consultada no ML',
+            'Custo fixo por faixa de preço, pela tabela oficial',
+            'Frete pela sua reputação, peso e faixa de preço',
+            'Peso volumétrico: cobra pelo maior entre ele e o real',
+            'Sai um arquivo pronto para o Bling']},
+    {nome:'Planilha no padrão ML', img:'assets/img/ic-base-ml.webp', acao:"ir('anuncios')", destaque:true,
+     resumo:'Seus preços no layout que o Mercado Livre lê.',
+     itens:['Monta as 15 colunas que o ML espera',
+            'Traz o código ITEM_ID dos anúncios que você já tem',
+            'Sai com as cores e os grupos do cabeçalho oficial',
+            'Mostra quanto cada preço muda em relação ao que está no ar',
+            'Você escolhe tipo, condição, envio, estado e estoque']},
+    {nome:'Consultar um produto', img:'assets/img/ic-base-ml.webp', acao:"irMercado('produto')",
+     resumo:'Comissão e exigências de um produto.',
+     itens:['Tarifa da categoria', 'O que a ficha do anúncio obriga']},
+    {nome:'Ficha do anúncio', img:'assets/img/ic-planilha.webp', acao:"irMercado('ficha')",
+     resumo:'O que a categoria obriga preencher.',
+     itens:['Campos obrigatórios', 'Campos que ajudam a vender']},
+    {nome:'Mais vendidos', img:'assets/img/ic-base-ml.webp', acao:"irMercado('campeoes')",
+     resumo:'O ranking de cada categoria.',
+     itens:['Os campeões por categoria', 'Preço praticado por eles']},
+    {nome:'Em alta agora', img:'assets/img/ic-base-shop.webp', acao:"irMercado('tendencias')",
+     resumo:'O que estão procurando hoje.',
+     itens:['Termos em alta no site', 'Serve para achar produto novo']},
+    {nome:'Categorias', img:'assets/img/ic-shopee.webp', acao:"irMercado('categorias')",
+     resumo:'A árvore e os códigos.',
+     itens:['Estrutura completa', 'Código de cada categoria']},
+    {nome:'Envios', img:'assets/img/ic-base-shop.webp', acao:"irMercado('envios')",
+     resumo:'Modalidades ativas no site.',
+     itens:['Formas de entrega', 'Regra de cada uma']},
+  ],
+  ferramentas: [
+    {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"ir('planilha')", destaque:true,
+     resumo:'O catálogo do fornecedor pronto para o marketplace.',
+     itens:['Encurta a descrição para os 60 caracteres do anúncio',
+            'Tira o bloco cadastral colado no fim da descrição',
+            'Preenche a condição do produto como NOVO',
+            'Gera a coluna Modelo, que o ML exige',
+            'Confere 8 pontos antes de gerar']},
+    {nome:'Guia do Drop', img:'assets/img/ic-base-shop.webp', acao:"ir('manual')", destaque:true,
+     resumo:'Como cada conta funciona, do começo ao fim.',
+     itens:['Passo a passo de cada marketplace',
+            'O que muda de um canal para o outro',
+            'Erros que custam dinheiro e como evitar']},
+  ],
+  shopee: [
+    {nome:'Precificar Shopee', img:'assets/img/ic-shopee.webp', breve:true,
+     resumo:'Comissão e taxa fixa da Shopee.',
+     itens:['A Shopee cobra diferente do Mercado Livre',
+            'Comissão, taxa fixa, frete grátis e cupom do vendedor entram em outra conta',
+            'Por isso pede ferramenta própria']},
+    {nome:'Base da Shopee', img:'assets/img/ic-base-shop.webp', breve:true,
+     resumo:'Reprocessar o que já está no ar.',
+     itens:['Revisar preço do que já está publicado']},
+  ],
+  amazon: [
+    {nome:'Precificar Amazon', img:'assets/img/ic-ml.webp', breve:true,
+     resumo:'Referral fee e taxa de fechamento.',
+     itens:['Na Amazon a comissão é por categoria',
+            'Existe taxa de fechamento em algumas delas',
+            'Outra conta, outra ferramenta']},
+    {nome:'Base da Amazon', img:'assets/img/ic-base-ml.webp', breve:true,
+     resumo:'Reprocessar o que já está no ar.',
+     itens:['Revisar preço do que já está publicado']},
+  ],
+};
+
+/* Monta os quadros de dentro do canal. Mesmo desenho da home — quadrados,
+   iguais entre si — só que menores, porque aqui já se sabe qual é o canal. */
+function wsCards(canal){
+  const lista = WS_FERRAMENTAS[canal] || [];
+  return lista.map((f, i) => {
+    const cls = 'ws-mini' + (f.destaque ? ' destaque' : '') + (f.breve ? ' breve' : '');
+    const clique = f.breve ? '' : ` onclick="${f.acao}"`;
+    return `<button class="${cls}"${clique}${f.breve ? ' disabled' : ''}
+        onmouseenter="wsExplicar(this,'${canal}',${i})" onmouseleave="wsEsconder()"
+        onfocus="wsExplicar(this,'${canal}',${i})" onblur="wsEsconder()">
+      <span class="ws-mini-ic"><img src="${f.img}" alt="" loading="lazy"/></span>
+      <span class="ws-mini-n">${esc(f.nome)}</span>
+      ${f.breve ? '<span class="ws-mini-tag">em breve</span>' : ''}
+    </button>`;
+  }).join('');
+}
+
+/* A explicação abre ao lado do quadro, não dentro: o quadro fica pequeno de
+   propósito, e a lista do que a ferramenta faz não caberia nele. */
+let wsTimer = null;
+function wsExplicar(el, canal, i){
+  clearTimeout(wsTimer);
+  const f = (WS_FERRAMENTAS[canal] || [])[i];
+  if(!f) return;
+  const pop = $('wsPop');
+  pop.innerHTML = `
+    <div class="ws-pop-h">
+      <img src="${f.img}" alt=""/>
+      <div><div class="ws-pop-t">${esc(f.nome)}</div>
+        <div class="ws-pop-s">${esc(f.resumo)}</div></div>
+    </div>
+    <ul class="ws-pop-l">${(f.itens || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    ${f.breve ? '<div class="ws-pop-breve">Ainda não está no ar — está sendo preparada.</div>' : ''}`;
+
+  /* fica preso à tela: sem isso o balão sai pela direita nos últimos quadros */
+  const r = el.getBoundingClientRect();
+  pop.classList.remove('hide');
+  const larg = pop.offsetWidth, alt = pop.offsetHeight;
+  let x = r.left + r.width / 2 - larg / 2;
+  x = Math.max(12, Math.min(x, window.innerWidth - larg - 12));
+  let y = r.bottom + 10;
+  if(y + alt > window.innerHeight - 12) y = Math.max(12, r.top - alt - 10);
+  pop.style.left = x + 'px';
+  pop.style.top = y + 'px';
+}
+function wsEsconder(){
+  wsTimer = setTimeout(() => $('wsPop').classList.add('hide'), 90);
+}
