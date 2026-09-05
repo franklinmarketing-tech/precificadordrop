@@ -9,24 +9,24 @@ const brl = ML.brl;
 const reduzido = matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 /* ── tema ────────────────────────────────────────────────────────────────────
-   Escuro por padrão, claro por escolha. Não segue o sistema operacional de
+   Claro por padrão, escuro por escolha. Não segue o sistema operacional de
    propósito: segue o botão. O <head> já aplicou a escolha salva antes da
    primeira pintura; aqui só ficam a troca e o rótulo do botão. */
 function temaAplicar(t){
-  const claro = t === 'claro';
-  if(claro) document.documentElement.setAttribute('data-tema', 'claro');
+  const escuro = t === 'escuro';
+  if(escuro) document.documentElement.setAttribute('data-tema', 'escuro');
   else document.documentElement.removeAttribute('data-tema');
   const b = document.getElementById('btnTema');
   if(b){
-    const alvo = claro ? 'escuro' : 'claro';
+    const alvo = escuro ? 'claro' : 'escuro';
     b.setAttribute('aria-label', 'Mudar para o tema ' + alvo);
     b.setAttribute('title', 'Mudar para o tema ' + alvo);
   }
   try{ localStorage.setItem('drop-tema', t); }catch(e){}
 }
 function alternarTema(){
-  const claroAgora = document.documentElement.getAttribute('data-tema') === 'claro';
-  temaAplicar(claroAgora ? 'escuro' : 'claro');
+  const escuroAgora = document.documentElement.getAttribute('data-tema') === 'escuro';
+  temaAplicar(escuroAgora ? 'claro' : 'escuro');
 }
 const preciso  = matchMedia('(hover:hover) and (pointer:fine)').matches;
 

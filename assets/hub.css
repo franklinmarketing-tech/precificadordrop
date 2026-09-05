@@ -6,41 +6,21 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 /* ══════════════════════════════════════════════════════════════════════════
-   TEMA — escuro por padrão, claro por escolha
+   TEMA — claro por padrão, escuro por escolha
    Os nomes dos tokens são os mesmos de sempre (--ink, --sub, --line…), só os
    valores mudaram: assim o app inteiro acompanha sem reescrever cada regra.
-   Atenção ao inverter: os tons "-dk" existiam para escrever sobre fundo
-   claro. No escuro eles precisam ficar mais CLAROS, não mais escuros.
+   Atenção: os tons "-dk" existem para escrever sobre fundo claro. No bloco
+   escuro eles ficam mais CLAROS, não mais escuros.
    O tema não segue o sistema operacional de propósito — segue o botão, e a
    escolha fica gravada no navegador.
    ══════════════════════════════════════════════════════════════════════════ */
 :root{
-  /* paleta base */
-  --midnight:#020B1B; --navy:#07182F; --cyan:#22D7FF;
-
-  --bg:#020B1B; --ink:#F5F7FF; --sub:#A8B8D0; --faint:#6B7F9E;
-  --line:rgba(180,210,255,.11); --line-2:rgba(180,210,255,.2);
-
-  /* superfícies: onde antes havia #fff cravado */
-  --sup:#07182F; --sup-2:#0C2242; --sup-3:#123055;
-  --sup-t:rgba(255,255,255,.03); --sup-t2:rgba(255,255,255,.06);
-  --gloss:rgba(255,255,255,.05);
-
-  --blue:#168CFF; --blue-dk:#5FB0FF; --violet:#7848FF; --violet-dk:#A98BFF;
-  --green:#2BE08D; --green-dk:#4EE9A2;
-  --orange:#FF9147; --orange-dk:#FFAE7C;
-  --pink:#FF4D84; --pink-dk:#FF85AC;
-  --red:#FF4D6A; --amber:#FFB020; --amber-dk:#FFC757;
-
+  /* nomes de família e paleta base não pertencem a tema nenhum */
   --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   --display:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
-  --sombra-card:0 1px 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.3),0 18px 44px -24px rgba(0,0,0,.8);
-  --topo-1:#061428; --topo-2:#040E1D;
-  --veu-1:rgba(2,11,27,.72); --veu-2:rgba(2,11,27,.9);
-  --malha:rgba(150,190,255,.13);
-}
-[data-tema="claro"]{
+  --midnight:#020B1B; --navy:#07182F; --cyan:#22D7FF;
+
   --bg:#EEF1F8; --ink:#0E1018; --sub:#666D7E; --faint:#9AA1B1;
   --line:#E4E8F0; --line-2:#D3DAE8;
 
@@ -57,6 +37,27 @@
   --topo-1:#E8ECF8; --topo-2:#E2E7F6;
   --veu-1:rgba(238,241,248,.74); --veu-2:rgba(238,241,248,.9);
   --malha:rgba(20,30,60,.16);
+}
+[data-tema="escuro"]{
+
+  --bg:#020B1B; --ink:#F5F7FF; --sub:#A8B8D0; --faint:#6B7F9E;
+  --line:rgba(180,210,255,.11); --line-2:rgba(180,210,255,.2);
+
+  /* superfícies: onde antes havia #fff cravado */
+  --sup:#07182F; --sup-2:#0C2242; --sup-3:#123055;
+  --sup-t:rgba(255,255,255,.03); --sup-t2:rgba(255,255,255,.06);
+  --gloss:rgba(255,255,255,.05);
+
+  --blue:#168CFF; --blue-dk:#5FB0FF; --violet:#7848FF; --violet-dk:#A98BFF;
+  --green:#2BE08D; --green-dk:#4EE9A2;
+  --orange:#FF9147; --orange-dk:#FFAE7C;
+  --pink:#FF4D84; --pink-dk:#FF85AC;
+  --red:#FF4D6A; --amber:#FFB020; --amber-dk:#FFC757;
+
+  --sombra-card:0 1px 0 rgba(255,255,255,.05) inset,0 2px 4px rgba(0,0,0,.3),0 18px 44px -24px rgba(0,0,0,.8);
+  --topo-1:#061428; --topo-2:#040E1D;
+  --veu-1:rgba(2,11,27,.72); --veu-2:rgba(2,11,27,.9);
+  --malha:rgba(150,190,255,.13);
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;position:relative}
@@ -601,10 +602,10 @@ tbody tr:hover td{background:var(--sup-3)}
 .tema-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
 /* mostra o ícone do tema para onde o clique leva */
-.tema-btn .t-lua{display:none}
-.tema-btn .t-sol{display:block}
-[data-tema="claro"] .tema-btn .t-lua{display:block}
-[data-tema="claro"] .tema-btn .t-sol{display:none}
+.tema-btn .t-lua{display:block}
+.tema-btn .t-sol{display:none}
+[data-tema="escuro"] .tema-btn .t-lua{display:none}
+[data-tema="escuro"] .tema-btn .t-sol{display:block}
 
 /* ── faixa de etapas ────────────────────────────────────────
    Fora da barra do topo, onde disputava espaço com o menu e era cortada.
