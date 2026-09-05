@@ -408,3 +408,167 @@ async function anBaixar(){
     alert('Não consegui gerar o arquivo.\n\n' + (e && e.message ? e.message : e));
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUSCAR OS ANÚNCIOS DIRETO NO MERCADO LIVRE
+
+   O que interessa do arquivo "Editar em massa" é o ITEM_ID de cada SKU, e a
+   API entrega isso sem ninguém precisar baixar e subir planilha. Vem em
+   páginas porque conta grande não cabe numa função serverless de 10 s.
+   ══════════════════════════════════════════════════════════════════════════ */
+async function anBuscarNaApi(){
+  const btn = $('anBtnApi');
+  const caixa = $('anApiEstado');
+  const antes = btn.innerHTML;
+  btn.disabled = true;
+  mostrar('anApiEstado', true);
+
+  const mostrarEstado = (cls, html) => {
+    caixa.className = 'api-estado ' + (cls || '');
+    caixa.innerHTML = html;
+  };
+
+  try{
+    mostrarEstado('', 'Falando com o Mercado Livre…');
+    const mapa = new Map();
+    let scroll = '', paginas = 0, total = null;
+
+    while(paginas < 200){                    // trava de segurança contra laço infinito
+      const r = await fetch('/api/ml-meus-anuncios' + (scroll ? '?scroll=' + encodeURIComponent(scroll) : ''));
+      const d = await r.json().catch(() => ({}));
+
+      if(!r.ok){
+        if(d.precisaAutorizar){
+          mostrarEstado('erro',
+            '<b>Falta autorizar a conta que vende.</b> A ligação de hoje é do aplicativo, e com ela o '
+            + 'Mercado Livre deixa consultar categorias e tarifas, mas não deixa ver nem mexer nos seus anúncios. '
+            + 'Isso é uma autorização à parte, e só você pode dar:'
+            + '<ol class="api-passos">'
+            + '<li>Abra <a href="/api/ml-auth" target="_blank" rel="noopener">/api/ml-auth</a> e entre com a conta que vende.</li>'
+            + '<li>Autorize o aplicativo.</li>'
+            + '<li>Copie o <b>refresh_token</b> que aparece e guarde na variável <b>ML_REFRESH_TOKEN</b> do projeto na Vercel.</li>'
+            + '</ol>'
+            + 'Enquanto isso, o caminho do arquivo abaixo funciona igual.');
+          return;
+        }
+        throw new Error(d.erro || ('O Mercado Livre respondeu ' + r.status));
+      }
+
+      (d.itens || []).forEach(it => {
+        if(!it.sku || mapa.has(it.sku)) return;
+        mapa.set(it.sku, {
+          FAMILY_ID: '', ITEM_ID: it.id, PRODUCT_NUMBER: '', VARIATION_ID: '',
+          TITLE: it.titulo || '', PRICE: it.preco == null ? NaN : it.preco,
+          QUANTITY: it.estoque == null ? '' : it.estoque,
+        });
+      });
+
+      paginas++;
+      if(total == null && d.total != null) total = d.total;
+      mostrarEstado('', `Trazendo seus anúncios… <b>${mapa.size.toLocaleString('pt-BR')}</b>`
+        + (total ? ` de ${total.toLocaleString('pt-BR')}` : '') + ' com SKU.');
+
+      scroll = d.scroll || '';
+      if(d.acabou || !scroll) break;
+    }
+
+    if(!mapa.size){
+      mostrarEstado('erro',
+        '<b>Nenhum anúncio com SKU.</b> Vieram anúncios da sua conta, mas nenhum tem SKU preenchido — '
+        + 'e é pelo SKU que a planilha encontra cada anúncio. Preencha o SKU nos anúncios do Mercado Livre '
+        + 'ou use o arquivo abaixo.');
+      return;
+    }
+
+    anAnuncios = mapa;
+    anAoaML = null;          // veio da API, não de arquivo: o cabeçalho é o padrão
+    anModeloML = null;
+    mostrarEstado('ok', `<b>${mapa.size.toLocaleString('pt-BR')} anúncios</b> trazidos do Mercado Livre`
+      + (total ? ` (de ${total.toLocaleString('pt-BR')} na conta)` : '') + '.');
+    mostrar('anMLInfo', false);
+    anMostrarPasso3();
+  }catch(e){
+    mostrarEstado('erro', '<b>Não consegui buscar.</b> ' + esc(e && e.message ? e.message : String(e)));
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = antes;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PUBLICAR OS PREÇOS DIRETO NO MERCADO LIVRE
+
+   Muda o preço do anúncio no ar, para quem estiver olhando agora, e o
+   Mercado Livre não tem desfazer. Vai em lotes de 50 mostrando o andamento:
+   se algo estiver errado dá para parar no primeiro lote em vez de varrer a
+   loja inteira.
+   ══════════════════════════════════════════════════════════════════════════ */
+async function anPublicarPrecos(){
+  if(!anMontado) return;
+  const alvo = anMontado.linhas.filter(l => l.itemId && l.preco !== '' && l.preco > 0);
+  if(!alvo.length){
+    alert('Nenhuma linha tem código de anúncio e preço ao mesmo tempo.\n\n'
+      + 'Traga os códigos no passo 2 — pelo botão do Mercado Livre ou pelo arquivo.');
+    return;
+  }
+
+  const v = anMontado.resumo.variacao;
+  const aviso = v && (v.sobem === v.n || v.descem === v.n)
+    ? `\n\nATENÇÃO: todos os preços ${v.sobem === v.n ? 'SOBEM' : 'DESCEM'}, metade mais de `
+      + `${Math.round(Math.abs(v.mediana)*100)}%.`
+    : '';
+  const ok = confirm(
+    `Isto muda o preço de ${alvo.length.toLocaleString('pt-BR')} anúncios no ar, agora.\n\n`
+    + 'Quem estiver vendo o anúncio passa a ver o preço novo. O Mercado Livre não tem desfazer — '
+    + 'para voltar seria preciso publicar os preços antigos de novo.' + aviso
+    + '\n\nQuer publicar?');
+  if(!ok) return;
+
+  const btn = $('anBtnPub');
+  const caixa = $('anApiPub');
+  btn.disabled = true;
+  mostrar('anApiPub', true);
+
+  const LOTE = 50;
+  let feitos = 0, falhas = [];
+  try{
+    for(let i = 0; i < alvo.length; i += LOTE){
+      const fatia = alvo.slice(i, i + LOTE);
+      caixa.className = 'api-estado';
+      caixa.innerHTML = `Publicando… <b>${feitos.toLocaleString('pt-BR')}</b> de ${alvo.length.toLocaleString('pt-BR')}`;
+
+      const r = await fetch('/api/ml-atualizar-precos', {
+        method: 'POST',
+        headers: {'content-type': 'application/json'},
+        body: JSON.stringify({itens: fatia.map(l => ({id: l.itemId, preco: l.preco}))}),
+      });
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok){
+        if(d.precisaAutorizar){
+          caixa.className = 'api-estado erro';
+          caixa.innerHTML = '<b>Falta autorizar a conta que vende.</b> Abra '
+            + '<a href="/api/ml-auth" target="_blank" rel="noopener">/api/ml-auth</a>, autorize, e guarde o '
+            + 'refresh_token em <b>ML_REFRESH_TOKEN</b> na Vercel.';
+          return;
+        }
+        throw new Error(d.erro || ('O Mercado Livre respondeu ' + r.status));
+      }
+      feitos += d.atualizados || 0;
+      (d.resultados || []).filter(x => !x.ok).forEach(x => falhas.push(x));
+    }
+
+    caixa.className = 'api-estado ' + (falhas.length ? 'erro' : 'ok');
+    caixa.innerHTML = `<b>${feitos.toLocaleString('pt-BR')} preços publicados.</b>`
+      + (falhas.length
+        ? ` ${falhas.length.toLocaleString('pt-BR')} não foram: `
+          + esc(falhas.slice(0,3).map(f => f.id + ' (' + (f.erro || '') + ')').join(' · '))
+          + (falhas.length > 3 ? ' …' : '')
+        : ' Confira no Mercado Livre.');
+  }catch(e){
+    caixa.className = 'api-estado erro';
+    caixa.innerHTML = `<b>Parou no meio.</b> ${esc(e && e.message ? e.message : String(e))}`
+      + ` Publicados até aqui: <b>${feitos.toLocaleString('pt-BR')}</b>.`;
+  }finally{
+    btn.disabled = false;
+  }
+}

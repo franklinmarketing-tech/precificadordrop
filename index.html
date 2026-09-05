@@ -834,6 +834,15 @@
           <br>Sem ele o arquivo sai no formato certo, mas o Mercado Livre não vai saber a que
           anúncio cada linha pertence.</div>
       </div>
+      <div class="api-linha-acao">
+        <button class="btn btn-blue btn-block" id="anBtnApi" onclick="anBuscarNaApi()">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+          Buscar meus anúncios direto no Mercado Livre
+        </button>
+        <div class="api-ou"><span>ou envie o arquivo</span></div>
+      </div>
+      <div id="anApiEstado" class="hide"></div>
+
       <div class="zone" id="anZone2" onclick="document.getElementById('anFi2').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'ml')">
