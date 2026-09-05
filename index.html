@@ -277,192 +277,136 @@
       </div>
     </div>
 
-    <div class="secoes">
+    <div class="secoes secoes-4">
 
-      <!-- ═══ MERCADO LIVRE ═══ -->
+      <!-- ═══ OS QUATRO CARDS ═══
+           Um card por marketplace, mais um de ferramentas que servem a
+           qualquer um deles. Antes as ferramentas do Mercado Livre viviam
+           soltas no topo e as dos outros marketplaces apareciam bem abaixo,
+           sem que desse para ver de relance o que existe para cada canal. -->
       <section class="mkt mkt-ml">
         <div class="mkt-h">
           <span class="mkt-selo ml">
-            <svg viewBox="0 0 44 30" aria-hidden="true"><path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Mercado Livre
+            <svg viewBox="0 0 44 30" aria-hidden="true">
+              <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
+                    fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Mercado&nbsp;Livre</span>
           </span>
-          <span class="mkt-n">2 ferramentas · 5 consultas</span>
+          <span class="mkt-n">2 ferramentas · 6 consultas</span>
         </div>
 
-        <div class="bento bento-2 bento-3">
-        <button class="tool tool-1 live" data-tilt onclick="ir('planilha')">
-          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-          <span class="tool-num">01</span>
-          <span class="tool-status st-live">ATIVO</span>
-          <span class="dica" tabindex="0" role="button" aria-expanded="false"
-                aria-label="Saiba mais sobre Planilha de produtos"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-          <div class="tool-ic"><img src="assets/img/ic-planilha.webp" alt="Prancheta com planilha" width="76" height="76" loading="lazy"/></div>
-          <div class="tool-body lift-1">
-            <div class="tool-title">Planilha de produtos</div>
-            <div class="tool-desc">O catálogo do fornecedor pronto para o marketplace.</div>
-          </div>
-          <div class="tool-cta">ABRIR EDITOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-          <div class="saibamais" aria-hidden="true">
-            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o editor faz</span></div>
-            <p>Você sobe a planilha que veio do fornecedor e recebe de volta a mesma planilha pronta para o marketplace — sem perder uma linha.</p>
-            <ul>
-            <li>Encurta a descrição para os 60 caracteres do anúncio</li>
-            <li>Tira o bloco cadastral colado no fim da descrição</li>
-            <li>Preenche a condição do produto como NOVO</li>
-            <li>Gera a coluna <b>Modelo</b>, que o ML exige</li>
-            <li>Remove termos que não podem ir para o marketplace</li>
-            <li>Confere 8 pontos antes de gerar</li>
-            </ul>
-          </div>
-        </button>
-
-        <button class="tool tool-2 live" data-tilt onclick="ir('ml')">
-          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-          <span class="tool-num">02</span>
-          <span class="tool-status st-live">ATIVO</span>
-          <span class="dica" tabindex="0" role="button" aria-expanded="false"
-                aria-label="Saiba mais sobre Precificar Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-          <div class="tool-ic"><img src="assets/img/ic-ml.webp" alt="Calculadora com moedas" width="76" height="76" loading="lazy"/></div>
-          <div class="tool-body lift-1">
-            <div class="tool-title">Precificar Mercado Livre</div>
-            <div class="tool-desc">O preço que entrega a margem que você pediu.</div>
-          </div>
-          <div class="tool-cta">ABRIR CALCULADORA <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-          <div class="saibamais" aria-hidden="true">
-            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>Como o preço é calculado</span></div>
-            <p>Você diz a margem que quer; o cálculo desconta tudo que o Mercado Livre cobra e devolve o preço de venda. Um produto por vez ou a planilha inteira.</p>
-            <ul>
-            <li>Comissão por tipo de anúncio, Clássico ou Premium</li>
-            <li>Tarifa real de cada categoria, consultada no ML</li>
-            <li>Custo fixo por faixa de preço, pela tabela oficial</li>
-            <li>Frete pela sua reputação, peso e faixa de preço</li>
-            <li>Peso volumétrico: cobra pelo maior entre ele e o real</li>
-            <li>Avisa o que pode fazer você perder dinheiro</li>
-            <li>Sai um arquivo pronto para o Bling</li>
-            </ul>
-          </div>
-        </button>
-
-        <button class="tool tool-3 live" data-tilt onclick="ir('anuncios')">
-          <span class="glare"></span><span class="sparks"><i></i><i></i><i></i><i></i></span>
-          <span class="tool-num">03</span>
-          <span class="tool-status st-live">ATIVO</span>
-          <span class="dica" tabindex="0" role="button" aria-expanded="false"
-                aria-label="Saiba mais sobre Planilha no padrão Mercado Livre"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></span>
-          <div class="tool-ic"><img src="assets/img/ic-base-ml.webp" alt="Planilha de anúncios" width="76" height="76" loading="lazy"/></div>
-          <div class="tool-body lift-1">
-            <div class="tool-title">Planilha no padrão Mercado Livre</div>
-            <div class="tool-desc">Sua planilha de preços convertida para o layout do ML.</div>
-          </div>
-          <div class="tool-cta">ABRIR CONVERSOR <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
-          <div class="saibamais" aria-hidden="true">
-            <div class="sm-topo"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span>O que o conversor faz</span></div>
-            <p>Você sobe a planilha de preços e ela sai no layout que o Mercado Livre lê — as 15 colunas, o cabeçalho e os valores na ordem certa.</p>
-            <ul>
-            <li>Monta as 15 colunas que o Mercado Livre espera</li>
-            <li>Traz o código <b>ITEM_ID</b> dos anúncios que você já tem</li>
-            <li>Você escolhe tipo, condição, envio, estado e estoque</li>
-            <li>Mostra quanto cada preço muda em relação ao que está no ar</li>
-            <li>Avisa quando a mudança vai toda para o mesmo lado</li>
-            <li>Separa o que sobe direto do que ainda falta anunciar</li>
-            </ul>
-          </div>
-        </button>
-
+        <div class="minis minis-g">
+          <button class="mini mini-alto" onclick="ir('ml')">
+            <img src="assets/img/ic-ml.webp" alt="" loading="lazy"/>
+            <span><b>Precificar Mercado Livre</b><i>o preço que entrega a margem que você pediu</i></span>
+            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <button class="mini mini-alto" onclick="ir('anuncios')">
+            <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
+            <span><b>Planilha no padrão Mercado Livre</b><i>seus preços no layout que o ML lê</i></span>
+            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
         </div>
 
         <div class="mkt-sub">Consultas de apoio</div>
-        <div class="minis">
-        <button class="mini" onclick="irMercado('produto')">
-          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-          <span><b>Consultar um produto</b><i>comissão e exigências</i></span>
-        </button>
-        <button class="mini" onclick="irMercado('ficha')">
-          <img src="assets/img/ic-planilha.webp" alt="" loading="lazy"/>
-          <span><b>Ficha do anúncio</b><i>o que a categoria obriga</i></span>
-        </button>
-        <button class="mini" onclick="irMercado('campeoes')">
-          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-          <span><b>Mais vendidos</b><i>o ranking de cada categoria</i></span>
-        </button>
-        <button class="mini" onclick="irMercado('tendencias')">
-          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Em alta agora</b><i>o que estão procurando</i></span>
-        </button>
-        <button class="mini" onclick="irMercado('categorias')">
-          <img src="assets/img/ic-shopee.webp" alt="" loading="lazy"/>
-          <span><b>Categorias</b><i>a árvore e os códigos</i></span>
-        </button>
-        <button class="mini" onclick="irMercado('envios')">
-          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Envios</b><i>modalidades ativas no site</i></span>
-        </button>
+        <div class="chips">
+          <button class="chip" onclick="irMercado('produto')">Consultar um produto</button>
+          <button class="chip" onclick="irMercado('ficha')">Ficha do anúncio</button>
+          <button class="chip" onclick="irMercado('campeoes')">Mais vendidos</button>
+          <button class="chip" onclick="irMercado('tendencias')">Em alta agora</button>
+          <button class="chip" onclick="irMercado('categorias')">Categorias</button>
+          <button class="chip" onclick="irMercado('envios')">Envios</button>
         </div>
 
         <div class="mkt-sub">Chegando</div>
-        <div class="minis">
-        <button class="mini off" disabled>
-          <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-          <span><b>Base já publicada</b><i>revisar o que está no ar</i></span>
-        </button>
+        <div class="chips">
+          <button class="chip off" disabled>Base já publicada</button>
         </div>
       </section>
 
-      <!-- ═══ SHOPEE ═══ -->
+      <section class="mkt mkt-ferramentas">
+        <div class="mkt-h">
+          <span class="mkt-selo ferramentas">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.7 6.3a4 4 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8 0l-2.2-2.2a2 2 0 0 1 0-2.8z"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="m16 3 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>Ferramentas</span>
+          </span>
+          <span class="mkt-n">servem a qualquer canal</span>
+        </div>
+
+        <div class="minis minis-g">
+          <button class="mini mini-alto" onclick="ir('planilha')">
+            <img src="assets/img/ic-planilha.webp" alt="" loading="lazy"/>
+            <span><b>Planilha de produtos</b><i>o catálogo do fornecedor pronto para o marketplace</i></span>
+            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <button class="mini mini-alto" onclick="ir('manual')">
+            <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
+            <span><b>Guia do Drop</b><i>como cada conta funciona, do começo ao fim</i></span>
+            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </section>
+
       <section class="mkt mkt-shopee">
         <div class="mkt-h">
           <span class="mkt-selo shopee">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Shopee
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 8h15l-1.1 11.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>Shopee</span>
           </span>
           <span class="mkt-n">em preparação</span>
         </div>
-        <div class="minis minis-g">
-        <button class="mini off" disabled>
-          <img src="assets/img/ic-shopee.webp" alt="" loading="lazy"/>
-          <span><b>Precificar Shopee</b><i>comissão e taxa fixa da Shopee</i></span>
-        </button>
-        <button class="mini off" disabled>
-          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Base da Shopee</b><i>reprocessar o que está no ar</i></span>
-        </button>
+        <div class="chips">
+          <button class="chip off" disabled>Precificar Shopee</button>
+          <button class="chip off" disabled>Base da Shopee</button>
         </div>
-        <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre —
-          comissão, taxa fixa, frete grátis e cupom do vendedor entram em outra conta.
-          Por isso pede ferramenta própria, e não um botão a mais na de hoje.</div>
+        <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre — comissão,
+          taxa fixa, frete grátis e cupom do vendedor entram em outra conta. Por isso pede
+          ferramenta própria, e não um botão a mais na de hoje.</div>
       </section>
 
-      <!-- ═══ AMAZON ═══ -->
       <section class="mkt mkt-amazon">
         <div class="mkt-h">
           <span class="mkt-selo amazon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16c4 3 14 3 18 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M5 5h14v7H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-            Amazon
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2.6 14.8c4.4 3.2 10.2 4.3 15.4 2.4"
+                    fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M14.6 15.4 18 17.2l-1.2 3.4"
+                    fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8" cy="7.4" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M11.6 10.4 14 12.4" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            <span>Amazon</span>
           </span>
           <span class="mkt-n">em preparação</span>
         </div>
-        <div class="minis minis-g">
-        <button class="mini off" disabled>
-          <img src="assets/img/ic-ml.webp" alt="" loading="lazy"/>
-          <span><b>Precificar Amazon</b><i>referral fee e fechamento</i></span>
-        </button>
-        <button class="mini off" disabled>
-          <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-          <span><b>Base da Amazon</b><i>reprocessar o que está no ar</i></span>
-        </button>
+        <div class="chips">
+          <button class="chip off" disabled>Precificar Amazon</button>
+          <button class="chip off" disabled>Base da Amazon</button>
         </div>
-        <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de
-          fechamento em algumas delas. Outra conta, outra ferramenta.</div>
+        <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de fechamento
+          em algumas delas. Outra conta, outra ferramenta.</div>
       </section>
+
 
     </div>
 
     <div class="hub-foot">
       <div class="strip">
-        <span><i class="sdot" style="background:linear-gradient(135deg,#7ea1ff,#2f5ae0)"></i><b>PLANILHA DE PRODUTOS</b> · ATIVO</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#8bacff,#3a63e8)"></i><b>MERCADO LIVRE</b> · ATIVO</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#8bacff,#3a63e8)"></i><b>PESQUISA DE MERCADO</b> · ATIVO</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#abc4ff,#5a80fb)"></i><b>SHOPEE</b> · EM BREVE</span>
+        <span><i class="sdot" style="background:linear-gradient(135deg,#ffe600,#f5cb00)"></i><b>MERCADO LIVRE</b> · 2 FERRAMENTAS</span>
+        <span><i class="sdot" style="background:linear-gradient(135deg,#7ea1ff,#2f5ae0)"></i><b>FERRAMENTAS</b> · 2 ATIVAS</span>
+        <span><i class="sdot" style="background:linear-gradient(135deg,#ff7a55,#ee4d2d)"></i><b>SHOPEE</b> · EM BREVE</span>
+        <span><i class="sdot" style="background:linear-gradient(135deg,#ffb84d,#ff9900)"></i><b>AMAZON</b> · EM BREVE</span>
       </div>
       <div class="pagenum">01</div>
     </div>
