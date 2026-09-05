@@ -3170,7 +3170,12 @@ function wsAbrir(canal){
   const info = WS_CANAIS[canal];
   if(!info) return;
   $('wsPainelMarca').innerHTML = info.marca;
-  $('wsPainelCorpo').innerHTML = '<div class="ws-minis">' + wsCards(canal) + '</div>';
+  /* a grade muda conforme o canal: com principais, seis colunas (duas
+     retangulares em cima ocupando três cada, o apoio embaixo); sem
+     principais, os quadros se distribuem sozinhos */
+  const temDestaque = (WS_FERRAMENTAS[canal] || []).some(f => f.destaque);
+  $('wsPainelCorpo').innerHTML =
+    `<div class="ws-minis${temDestaque ? ' com-destaque' : ''}">` + wsCards(canal) + '</div>';
   $('wsPainel').className = 'ws-painel ws-' + canal;
   mostrar('wsGrade', false);
   mostrar('wsPainel', true);
@@ -3274,11 +3279,16 @@ function wsCards(canal){
   return lista.map((f, i) => {
     const cls = 'ws-mini' + (f.destaque ? ' destaque' : '') + (f.breve ? ' breve' : '');
     const clique = f.breve ? '' : ` onclick="${f.acao}"`;
+    /* a principal é retangular e mostra o resumo: ela tem o dobro da largura,
+       então cabe dizer o que faz sem depender do balão */
     return `<button class="${cls}"${clique}${f.breve ? ' disabled' : ''}
         onmouseenter="wsExplicar(this,'${canal}',${i})" onmouseleave="wsEsconder()"
         onfocus="wsExplicar(this,'${canal}',${i})" onblur="wsEsconder()">
       <span class="ws-mini-ic"><img src="${f.img}" alt="" loading="lazy"/></span>
-      <span class="ws-mini-n">${esc(f.nome)}</span>
+      <span class="ws-mini-txt">
+        <span class="ws-mini-n">${esc(f.nome)}</span>
+        ${f.destaque ? `<span class="ws-mini-r">${esc(f.resumo)}</span>` : ''}
+      </span>
       ${f.breve ? '<span class="ws-mini-tag">em breve</span>' : ''}
     </button>`;
   }).join('');

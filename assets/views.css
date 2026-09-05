@@ -1696,71 +1696,68 @@ body.sem-rolagem{overflow:hidden}
 .av-corpo{padding:2px 16px 16px}
 
 /* ═══ WORKSPACE DA HOME ════════════════════════════════════
-   Quatro quadros grandes, um por canal, ocupando a tela sem rolagem. A marca
-   é o que a pessoa procura primeiro — ela reconhece o logo antes de ler
-   qualquer rótulo —, então o logo é o centro do quadro e o resto é apoio. */
-/* Quadrados de verdade: as colunas seguem o conteúdo e cada quadro tem
-   aspect-ratio 1, então a largura acompanha a altura disponível. Centralizado,
-   porque com quadrado sobra faixa nas laterais em tela larga. */
-/* A faixa recebe a altura que sobra; a grade dentro dela tira a LARGURA
-   dessa altura (aspect-ratio), e só então os quadros saem quadrados. Fazer a
-   grade sozinha calcular pelos quadros invertia a conta: eles cresciam pela
-   largura da tela e empurravam o rodapé para fora. */
-.ws{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;
-  padding-bottom:6px}
-.ws-grade{height:100%;aspect-ratio:1.02;max-width:100%;display:grid;gap:16px;
-  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
-.ws-card{min-height:0;min-width:0}
-
+   Quatro quadros em linha, ocupando a largura. A primeira tentativa amarrou o
+   tamanho à altura: em tela baixa os quadros encolhiam e sobrava um vão enorme
+   dos dois lados. Agora a largura manda — cada quadro pega um quarto da faixa
+   — e a altura só entra como teto, para caber sem rolagem. */
 /* Só a home cabe inteira na tela. O rodapé do site é filho do <body>, não do
-   shell — por isso mandar o shell ocupar 100vh não bastava: sobrava a altura
-   do rodapé. O body vira a coluna: shell ocupa o que sobra, rodapé fica com
-   a altura dele. */
-body.view-hub{height:100vh;min-height:0;overflow:hidden;
-  display:flex;flex-direction:column}
+   shell — mandar o shell ocupar 100vh não bastava, sobrava a altura dele. */
+body.view-hub{height:100vh;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 body.view-hub .shell{flex:1 1 0;min-height:0;height:auto}
-body.view-hub .wrap{min-height:0;overflow:hidden}
+/* na home os quadros são o conteúdo, então a faixa pode ser mais larga que
+   nas telas de leitura — quadrado pequeno no meio de uma tela larga sobra
+   vão dos dois lados e some o efeito de vitrine */
+body.view-hub .wrap{min-height:0;overflow:hidden;max-width:1580px}
 body.view-hub > footer{flex:none}
 
+.ws{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding-bottom:8px}
+.ws-grade{display:flex;gap:18px;width:100%;height:100%;
+  align-items:center;justify-content:center}
+
 .ws-card{position:relative;overflow:hidden;cursor:pointer;font-family:inherit;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  padding:26px;border-radius:22px;border:1px solid var(--line);
+  flex:1 1 0;min-width:0;aspect-ratio:1/1;max-height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  padding:24px 20px;border-radius:24px;border:1px solid var(--line);
   background:var(--sup);box-shadow:var(--sombra-card);
-  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s,border-color .2s}
+  transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s,border-color .22s}
 .ws-card::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(120% 90% at 50% 0%,var(--tinta,transparent),transparent 62%);
-  opacity:.5;transition:opacity .2s}
-.ws-card:hover{transform:translateY(-4px);border-color:var(--aro,var(--blue));
-  box-shadow:0 1px 0 var(--gloss) inset,0 26px 50px -26px var(--aro,rgba(20,30,60,.5))}
+  background:radial-gradient(120% 85% at 50% 0%,var(--tinta,transparent),transparent 60%);
+  opacity:.55;transition:opacity .22s}
+.ws-card:hover{transform:translateY(-6px);border-color:var(--aro,var(--blue));
+  box-shadow:0 1px 0 var(--gloss) inset,0 30px 56px -28px var(--aro,rgba(20,30,60,.5))}
 .ws-card:hover::before{opacity:1}
 .ws-card:focus-visible{outline:3px solid var(--aro,var(--blue));outline-offset:3px}
 
-/* cada canal na sua cor, sem pintar o quadro inteiro */
-.ws-ml         {--tinta:rgba(255,230,0,.22);  --aro:rgba(255,214,0,.75)}
+.ws-ml         {--tinta:rgba(255,230,0,.24);  --aro:rgba(255,214,0,.8)}
 .ws-ferramentas{--tinta:rgba(79,124,255,.16); --aro:rgba(79,124,255,.7)}
 .ws-shopee     {--tinta:rgba(238,77,45,.14);  --aro:rgba(238,77,45,.6)}
 .ws-amazon     {--tinta:rgba(255,153,0,.16);  --aro:rgba(255,153,0,.7)}
 
+/* a marca é o que a pessoa reconhece antes de ler qualquer rótulo */
 .ws-marca{position:relative;display:flex;align-items:center;justify-content:center;
-  flex:1;min-height:0;width:100%}
-.ws-marca img{max-width:min(72%,300px);max-height:100%;object-fit:contain;
+  flex:1 1 auto;min-height:0;width:100%}
+.ws-marca img{max-width:76%;max-height:100%;object-fit:contain;
   transition:transform .25s cubic-bezier(.16,1,.3,1)}
-.ws-card:hover .ws-marca img{transform:scale(1.05)}
-/* o card de ferramentas não tem logo de marca: leva ícone e nome */
-.ws-marca-txt{flex-direction:column;gap:12px;color:var(--blue-dk);
-  font-family:var(--display);font-weight:800;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.5px}
-.ws-marca-txt svg{width:clamp(38px,4vw,54px);height:clamp(38px,4vw,54px);fill:none;
-  stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ws-card:hover .ws-marca img{transform:scale(1.06)}
+.ws-marca-txt{flex-direction:column;gap:10px;color:var(--blue-dk);
+  font-family:var(--display);font-weight:800;letter-spacing:-.4px;
+  font-size:clamp(15px,1.5vw,24px);text-align:center}
+.ws-marca-txt svg{width:clamp(30px,3vw,44px);height:clamp(30px,3vw,44px);flex:none;
+  fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 
-.ws-pe{position:relative;text-align:center}
-.ws-pe b{display:block;font-size:15px;font-weight:700;color:var(--ink)}
-.ws-pe i{display:block;font-style:normal;font-size:13px;color:var(--faint);margin-top:2px}
-.ws-seta{position:absolute;right:20px;bottom:20px;width:34px;height:34px;border-radius:50%;
+/* o pé fica embaixo, sem nada por cima: antes a seta flutuava sobre o texto */
+.ws-pe{position:relative;flex:none;text-align:center;width:100%}
+.ws-pe b{display:block;font-size:clamp(12px,1.05vw,15px);font-weight:700;color:var(--ink)}
+.ws-pe i{display:block;font-style:normal;font-size:clamp(11px,.95vw,13px);
+  color:var(--faint);margin-top:3px;line-height:1.35}
+/* a seta vai para o alto, onde não disputa espaço com o texto */
+.ws-seta{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;
   display:grid;place-items:center;background:var(--sup-3);border:1px solid var(--line);
-  transition:transform .2s,background .2s,border-color .2s}
-.ws-seta svg{width:15px;height:15px;fill:none;stroke:var(--sub);stroke-width:2.4;
+  opacity:0;transform:translateX(-4px);transition:all .2s}
+.ws-seta svg{width:14px;height:14px;fill:none;stroke:var(--sub);stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
-.ws-card:hover .ws-seta{transform:translateX(4px);border-color:var(--aro)}
+.ws-card:hover .ws-seta{opacity:1;transform:none;border-color:var(--aro)}
 
 /* o quadro aberto ocupa o lugar da grade */
 .ws-painel{flex:1;min-height:0;display:flex;flex-direction:column;
@@ -1778,14 +1775,21 @@ body.view-hub > footer{flex:none}
 .ws-voltar:hover{color:var(--ink);border-color:var(--blue);transform:translateX(-2px)}
 .ws-voltar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;
   stroke-linecap:round;stroke-linejoin:round}
-/* o conteúdo é o único lugar que rola, e só quando não couber */
 .ws-painel-b{flex:1;min-height:0;overflow-y:auto;padding:18px}
 
-@media(max-width:820px){
-  .ws{grid-template-columns:1fr;grid-template-rows:none;
-    grid-auto-rows:minmax(150px,1fr);overflow-y:auto}
-  .ws-card{padding:20px;gap:12px}
-  .ws-seta{display:none}
+/* Abaixo de 1080px quatro quadrados ficariam pequenos demais para o logo ser
+   lido: viram dois por linha, e aí a home pode rolar um pouco. */
+@media(max-width:1080px){
+  body.view-hub{height:auto;overflow:visible;display:block}
+  body.view-hub .shell{height:auto}
+  body.view-hub .wrap{overflow:visible}
+  .ws{display:block}
+  .ws-grade{display:grid;grid-template-columns:1fr 1fr;height:auto}
+  .ws-card{aspect-ratio:1/1;max-height:none}
+}
+@media(max-width:620px){
+  .ws-grade{grid-template-columns:1fr}
+  .ws-card{aspect-ratio:16/9;padding:20px}
 }
 
 /* ═══ QUADROS DENTRO DO CANAL ══════════════════════════════
@@ -1794,6 +1798,19 @@ body.view-hub > footer{flex:none}
    ferramenta, não a marca. */
 .ws-minis{display:grid;gap:14px;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+/* Seis colunas fecham a conta: duas principais em cima (três colunas cada) e
+   as seis de apoio numa linha embaixo. Com a grade automática sobrava meia
+   linha vazia no fim. */
+.ws-minis.com-destaque{grid-template-columns:repeat(6,1fr)}
+.ws-minis.com-destaque .ws-mini.destaque{grid-column:span 3}
+@media(max-width:1100px){
+  .ws-minis.com-destaque{grid-template-columns:repeat(4,1fr)}
+  .ws-minis.com-destaque .ws-mini.destaque{grid-column:span 2}
+}
+@media(max-width:760px){
+  .ws-minis.com-destaque{grid-template-columns:repeat(2,1fr)}
+  .ws-minis.com-destaque .ws-mini.destaque{grid-column:span 2}
+}
 .ws-mini{aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
   font-family:inherit;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:12px;padding:16px;border-radius:18px;
@@ -1813,18 +1830,43 @@ body.view-hub > footer{flex:none}
 .ws-mini-tag{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
   color:var(--faint);padding:3px 9px;border-radius:100px;background:var(--sup-3)}
 
-/* As principais ganham relevo: borda em degradê e sombra mais funda. São as
-   que a pessoa vem usar — as outras são apoio e não disputam atenção. */
-.ws-mini.destaque{background:linear-gradient(168deg,var(--sup),var(--sup-2));
-  border-color:transparent;
-  box-shadow:0 0 0 1.5px var(--aro,rgba(79,124,255,.5)),
-             0 1px 0 var(--gloss) inset,
-             0 16px 30px -16px rgba(20,30,60,.45)}
-.ws-mini.destaque .ws-mini-ic{width:64px;height:64px}
-.ws-mini.destaque:hover{transform:translateY(-6px) scale(1.02);
+/* A principal é outra coisa, não uma versão maior: ocupa duas colunas, fica
+   deitada, e ganha profundidade de verdade — camadas de sombra, brilho por
+   dentro e um leve levantar no hover. As outras são apoio e ficam quietas. */
+.ws-mini.destaque{grid-column:span 2;aspect-ratio:auto;min-height:170px;
+  flex-direction:row;align-items:center;justify-content:flex-start;
+  gap:18px;padding:22px 24px;text-align:left;border-color:transparent;
+  background:linear-gradient(150deg,var(--sup) 0%,var(--sup-2) 55%,var(--sup-3) 100%);
+  box-shadow:0 0 0 1.5px var(--aro,rgba(79,124,255,.55)),
+             0 2px 0 rgba(255,255,255,.6) inset,
+             0 -14px 30px -20px rgba(20,30,60,.5) inset,
+             0 10px 18px -12px rgba(20,30,60,.35),
+             0 30px 50px -26px rgba(20,30,60,.55)}
+/* a luz que dá o volume: mais forte em cima, some no meio */
+.ws-mini.destaque::after{content:'';position:absolute;inset:0;pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),transparent 46%);
+  opacity:.7}
+.ws-mini.destaque .ws-mini-ic{width:74px;height:74px}
+.ws-mini.destaque .ws-mini-ic img{filter:drop-shadow(0 10px 16px rgba(20,30,60,.4))}
+.ws-mini.destaque .ws-mini-n{font-size:16px;text-align:left}
+.ws-mini.destaque:hover{transform:translateY(-7px);
   box-shadow:0 0 0 2px var(--aro,var(--blue)),
-             0 1px 0 var(--gloss) inset,
-             0 26px 46px -20px rgba(20,30,60,.6)}
+             0 2px 0 rgba(255,255,255,.65) inset,
+             0 -14px 30px -20px rgba(20,30,60,.5) inset,
+             0 14px 22px -14px rgba(20,30,60,.4),
+             0 44px 70px -30px rgba(20,30,60,.65)}
+.ws-mini.destaque:hover .ws-mini-ic img{transform:translateY(-4px) scale(1.1) rotate(-3deg)}
+
+.ws-mini-txt{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.ws-mini-r{font-size:13px;color:var(--sub);line-height:1.45;font-weight:400}
+
+@media(max-width:760px){
+  .ws-mini.destaque{grid-column:span 1;flex-direction:column;text-align:center;
+    justify-content:center;min-height:0;aspect-ratio:1/1}
+  .ws-mini.destaque .ws-mini-n{text-align:center}
+  .ws-mini-r{display:none}
+}
 .ws-mini.breve{opacity:.55;cursor:default;border-style:dashed;box-shadow:none}
 
 /* ═══ BALÃO DE EXPLICAÇÃO ══════════════════════════════════
