@@ -481,14 +481,6 @@ tbody tr:hover td{background:var(--sup-3)}
 
 @media(max-width:880px){.menu{display:none}}
 
-/* rótulo do menu: diz, em palavras, o que aquela barra é */
-.menu-rot{display:inline-flex;align-items:center;gap:6px;flex:none;padding-right:11px;
-  margin-right:2px;border-right:1px solid rgba(20,30,60,.1);
-  font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--faint)}
-.menu-rot svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;
-  stroke-linecap:round}
-@media(max-width:1180px){.menu-rot{display:none}}
 @media(prefers-reduced-motion:reduce){.mn-v{animation:none!important}}
 
 /* ═══ RODAPÉ ══════════════════════════════════════════════ */
@@ -567,7 +559,6 @@ tbody tr:hover td{background:var(--sup-3)}
    só a camada visual muda, então não existe um segundo menu para manter. */
 .menu-mobile .menu{display:flex;flex-direction:column;align-items:stretch;gap:4px;
   padding:0;margin:0;background:none;border:none;box-shadow:none}
-.menu-mobile .menu-rot{display:none}
 .menu-mobile .mn{width:100%}
 .menu-mobile .mn-t{width:100%;justify-content:space-between;padding:13px 14px;
   border-radius:13px;font-size:15.5px;background:var(--sup-t)}

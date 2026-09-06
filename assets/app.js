@@ -106,6 +106,13 @@ function ir(v, semHash){
   Object.keys(VIEWS).forEach(k => mostrar('view-' + k, k === v));
 
   document.body.classList.toggle('view-hub', v === 'hub');
+
+  /* Voltar para a home é voltar para a GRADE de canais. Sem isto, quem tinha
+     aberto o quadro do Mercado Livre e clicava em Home reaparecia no mesmo
+     painel — a tela mudava de endereço e continuava igual, e parecia que o
+     botão não funcionava. */
+  if(v === 'hub' && typeof wsFechar === 'function'
+     && !$('wsPainel').classList.contains('hide')) wsFechar();
   const SIMPLES = ['hub','manual','mercado','termos','privacidade'];
   mostrar('topoTool', !SIMPLES.includes(v));
   

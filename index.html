@@ -83,14 +83,10 @@
     <!-- Um menu por marketplace: conforme entrarem ferramentas novas, cada
          uma cai no marketplace a que pertence, sem inchar uma lista só. -->
     <nav class="menu" aria-label="Ferramentas do hub">
-      <!-- O rótulo e as setas existem para o topo se ler como navegação: sem
-           eles os itens passavam por texto solto. -->
-      <span class="menu-rot">
-        <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-        Ferramentas
-      </span>
-
-      <!-- Home é destino, não um menu que abre: entra como botão direto. -->
+      <!-- Home é destino, não um menu que abre: entra como botão direto. É ele
+           que ancora a barra como navegação; o rótulo "Ferramentas" que ficava
+           aqui só roubava espaço, e o ícone de menu ao lado dele parecia
+           clicável sem abrir nada. -->
       <button class="mn-t mn-home" data-mkt="hub" onclick="ir('hub')">
         <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
         Home
