@@ -929,6 +929,14 @@
         <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
       </div>
       <div id="mkInfo" class="hide" style="margin-top:14px"></div>
+      <div class="dicas">
+        <div class="dica-l"><span class="dica-e">📄</span>
+          <span>Serve a planilha do seu fornecedor ou a que você já usa no Bling.
+            O app procura sozinho as colunas de custo, peso e medidas.</span></div>
+        <div class="dica-l"><span class="dica-e">⚖️</span>
+          <span><b>Peso e medidas mudam o frete.</b> Sem eles a conta usa estimativa,
+            e o lucro que aparece pode ser maior que o real.</span></div>
+      </div>
     </div>
 
     <div class="panel hide" id="mkStep2">
@@ -944,6 +952,14 @@
       <div class="grp-t" style="margin-top:22px">QUANTO VOCÊ QUER GANHAR</div>
       <label class="campo"><span>Margem líquida sobre a venda (%)</span>
         <input type="number" id="mkMargem" min="1" max="90" step="1" value="20"/></label>
+      <div class="dicas">
+        <div class="dica-l"><span class="dica-e">🎯</span>
+          <span>É o que sobra <b>depois de tudo</b> — comissão, taxa fixa, envio e o custo do
+            produto. Não é markup: 20% aqui significa R$ 20 no bolso a cada R$ 100 vendidos.</span></div>
+        <div class="dica-l aviso"><span class="dica-e">💡</span>
+          <span><b>Produto barato não sustenta margem alta.</b> A taxa fixa pesa mais quanto menor
+            o preço — se muitas linhas derem "margem não alcançável", baixe a margem ou venda em kit.</span></div>
+      </div>
 
       <button class="btn btn-green btn-block" style="margin-top:18px" onclick="mkCalcular()">
         <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
@@ -953,6 +969,17 @@
 
     <div class="hide" id="mkStep3">
       <div class="stats stats-4" id="mkStats"></div>
+
+      <div class="acao-topo">
+        <div class="acao-topo-t"><b>Pronto.</b> A planilha sai com o preço gravado e as colunas de
+          conferência ao lado — custo, comissão, envio, lucro e margem de cada produto.</div>
+        <button class="btn btn-green" id="mkBtnDl" onclick="mkBaixar()">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+          Baixar planilha com os preços
+        </button>
+        <button class="btn btn-ghost" onclick="mkRecomecar()">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
+      </div>
 
       <div class="panel">
         <div class="panel-h">
@@ -966,13 +993,10 @@
         <div class="panel-h"><div class="panel-t verde"><span class="n">3</span> Conferir os preços calculados</div></div>
         <div class="tbl-wrap"><table id="mkTabela"></table></div>
         <div id="mkPaginacao"></div>
-        <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
-          <button class="btn btn-ghost" onclick="mkRecomecar()">
-            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
-          <button class="btn btn-green" style="flex:1" id="mkBtnDl" onclick="mkBaixar()">
-            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-            Baixar planilha com os preços
-          </button>
+        <div class="dicas">
+          <div class="dica-l"><span class="dica-e">🔎</span>
+            <span>Linha em <b>vermelho</b> não teve preço calculado; em <b>amarelo</b>, saiu com
+              ressalva. Clique em "ver as linhas" no aviso acima para filtrar só essas.</span></div>
         </div>
       </div>
     </div>

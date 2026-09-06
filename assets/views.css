@@ -2071,3 +2071,42 @@ body.view-hub .ws-painel-b{padding:14px}
 .nota-box b{color:var(--ink);font-weight:700}
 .nota-box ul{margin:6px 0 0;padding-left:18px}
 .nota-box li{margin-bottom:5px}
+
+/* ═══ MARCA DO CANAL NA CALCULADORA ════════════════════════
+   Faltava a regra e o logo saía no tamanho natural do arquivo — ocupava meia
+   tela. Aqui ele é um selo do lado do título, como o do Mercado Livre. */
+.mk-marca{display:inline-flex;align-items:center;justify-content:center;flex:none;
+  padding:11px 16px;border-radius:14px;background:var(--sup);border:1px solid var(--line);
+  box-shadow:0 1px 0 var(--gloss) inset,0 8px 20px -12px rgba(20,30,60,.45)}
+.mk-marca img{height:26px;width:auto;max-width:150px;object-fit:contain;display:block}
+@media(max-width:620px){
+  .mk-marca{padding:9px 13px}
+  .mk-marca img{height:21px;max-width:120px}
+}
+
+/* ═══ DICAS ════════════════════════════════════════════════
+   Um lembrete curto ao lado do que a pessoa está fazendo. O emoji marca o
+   assunto de longe — quem varre a tela reconhece o ícone antes de ler. */
+.dicas{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.dica-l{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-radius:12px;
+  font-size:13.5px;line-height:1.55;color:var(--sub);
+  background:var(--sup-3);border:1px solid var(--line)}
+.dica-e{font-size:17px;line-height:1.3;flex:none;
+  /* fonte de emoji explícita: sem isso o Windows troca por um desenho chapado */
+  font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
+.dica-l b{color:var(--ink);font-weight:700}
+.dica-l.forte{background:color-mix(in srgb,var(--blue) 8%,var(--sup));
+  border-color:color-mix(in srgb,var(--blue) 26%,transparent)}
+.dica-l.aviso{background:color-mix(in srgb,var(--amber) 10%,var(--sup));
+  border-color:color-mix(in srgb,var(--amber) 32%,transparent)}
+.dica-l.aviso b{color:var(--amber-dk)}
+
+/* o download sobe para o topo do resultado: é a ação que a pessoa veio
+   fazer, e estava depois de uma tabela de mil linhas */
+.acao-topo{display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+  margin:0 0 18px;padding:16px 18px;border-radius:16px;
+  background:linear-gradient(150deg,var(--sup),var(--sup-2));
+  border:1px solid var(--line);box-shadow:var(--sombra-card)}
+.acao-topo .btn{flex:1 1 auto;min-width:220px}
+.acao-topo-t{flex:1 1 100%;font-size:13.5px;color:var(--sub);margin-bottom:2px}
+.acao-topo-t b{color:var(--ink)}
