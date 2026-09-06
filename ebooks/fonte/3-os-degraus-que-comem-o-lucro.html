@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Os degraus que comem o lucro — Precificador Drop</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --tinta:#12141c; --sub:#4a5163; --fraco:#8d94a5; --linha:#e2e6ef;
+  --azul:#0B6FD8; --azul-esc:#0a5bb0; --verde:#0d8f56; --vermelho:#d6323a;
+  --amarelo:#b4770a; --fundo-suave:#f6f8fc;
+}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--tinta);font-size:11pt;line-height:1.62;
+  background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+/* uma página = uma folha A4 com respiro */
+.pagina{padding:22mm 20mm;page-break-after:always;position:relative;min-height:297mm}
+.pagina:last-child{page-break-after:auto}
+
+/* ── capa ── */
+.capa{display:flex;flex-direction:column;justify-content:center;
+  background:linear-gradient(160deg,#0b1220 0%,#132441 55%,#0e2d52 100%);color:#fff;padding:26mm 20mm}
+.capa-marca{display:flex;align-items:center;gap:10px;margin-bottom:auto;
+  font-size:10pt;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;color:#8fb6ee}
+.capa-selo{width:26px;height:26px;border-radius:8px;background:linear-gradient(160deg,#3b8ef0,#0B6FD8);
+  display:grid;place-items:center;font-size:13pt;font-weight:800;color:#fff}
+.capa-n{font-size:10pt;font-weight:700;letter-spacing:3px;color:#5f9ae8;text-transform:uppercase}
+.capa h1{font-size:34pt;font-weight:800;line-height:1.08;letter-spacing:-1.2px;margin:10px 0 14px}
+.capa h1 em{font-style:normal;color:#5aa9ff}
+.capa-sub{font-size:13pt;color:#b9c8dd;line-height:1.55;max-width:36em}
+.capa-pe{margin-top:auto;padding-top:22px;border-top:1px solid rgba(255,255,255,.16);
+  font-size:9.5pt;color:#8fa4bf;display:flex;justify-content:space-between;gap:16px}
+
+/* ── texto ── */
+h2{font-size:19pt;font-weight:800;letter-spacing:-.5px;line-height:1.2;margin:0 0 4px}
+h2 .num{color:var(--azul);font-weight:800}
+.h2-sub{font-size:10.5pt;color:var(--fraco);margin-bottom:20px;
+  padding-bottom:12px;border-bottom:2px solid var(--linha)}
+h3{font-size:13pt;font-weight:700;margin:22px 0 8px;letter-spacing:-.2px}
+p{margin:0 0 11px}
+p b,li b{font-weight:700}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin-bottom:6px}
+.fraco{color:var(--sub)}
+
+/* ── destaques ── */
+.chamada{background:var(--fundo-suave);border-left:4px solid var(--azul);
+  padding:14px 18px;border-radius:0 10px 10px 0;margin:16px 0}
+.chamada.alerta{border-left-color:var(--amarelo);background:#fdf8ee}
+.chamada.erro{border-left-color:var(--vermelho);background:#fdf1f1}
+.chamada.ok{border-left-color:var(--verde);background:#f0faf5}
+.chamada-t{font-weight:700;margin-bottom:4px}
+
+.numerao{display:flex;gap:20px;margin:18px 0;flex-wrap:wrap}
+.numerao .n{flex:1 1 0;min-width:110px;background:var(--fundo-suave);border-radius:12px;padding:14px 16px}
+.numerao .n b{display:block;font-size:22pt;font-weight:800;letter-spacing:-1px;line-height:1.05}
+.numerao .n i{display:block;font-style:normal;font-size:8.5pt;color:var(--fraco);
+  text-transform:uppercase;letter-spacing:1.1px;margin-top:5px;line-height:1.35}
+.n.bom b{color:var(--verde)} .n.ruim b{color:var(--vermelho)} .n.aten b{color:var(--amarelo)}
+
+/* ── tabelas ── */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:10pt}
+th{text-align:left;font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+  color:var(--fraco);padding:8px 10px;border-bottom:2px solid var(--linha)}
+td{padding:9px 10px;border-bottom:1px solid var(--linha);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.num{text-align:right}
+.bom{color:var(--verde);font-weight:700}
+.ruim{color:var(--vermelho);font-weight:700}
+.destaque td{background:#fff8e8;font-weight:600}
+.tab-nota{font-size:9pt;color:var(--fraco);margin-top:-6px;margin-bottom:16px;line-height:1.5}
+
+/* ── passo a passo ── */
+.passos{counter-reset:passo;list-style:none;padding:0;margin:14px 0}
+.passos li{counter-increment:passo;position:relative;padding-left:36px;margin-bottom:12px}
+.passos li::before{content:counter(passo);position:absolute;left:0;top:1px;
+  width:24px;height:24px;border-radius:50%;background:var(--azul);color:#fff;
+  font-size:10pt;font-weight:700;display:grid;place-items:center}
+
+/* ── rodapé de cada página ── */
+.pe{position:absolute;left:20mm;right:20mm;bottom:12mm;display:flex;justify-content:space-between;
+  font-size:8.5pt;color:var(--fraco);border-top:1px solid var(--linha);padding-top:7px}
+
+.evitar-quebra{page-break-inside:avoid}
+</style></head>
+<body>
+<div class="pagina capa">
+  <div class="capa-marca"><span class="capa-selo">P</span>Precificador Drop</div>
+  <div>
+    <div class="capa-n">Ebook 3</div>
+    <h1>Os degraus<br/>que comem<br/>o <em>lucro</em></h1>
+    <div class="capa-sub">Existem preços em que cobrar um centavo a mais derruba o seu lucro pela metade. Onde eles estão, em cada canal, e como achá-los na sua planilha.</div>
+  </div>
+  <div class="capa-pe">
+    <span>10 minutos de leitura</span>
+    <span>Números conferidos nas tabelas oficiais · setembro de 2026</span>
+  </div>
+</div>
+
+<div class="pagina">
+  <h2>As taxas sobem em degrau</h2><div class="h2-sub">Não em rampa — e é aí que mora o dinheiro parado</div>
+  
+    <p>A intuição diz que cobrar mais caro rende mais. Na maior parte da faixa de preço, é verdade.
+    Mas as taxas dos marketplaces <b>não sobem junto com o preço</b>: elas ficam paradas e depois
+    dão um salto.</p>
+    <p>Quando o seu preço passa de um desses saltos, você paga a faixa inteira — mesmo tendo
+    passado por um centavo.</p>
+
+    <div class="chamada erro">
+      <div class="chamada-t">Na Shopee, um produto de R$ 44,79 de custo</div>
+      Vendido a R$ 79,99 deixa <b>R$ 15,20</b>.<br/>
+      Vendido a R$ 80,00 deixa <b>R$ 8,01</b>.<br/>
+      <b>Um centavo a mais custa R$ 7,19.</b>
+    </div>
+
+    <p>E não acaba aí. Depois do salto, o lucro volta a crescer com o preço — mas leva um bom
+    tempo até alcançar o que você tinha antes. Nesse intervalo, <b>você cobra mais caro e ganha
+    menos</b>:</p>
+
+    <div class="numerao">
+      <div class="n"><b>R$ 79,99</b><i>o degrau</i></div>
+      <div class="n ruim"><b>R$ 88,40</b><i>só aqui volta a compensar</i></div>
+      <div class="n aten"><b>R$ 8,41</b><i>de faixa morta no meio</i></div>
+    </div>
+
+    <p>Qualquer preço entre R$ 79,99 e R$ 88,40 rende menos do que
+    R$ 79,99. É dinheiro que você deixa na mesa cobrando mais caro do cliente —
+    o pior dos dois mundos.</p>
+    
+  <div class="pe"><span>Precificador Drop</span><span>As taxas sobem em degrau</span></div>
+</div>
+
+<div class="pagina">
+  <h2>Os degraus da Shopee</h2><div class="h2-sub">Onde o valor fixo por item dá um salto</div>
+  
+    <p>Na Shopee a comissão é por faixa de preço, somando um percentual e um valor fixo. O
+    percentual quase não muda; o <b>valor fixo</b> é que salta:</p>
+    <table>
+      <thead><tr><th>Faixa</th><th class="num">Percentual</th><th class="num">Valor fixo</th></tr></thead>
+      <tbody>
+        <tr class="destaque">
+          <td>até R$ 79,99</td><td class="num">20%</td>
+          <td class="num"><b>R$ 4,00</b></td></tr><tr>
+          <td>até R$ 99,99</td><td class="num">14%</td>
+          <td class="num"><b>R$ 16,00</b></td></tr><tr>
+          <td>até R$ 199,99</td><td class="num">14%</td>
+          <td class="num"><b>R$ 20,00</b></td></tr><tr>
+          <td>acima de R$ 200</td><td class="num">14%</td>
+          <td class="num"><b>R$ 26,00</b></td></tr>
+      </tbody>
+    </table>
+    <div class="tab-nota">De R$ 4,00 para R$ 16,00 num centavo:
+    é o maior salto da tabela, e o que mais pega gente.</div>
+
+    <h3>Os três degraus, medidos</h3>
+    <table>
+      <thead><tr>
+        <th class="num">Degrau</th><th class="num">Custo do exemplo</th>
+        <th class="num">Sobra no degrau</th><th class="num">Um centavo acima</th>
+        <th class="num">Perde</th><th class="num">Só compensa acima de</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="num"><b>R$ 79,99</b></td>
+          <td class="num fraco">R$ 44,79</td>
+          <td class="num bom">R$ 15,20</td>
+          <td class="num ruim">R$ 8,01</td>
+          <td class="num ruim">− R$ 7,19</td>
+          <td class="num">R$ 88,40</td>
+        </tr><tr>
+          <td class="num"><b>R$ 99,99</b></td>
+          <td class="num fraco">R$ 55,99</td>
+          <td class="num bom">R$ 14,00</td>
+          <td class="num ruim">R$ 10,01</td>
+          <td class="num ruim">− R$ 3,99</td>
+          <td class="num">R$ 104,65</td>
+        </tr><tr>
+          <td class="num"><b>R$ 199,99</b></td>
+          <td class="num fraco">R$ 111,99</td>
+          <td class="num bom">R$ 40,00</td>
+          <td class="num ruim">R$ 34,01</td>
+          <td class="num ruim">− R$ 5,99</td>
+          <td class="num">R$ 207,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="chamada ok">
+      <div class="chamada-t">A regra prática da Shopee</div>
+      Se um produto seu está entre <b>R$ 79,99</b> e cerca de <b>R$ 88</b>,
+      quase sempre rende mais baixando para R$ 79,99. E de quebra você fica mais
+      barato que o concorrente.
+    </div>
+    
+  <div class="pe"><span>Precificador Drop</span><span>Os degraus da Shopee</span></div>
+</div>
+
+<div class="pagina">
+  <h2>Os degraus do Mercado Livre</h2><div class="h2-sub">Aqui quem salta é o frete</div>
+  
+    <p>No Mercado Livre a comissão é percentual e não tem degrau. O que salta é o <b>frete</b>, que
+    muda de faixa conforme o preço do produto. Os saltos são menores que os da Shopee, mas são
+    mais numerosos:</p>
+    <table>
+      <thead><tr>
+        <th class="num">Degrau</th><th class="num">Custo do exemplo</th>
+        <th class="num">Sobra no degrau</th><th class="num">Perde acima</th>
+        <th class="num">Só compensa acima de</th><th class="num">Faixa morta</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="num"><b>R$ 48,99</b></td>
+          <td class="num fraco">R$ 19,60</td>
+          <td class="num bom">R$ 9,57</td>
+          <td class="num ruim">− R$ 1,29</td>
+          <td class="num">R$ 50,80</td>
+          <td class="num">R$ 1,81</td>
+        </tr><tr>
+          <td class="num"><b>R$ 99,99</b></td>
+          <td class="num fraco">R$ 40,00</td>
+          <td class="num bom">R$ 33,14</td>
+          <td class="num ruim">− R$ 2,29</td>
+          <td class="num">R$ 102,65</td>
+          <td class="num">R$ 2,66</td>
+        </tr><tr>
+          <td class="num"><b>R$ 119,99</b></td>
+          <td class="num fraco">R$ 48,00</td>
+          <td class="num bom">R$ 40,24</td>
+          <td class="num ruim">− R$ 1,99</td>
+          <td class="num">R$ 122,30</td>
+          <td class="num">R$ 2,31</td>
+        </tr><tr>
+          <td class="num"><b>R$ 149,99</b></td>
+          <td class="num fraco">R$ 60,00</td>
+          <td class="num bom">R$ 52,34</td>
+          <td class="num ruim">− R$ 2,29</td>
+          <td class="num">R$ 152,65</td>
+          <td class="num">R$ 2,66</td>
+        </tr><tr>
+          <td class="num"><b>R$ 199,99</b></td>
+          <td class="num fraco">R$ 80,00</td>
+          <td class="num bom">R$ 73,54</td>
+          <td class="num ruim">− R$ 2,79</td>
+          <td class="num">R$ 203,25</td>
+          <td class="num">R$ 3,26</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tab-nota">Reputação verde, anúncio Clássico, 0,5 kg. Custo do exemplo: 40% do preço
+    do degrau, para cada linha ser um produto plausível.</div>
+
+    <div class="chamada">
+      <div class="chamada-t">Parece pouco, mas some</div>
+      R$ 2,29
+      por venda parece pequeno. Em 500 vendas no mês, são
+      R$ 1.145,00 —
+      e você nem sabia que estava perdendo.
+    </div>
+
+    <h3>Por que ninguém percebe</h3>
+    <p>Porque olhando um produto de cada vez o número é pequeno, e olhando a planilha inteira
+    ninguém tem paciência de comparar cada linha com sete degraus. É trabalho de computador.</p>
+    
+  <div class="pe"><span>Precificador Drop</span><span>Os degraus do Mercado Livre</span></div>
+</div>
+
+<div class="pagina">
+  <h2>Como achar na sua planilha</h2><div class="h2-sub">A ferramenta que faz essa varredura</div>
+  
+    <p>O Precificador Drop tem uma ferramenta só para isso, chamada <b>Dinheiro parado</b>. Ela
+    aparece nos quadros de Mercado Livre, Shopee e Amazon na página inicial.</p>
+
+    <ol class="passos">
+      <li><b>Suba a planilha com os preços que você já pratica.</b> Não é a de custos: é a que tem
+        o preço que está no ar agora. Pode ser a exportação do Bling, a do Mercado Livre ou a sua.</li>
+      <li><b>Aponte as colunas de custo e de preço praticado.</b> O app tenta acertar sozinho, mas
+        confira — apontar a coluna errada faz toda linha parecer oportunidade.</li>
+      <li><b>Escolha o canal.</b> No Mercado Livre informe também o tipo de anúncio e a sua
+        reputação; os dois mudam o tamanho dos degraus.</li>
+      <li><b>Leia o relatório.</b> Cada produto parado aparece com o preço de hoje, o preço
+        sugerido, quanto ganha por venda ao baixar, e a partir de que preço volta a compensar
+        cobrar mais.</li>
+      <li><b>Baixe a lista.</b> Sai um arquivo com tudo, para você levar ao painel do marketplace.</li>
+    </ol>
+
+    <div class="chamada alerta">
+      <div class="chamada-t">O relatório separa duas coisas</div>
+      <b>Dinheiro parado num degrau</b> é a oportunidade de verdade — baixar aumenta o lucro.
+      <b>Produtos vendendo no prejuízo</b> é outra conversa: ali a conta não fecha em preço nenhum,
+      e o degrau é o menor dos problemas. Clicar na linha abre o extrato e mostra a causa.
+    </div>
+
+    <div class="chamada ok">
+      <div class="chamada-t">Uma coisa que talvez surpreenda</div>
+      O preço que o próprio app calcula <b>nunca</b> cai numa dessas faixas — ele percorre os
+      degraus de propósito. O dinheiro parado está sempre no preço antigo, quase sempre feito por
+      markup. Se você precificou tudo pelo app, provavelmente não vai achar nada — e isso é uma
+      boa notícia.
+    </div>
+    
+  <div class="pe"><span>Precificador Drop</span><span>Como achar na sua planilha</span></div>
+</div></body></html>

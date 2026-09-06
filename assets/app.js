@@ -3552,9 +3552,25 @@ const WS_FERRAMENTAS = {
      resumo:'As dúvidas que mais aparecem, respondidas.',
      itens:['Por que o preço mudou ao trocar a reputação',
             'A coluna "Preço de custo" zerada está errada?']},
-    {nome:'Ebooks em PDF', svg:'baixar', breve:true,
-     resumo:'Material para baixar, imprimir e estudar offline.',
-     itens:['Ainda não está no ar — os arquivos precisam ser enviados']},
+    {nome:'Margem e markup', svg:'baixar', acao:"baixarEbook('1-a-conta-do-preco')", tag:'PDF',
+     resumo:'Ebook 1 · por que custo × 1,3 não dá 30% de margem.',
+     itens:['O erro que custa mais caro, com a conta aberta',
+            'A tabela de markup real para cada margem que você pedir',
+            'Para onde vai cada real de uma venda',
+            'Por que a taxa fixa engole o produto barato',
+            'PDF para baixar, imprimir e estudar sem internet']},
+    {nome:'Os três canais', svg:'baixar', acao:"baixarEbook('2-os-tres-canais')", tag:'PDF',
+     resumo:'Ebook 2 · as tabelas de Mercado Livre, Shopee e Amazon.',
+     itens:['Como cada um cobra, e por que isso muda o preço',
+            'As três tabelas oficiais, lado a lado',
+            'O mesmo produto precificado nos três canais',
+            'Peso volumétrico: quando a caixa custa mais que o peso']},
+    {nome:'Os degraus do lucro', svg:'baixar', acao:"baixarEbook('3-os-degraus-que-comem-o-lucro')", tag:'PDF',
+     resumo:'Ebook 3 · os preços em que cobrar mais rende menos.',
+     itens:['Por que um centavo a mais pode custar R$ 7 de lucro',
+            'Todos os degraus da Shopee e do Mercado Livre',
+            'A faixa morta: mais caro para o cliente, menos para você',
+            'Como achar esses produtos na sua planilha']},
   ],
 };
 
@@ -3608,9 +3624,21 @@ function wsCards(canal){
         ${f.destaque ? `<span class="ws-mini-r">${esc(f.resumo)}</span>` : ''}
         ${f.destaque && f.fluxo ? wsFluxo(f.fluxo) : ''}
       </span>
-      ${f.breve ? '<span class="ws-mini-tag">em breve</span>' : ''}
+      ${f.breve ? '<span class="ws-mini-tag">em breve</span>'
+        : f.tag ? `<span class="ws-mini-tag ws-mini-tag-pdf">${esc(f.tag)}</span>` : ''}
     </button>`;
   }).join('');
+}
+
+/* Baixa um ebook. Os arquivos são gerados por scripts/ebooks.cjs a partir dos
+   próprios motores do app — o que está escrito neles é o que o app calcula. */
+function baixarEbook(nome){
+  const a = document.createElement('a');
+  a.href = '/ebooks/' + nome + '.pdf';
+  a.download = nome + '.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /* Abre o Guia no capítulo pedido. O guia é uma view só, com âncoras — então

@@ -4109,3 +4109,7 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   .logo-mark img{width:32px;height:32px}
   .topbar{gap:8px}
 }
+
+/* Ebook em PDF não é capítulo do guia: a marca distingue os dois tipos de
+   material dentro do mesmo painel, sem precisar de outro quadro. */
+.ws-mini-tag-pdf{color:var(--blue-dk);background:color-mix(in srgb,var(--blue) 12%,transparent)}
