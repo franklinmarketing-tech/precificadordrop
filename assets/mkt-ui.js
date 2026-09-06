@@ -24,6 +24,8 @@ let mkPesosConvertidos = new Set();
 /* número da linha na planilha → posição em mkLinhas, para a linha clicada
    achar o próprio registro sem varrer o vetor */
 let mkIndicePorLinha = new Map();
+/* produtos cujo preço atual está logo acima de um degrau de taxa */
+let mkDegraus = null;
 
 const MK_CANAIS = {
   shopee: {motor: () => window.MktShopee, nome: 'Shopee',
@@ -133,7 +135,10 @@ function mkMontarForm(){
     <label class="campo"><span>Altura</span>${sel('mkColA', mkAcha(['altura']), true)}</label>
     <label class="campo"><span>Largura</span>${sel('mkColL', mkAcha(['largura']), true)}</label>
     <label class="campo"><span>Comprimento</span>${sel('mkColC', mkAcha(['comprimento']), true)}</label>
-    <label class="campo"><span>Gravar o preço em</span>${sel('mkColPreco', mkAcha(['preço','preco','valor']))}</label>`;
+    <label class="campo"><span>Gravar o preço em</span>${sel('mkColPreco', mkAcha(['preço','preco','valor']))}</label>
+    <label class="campo"><span>Preço que você pratica hoje
+      <i>opcional — com ele o app procura produtos parados num degrau de taxa</i></span>
+      ${sel('mkColPrecoHoje', mkAcha(['preço de venda','preco de venda','preço atual','preco atual']), true)}</label>`;
 
   const selPeso = $('mkColPeso');
   if(selPeso) selPeso.addEventListener('change', mkChecarPeso);
@@ -314,6 +319,7 @@ async function mkCalcular(){
     mkIndicePorLinha = new Map();
     mkLinhas.forEach((r, i) => mkIndicePorLinha.set(r.linha, i));
     mkConf = mkCanal.conferir(mkLinhas);
+    mkAcharDegraus(parseInt(($('mkColPrecoHoje') || {}).value), p);
     progEtapa(2);
     await respirar();
   }finally{
@@ -325,7 +331,7 @@ async function mkCalcular(){
     alert(`Nenhum preço foi calculado.\n\nA coluna "${mkCab[iCusto]}" não tem valores numéricos maiores que zero — escolha a coluna que guarda o custo.`);
     return;
   }
-  mkRenderStats(); mkRenderChecks(); mkRenderTabela();
+  mkRenderStats(); mkRenderChecks(); mkRenderDegraus(); mkRenderTabela();
   mostrar('mkStep3', true);
   $('mkStats').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
 }
@@ -335,6 +341,7 @@ function mkRecomecar(){
   mkBytes = null; mkAbaNome = '';
   mkPesoSuspeito = false; mkPesoConfirmadoKg = false; mkPesoInfo = null;
   mkPesosConvertidos = new Set();
+  mkDegraus = null;
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   window.scrollTo({top:0, behavior: reduzido ? 'instant' : 'smooth'});
@@ -442,6 +449,40 @@ function mkRenderTabela(){
         <span>${(inicio+1).toLocaleString('pt-BR')}–${Math.min(inicio+MK_POR_PAGINA,total).toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')}</span>
         <button ${mkPagina >= paginas-1 ? 'disabled' : ''} onclick="mkIrPagina(${mkPagina+1})">Próximas ›</button>
       </div>` : '';
+}
+
+/* ── caçador de degrau ─────────────────────────────────────────────────────
+   Só roda quando o vendedor aponta a coluna do preço que ele JÁ pratica. O
+   preço que este app calcula nunca cai na zona morta (ele caminha faixa por
+   faixa), então não haveria o que achar nele. O dinheiro está no preço antigo,
+   que quase sempre veio de markup. */
+function mkAcharDegraus(iPrecoHoje, params){
+  mkDegraus = null;
+  if(isNaN(iPrecoHoje) || iPrecoHoje < 0) return;
+
+  const linhas = [];
+  for(const r of mkLinhas){
+    const L = mkAoa[r.linha] || [];
+    const preco = ML.parseNumero(L[iPrecoHoje]);
+    if(!isFinite(preco) || preco <= 0 || r.custo == null) continue;
+    const a = mkCanal.analisar(preco, r.custo, r.pesoReal != null ? r.pesoReal : r.peso,
+                               params, r.dimensoes);
+    if(a) linhas.push(Object.assign({linha: r.linha, custo: r.custo,
+                                     pesoReal: r.pesoReal, dimensoes: r.dimensoes}, a));
+  }
+  if(!linhas.length) return;
+  const d = mkCanal.acharDegraus(linhas, params);
+  if(d.n) mkDegraus = d;
+}
+
+function mkRenderDegraus(){
+  const caixa = $('mkDegraus');
+  if(!caixa) return;
+  if(!mkDegraus){ mostrar('mkDegraus', false); return; }
+  caixa.innerHTML = degrausHTML(mkDegraus, {
+    canal: 'da ' + mkCanal.nome, brl: mkCanal.brl, cabecalho: mkCab, aoa: mkAoa,
+  });
+  mostrar('mkDegraus', true);
 }
 
 /* ── a conta de uma linha ──────────────────────────────────────────────────

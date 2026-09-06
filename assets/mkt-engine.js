@@ -262,6 +262,15 @@ function criarMotor(canal) {
     comissaoParts: canal.comissaoParts,
     taxaFixaDe: canal.taxaFixaDe, freteDe: canal.freteDe,
     analisar, precoPara, precificarLinha, precificarLote, conferir,
+    limites: canal.limites,
+    /* o caçador de degrau vive no ml-engine (conta pura, com teste) e aqui
+       chega já amarrado ao analisar e aos limites deste canal */
+    acharDegraus: (linhas, params) => {
+      const p = Object.assign({}, PADRAO, params || {});
+      /* limites() da Amazon depende dos parâmetros (a categoria muda a faixa);
+         o da Shopee não usa nenhum. Passar sempre serve os dois. */
+      return ML.acharDegraus(linhas, p, {analisar, limites: () => canal.limites(p)});
+    },
   };
 }
 

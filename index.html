@@ -272,7 +272,7 @@
         <div class="hub-prova">
         <div class="prv"><b>5</b><span>ferramentas no ar</span></div>
         <div class="prv"><b id="liveChecks">0/8</b><span>validações por planilha</span></div>
-        <div class="prv"><b>2</b><span>chegando</span></div>
+        <div class="prv"><b>3</b><span>chegando</span></div>
         </div>
       </div>
     </div>
@@ -307,6 +307,21 @@
         <span class="ws-pe">
           <b>1 ferramenta</b>
           <i>base de preços chegando</i>
+        </span>
+        <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </button>
+
+      <button class="ws-card ws-estudo" onclick="wsAbrir('estudo')">
+        <span class="ws-marca ws-marca-txt">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          Aprender<br/>a vender
+        </span>
+        <span class="ws-pe">
+          <b>7 capítulos</b>
+          <i>ebooks em PDF chegando</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </button>
@@ -499,6 +514,15 @@
             </div>
           </div>
 
+          <div class="grid2" style="margin-bottom:18px">
+            <div>
+              <div class="lbl verde">Coluna do preço que você pratica hoje</div>
+              <select id="mlPrecoHoje" onchange="mlValidaCol()"><option value="-1">Não conferir os preços atuais</option></select>
+              <div class="nota">Com ela o app procura produtos parados logo acima de um
+                degrau de taxa — onde baixar o preço rende mais.</div>
+            </div>
+          </div>
+
           <!-- Tarifa real por categoria, consultada no Mercado Livre -->
           <div class="cat-box" id="mlCatBox">
             <label class="cat-liga">
@@ -545,6 +569,8 @@
           <div class="chk-resumo" id="mlChecksResumo"></div>
           <div class="checks" id="mlChecks"></div>
         </div>
+
+        <div class="panel hide" id="mlDegraus"></div>
 
         <div class="panel" id="mlPainelTabela">
           <div class="panel-h"><div class="panel-t verde"><span class="n">3</span> Conferir os preços calculados</div>
@@ -860,6 +886,8 @@
         <div class="checks" id="mkChecks"></div>
       </div>
 
+      <div class="panel hide" id="mkDegraus"></div>
+
       <div class="panel" id="mkPainelTabela">
         <div class="panel-h"><div class="panel-t verde"><span class="n">3</span> Conferir os preços calculados</div></div>
         <div class="tbl-wrap"><table id="mkTabela"></table></div>
@@ -1080,6 +1108,19 @@
             R$ 500 paga R$ 96, e um de R$ 1.000 paga R$ 166.</p>
           <p><b>Conta CPF:</b> quem passa de 450 pedidos em 90 dias paga R$ 3 a mais por
             item. Abaixo de R$ 8 o valor fixo deixa de ser R$ 4 e vira metade do preço.</p>
+          <h3>O app acha esses produtos na sua planilha</h3>
+          <p>No passo 2, aponte a coluna <b>"Preço que você pratica hoje"</b>. O app compara
+            o que cada produto rende no preço atual com o que renderia no degrau logo abaixo,
+            e lista quem está perdendo dinheiro — com o ganho por venda de cada um.</p>
+          <p>Ele também diz <b>a partir de que preço volta a compensar cobrar mais</b>. No
+            exemplo dos R$ 80: entre R$ 80,00 e R$ 88,36 o vendedor cobra mais caro e ganha
+            menos que a R$ 79,99. Acima de R$ 88,36, aí sim compensa.</p>
+          <p>Vale para o Mercado Livre também, onde o degrau é o do frete: a R$ 100 o envio
+            pula de R$ 13,85 para R$ 16,15, e R$ 99,99 rende R$ 2,29 a mais.</p>
+          <p><b>O preço que este app calcula nunca cai nessa armadilha</b> — ele percorre
+            faixa por faixa de propósito. O problema mora no preço antigo, quase sempre feito
+            por markup (custo × um número).</p>
+
           <div class="nota-box">
             <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>
             <div>A Shopee diz "por item vendido" mas não esclarece se três unidades do mesmo

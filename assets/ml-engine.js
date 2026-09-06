@@ -547,6 +547,20 @@ function analisar(preco, custo, peso, params, dimensoes) {
 /* Frete e taxa fixa mudam em degraus conforme a faixa de preço, então
    testamos faixa por faixa: assumimos os custos da faixa, isolamos o preço
    e só aceitamos se o resultado realmente cair dentro dela.               */
+/* Os preços onde alguma tarifa muda de degrau: os limites das faixas de frete
+   e os do custo fixo, que ficam em preços diferentes. Serve para dois usos —
+   achar o preço que entrega a margem (percorrendo faixa a faixa) e apontar
+   produto parado logo acima de um degrau. */
+function limitesDePreco(params) {
+  const p = Object.assign({}, PADRAO, params || {});
+  return Array.from(new Set(
+    (MLFretes ? MLFretes.FAIXAS_PRECO : [1e9])
+      .concat((p.taxaFixa || []).map(f => Number(f.ate)))
+      .concat(Number(p.reducaoPP) ? [Number(p.reducaoDe) - 0.01, Number(p.reducaoAte)] : [])
+      .filter(v => isFinite(v) && v > 0)
+  )).sort((a, b) => a - b);
+}
+
 function precoPara(custo, margemAlvo, peso, params, dimensoes) {
   const p = Object.assign({}, PADRAO, params || {});
   const cu = Number(custo);
@@ -562,14 +576,7 @@ function precoPara(custo, margemAlvo, peso, params, dimensoes) {
     return a && a.margemLiquida >= alvo - 1e-9;
   };
 
-  /* Os degraus de frete e de custo fixo ficam em preços diferentes, então
-     percorremos a união dos dois conjuntos de limites.                  */
-  const limites = Array.from(new Set(
-    (MLFretes ? MLFretes.FAIXAS_PRECO : [1e9])
-      .concat((p.taxaFixa || []).map(f => Number(f.ate)))
-      .concat(Number(p.reducaoPP) ? [Number(p.reducaoDe) - 0.01, Number(p.reducaoAte)] : [])
-      .filter(v => isFinite(v) && v > 0)
-  )).sort((a, b) => a - b);
+  const limites = limitesDePreco(p);
 
   let anterior = 0;
   for (const limite of limites) {
@@ -745,6 +752,101 @@ function conferir(linhas) {
   };
 }
 
+/* ── degraus de taxa: onde baixar o preço aumenta o lucro ────────────────────
+   As taxas dos marketplaces sobem em DEGRAU, não em rampa. Na Shopee, o valor
+   fixo pula de R$ 4 para R$ 16 assim que o preço passa de R$ 79,99. Medido num
+   produto de R$ 45 de custo:
+
+     R$ 79,99 → comissão R$ 20,00 → sobram R$ 14,99
+     R$ 80,00 → comissão R$ 27,20 → sobram  R$ 7,80
+
+   Um centavo a mais derruba metade do lucro, e só a R$ 88 o vendedor volta a
+   ganhar o que ganhava a R$ 79,99. Ou seja: TODO preço entre R$ 80 e R$ 88
+   rende menos do que R$ 79,99 — cobrando mais caro. Ninguém percebe isso
+   olhando produto a produto; aparece varrendo a planilha.
+
+   O mesmo vale no Mercado Livre, onde mudam o custo fixo e a faixa de frete.
+
+   `motor` traz o analisar() e os limites do canal. Fica aqui, no motor, porque
+   é conta pura — entra número, sai número — e assim tem teste.              */
+
+/* Menor preço acima do degrau que devolve o lucro de quem está no degrau.
+   Acima do degrau o lucro volta a crescer com o preço, então basta bisseção —
+   e ela chega ao centavo em ~15 passos, contra milhares de um passo a passo. */
+function precoDeEmpate(alvo, custo, peso, params, dimensoes, analisar, limite) {
+  let baixo = limite, alto = limite * 1.6 + 5;
+
+  const lucro = pr => {
+    const a = analisar(pr, custo, peso, params, dimensoes);
+    return a ? a.lucroLiquido : -Infinity;
+  };
+
+  /* garante que o teto realmente empata; senão o produto não volta a compensar
+     em faixa nenhuma que interesse e não há o que sugerir */
+  let tentativas = 0;
+  while (lucro(alto) < alvo && tentativas++ < 8) alto = alto * 1.6 + 5;
+  if (lucro(alto) < alvo) return null;
+
+  for (let i = 0; i < 24 && alto - baixo > 0.005; i++) {
+    const meio = (baixo + alto) / 2;
+    if (lucro(meio) >= alvo) alto = meio; else baixo = meio;
+  }
+  return Math.ceil(alto * 100) / 100;
+}
+
+function acharDegraus(linhas, params, motor) {
+  const limites = (motor.limites(params) || [])
+    .filter(v => isFinite(v) && v > 0)
+    .sort((a, b) => a - b);
+  if (!limites.length) return {n: 0, ganhoTotal: 0, casos: []};
+
+  const casos = [];
+
+  for (const r of linhas || []) {
+    if (!r || r.preco == null || r.custo == null) continue;
+
+    /* o degrau logo abaixo do preço atual */
+    let degrau = null;
+    for (const L of limites) if (L < r.preco) degrau = L;
+    if (degrau == null) continue;
+
+    /* preço já pousado no degrau, ou longe demais dele: nada a fazer */
+    if (r.preco - degrau < 0.005) continue;
+
+    const noDegrau = motor.analisar(degrau, r.custo, r.pesoReal != null ? r.pesoReal : r.peso,
+                                    params, r.dimensoes);
+    if (!noDegrau || noDegrau.lucroLiquido == null) continue;
+
+    const ganho = noDegrau.lucroLiquido - r.lucroLiquido;
+    if (ganho <= 0.01) continue;    // o preço atual já rende mais: está certo
+
+    const empate = precoDeEmpate(noDegrau.lucroLiquido, r.custo,
+                                 r.pesoReal != null ? r.pesoReal : r.peso,
+                                 params, r.dimensoes, motor.analisar, degrau);
+
+    casos.push({
+      linha: r.linha,
+      precoAtual: r.preco,
+      precoSugerido: degrau,
+      lucroAtual: r.lucroLiquido,
+      lucroSugerido: noDegrau.lucroLiquido,
+      ganhoPorVenda: Math.round(ganho * 100) / 100,
+      margemAtual: r.margemLiquida,
+      margemSugerida: noDegrau.margemLiquida,
+      /* acima deste preço volta a compensar cobrar mais; entre o degrau e ele
+         é terra de ninguém — mais caro e menos lucro */
+      voltaACompensar: empate,
+    });
+  }
+
+  casos.sort((a, b) => b.ganhoPorVenda - a.ganhoPorVenda);
+  return {
+    n: casos.length,
+    ganhoTotal: Math.round(casos.reduce((s, c) => s + c.ganhoPorVenda, 0) * 100) / 100,
+    casos,
+  };
+}
+
 function precificarLote(entradas, params) {
   const linhas = (entradas || []).map(e => precificarLinha(e, params));
   return {linhas, conferencia: conferir(linhas)};
@@ -756,6 +858,6 @@ return {PADRAO, AVISOS, LIMITE_ML, PISO_GRAMAS, brl, parseNumero, parsePeso, arr
         normalizarTexto, semParenteses, unidadeDoCabecalho,
         detectarCabecalho, escolherAba, podarLinhasVazias, centavos, comissaoPct, taxaFixaDe, faixaTaxaFixa, freteDe,
         pesoVolumetrico, pesoCobravel,
-        analisar, precoPara, custoTotal,
+        analisar, precoPara, custoTotal, acharDegraus, limitesDePreco,
         precificarLinha, precificarLote, conferir};
 });

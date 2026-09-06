@@ -934,6 +934,7 @@ async function mlCarregar(f){
       $('mlLargura').innerHTML     = '<option value="-1">Sem largura</option>' + opcoes;
       $('mlComprimento').innerHTML = '<option value="-1">Sem comprimento</option>' + opcoes;
       $('mlTitulo').innerHTML      = '<option value="-1">— Selecione —</option>' + opcoes;
+      $('mlPrecoHoje').innerHTML   = '<option value="-1">Não conferir os preços atuais</option>' + opcoes;
 
       // auto-seleção: só serve coluna que realmente tenha número > 0
       const temValores = i => i >= 0 && mlAoa.slice(1).some(l => {
@@ -965,6 +966,12 @@ async function mlCarregar(f){
       if(iLarg !== undefined) $('mlLargura').value     = iLarg;
       if(iComp !== undefined) $('mlComprimento').value = iComp;
       if(iPreco >= 0) $('mlPreco').value = iPreco;
+      /* preço praticado hoje: só entra coluna que fale de VENDA, e nunca a
+         mesma do custo — senão o caçador de degrau compararia o custo com ele
+         mesmo e apontaria oportunidade em toda linha */
+      const iHoje = [acha(/preco de venda/), acha(/preco venda/), acha(/preco atual/),
+                     acha(/^venda$/)].find(i => temValores(i) && i !== iCusto);
+      if(iHoje !== undefined) $('mlPrecoHoje').value = iHoje;
 
       /* título: serve a coluna que tem texto de verdade, não código nem número */
       const temTexto = i => i >= 0 && mlAoa.slice(1).some(l => {
@@ -1758,6 +1765,7 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
   }
   mlReindexar();
   mlConferencia = ML.conferir(mlLinhas);
+  mlAcharDegraus(parseInt($('mlPrecoHoje').value), paramsLote);
   mlFiltro = null;
   mlPagina = 0;
 
@@ -1773,6 +1781,7 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
 
   mlRenderStats();
   mlRenderChecks();
+  mlRenderDegraus();
   mlRenderTabela();
   /* a barra cheia por um instante: fechar no meio do caminho dá a impressão
      de que algo foi interrompido */
@@ -1781,6 +1790,89 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
 
   $('mlBtnDl').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Baixar planilha pronta para o Bling (${ok.length} produtos)`;
   mlPasso(3);
+}
+
+/* O painel do caçador de degrau, em HTML. Serve os três canais: o que muda é
+   o nome do canal e a fonte da planilha.
+   ctx = {canal, brl, cabecalho, aoa} */
+function degrausHTML(d, ctx){
+  const brl = ctx.brl;
+  const iDesc = (ctx.cabecalho || []).findIndex(h => /descri|nome|produto|t[ií]tulo/i.test(String(h)));
+
+  const linhas = d.casos.slice(0, 40).map(c => {
+    const L = (ctx.aoa || [])[c.linha] || [];
+    const desc = iDesc >= 0 ? String(L[iDesc] || '') : '';
+    return `<tr>
+      <td class="c-linha">${c.linha + 1}</td>
+      <td class="c-desc" title="${esc(desc)}">${esc(desc.slice(0, 52)) || '—'}</td>
+      <td class="c-num">${brl(c.precoAtual)}</td>
+      <td class="c-num c-taxa">${brl(c.lucroAtual)}</td>
+      <td class="c-num c-preco">${brl(c.precoSugerido)}</td>
+      <td class="c-num c-lucro pos">${brl(c.lucroSugerido)}</td>
+      <td class="c-num c-lucro pos">+${brl(c.ganhoPorVenda)}</td>
+      <td class="c-num">${c.voltaACompensar ? brl(c.voltaACompensar) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="panel-h">
+      <div class="panel-t verde">Dinheiro parado num degrau de taxa</div>
+      <span class="pill pill-bad">${d.n.toLocaleString('pt-BR')} ${d.n === 1 ? 'produto' : 'produtos'}</span>
+    </div>
+    <div class="nota-box" style="margin-bottom:16px">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>
+      <div><b>Estes produtos rendem mais se você BAIXAR o preço.</b>
+        A taxa ${esc(ctx.canal)} sobe em degrau, não em rampa: passar de um limite por um
+        centavo cobra a faixa inteira. Entre o degrau e a coluna "volta a compensar",
+        cobrar mais caro dá menos lucro. Somando, são <b>${brl(d.ganhoTotal)}</b> a mais
+        por venda de cada um.</div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Linha</th><th>Descrição</th>
+        <th class="c-num">Preço hoje</th><th class="c-num">Rende</th>
+        <th class="c-num">Baixando para</th><th class="c-num">Renderia</th>
+        <th class="c-num">Ganho</th><th class="c-num">Volta a compensar acima de</th>
+      </tr></thead><tbody>${linhas}</tbody>
+    </table></div>
+    ${d.n > 40 ? `<div class="prev-fim">mostrando os 40 de maior ganho, de ${d.n.toLocaleString('pt-BR')}</div>` : ''}`;
+}
+
+/* ── dinheiro parado num degrau de taxa ────────────────────────────────────
+   Roda sobre o preço que o vendedor JÁ pratica, não sobre o que o app calcula:
+   o preço calculado percorre faixa a faixa e nunca cai na zona morta. Quem
+   precificou por markup, sim. */
+let mlDegraus = null;
+
+function mlAcharDegraus(iPrecoHoje, params){
+  mlDegraus = null;
+  if(isNaN(iPrecoHoje) || iPrecoHoje < 0) return;
+
+  const linhas = [];
+  for(const r of mlLinhas){
+    const L = mlAoa[r.linha] || [];
+    const preco = ML.parseNumero(L[iPrecoHoje]);
+    if(!isFinite(preco) || preco <= 0 || r.custo == null) continue;
+    const a = ML.analisar(preco, r.custo, r.pesoReal != null ? r.pesoReal : r.peso,
+                          params, r.dimensoes);
+    if(a) linhas.push(Object.assign({linha: r.linha, custo: r.custo,
+                                     pesoReal: r.pesoReal, dimensoes: r.dimensoes}, a));
+  }
+  if(!linhas.length) return;
+  const d = ML.acharDegraus(linhas, params, {
+    analisar: ML.analisar, limites: () => ML.limitesDePreco(params),
+  });
+  if(d.n) mlDegraus = d;
+}
+
+function mlRenderDegraus(){
+  const caixa = $('mlDegraus');
+  if(!caixa) return;
+  if(!mlDegraus){ mostrar('mlDegraus', false); return; }
+  caixa.innerHTML = degrausHTML(mlDegraus, {
+    canal: 'do Mercado Livre', brl: ML.brl, cabecalho: mlCabecalho, aoa: mlAoa,
+  });
+  mostrar('mlDegraus', true);
 }
 
 /* ── estatísticas do lote ── */
@@ -3206,6 +3298,7 @@ const WS_CANAIS = {
   ml:          {classe:'mkt-ml',          marca:'<img src="assets/img/logo-ml.svg" alt="Mercado Livre"/>'},
   shopee:      {classe:'mkt-shopee',      marca:'<img src="assets/img/logo-shopee.svg" alt="Shopee"/>'},
   amazon:      {classe:'mkt-amazon',      marca:'<img src="assets/img/logo-amazon.svg" alt="Amazon"/>'},
+  estudo:      {classe:'mkt-estudo',      marca:'<span class="ws-painel-txt">Aprender a vender</span>'},
 };
 
 function wsAbrir(canal){
@@ -3256,6 +3349,7 @@ const WS_FERRAMENTAS = {
             'Custo fixo por faixa de preço, pela tabela oficial',
             'Frete pela sua reputação, peso e faixa de preço',
             'Peso volumétrico: cobra pelo maior entre ele e o real',
+            'Acha produtos parados num degrau de taxa, onde baixar rende mais',
             'Sai um arquivo pronto para o Bling']},
     {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"ir('planilha')", destaque:true,
      fluxo:['Planilha do fornecedor','Bling'],
@@ -3319,6 +3413,46 @@ const WS_FERRAMENTAS = {
      resumo:'Reprocessar o que já está no ar.',
      itens:['Revisar preço do que já está publicado']},
   ],
+  estudo: [
+    {nome:'Guia do Drop', svg:'livro', acao:"irGuia('m-inicio')", destaque:true,
+     fluxo:['Do zero','Primeira venda'],
+     resumo:'Onze capítulos, do arquivo do fornecedor ao anúncio no ar.',
+     itens:['Por onde começar, se você nunca vendeu',
+            'Como o preço é formado, parcela por parcela',
+            'Frete, peso volumétrico e reputação',
+            'As contas da Shopee e da Amazon, lado a lado',
+            'O que conferir antes de subir no Bling']},
+    {nome:'A conta do preço', svg:'calc', acao:"irGuia('m-conta')", destaque:true,
+     fluxo:['Custo','Preço de venda'],
+     resumo:'Por que margem não é markup — e por que isso custa caro.',
+     itens:['Margem de 30% não é preço de custo × 1,3',
+            'A comissão incide sobre a venda, não sobre o custo',
+            'Onde a taxa fixa engole o lucro do produto barato',
+            'Por que R$ 80 pode render menos que R$ 79,99',
+            'O que sobra de verdade a cada R$ 100 vendidos']},
+    {nome:'Frete e peso', svg:'caixa', acao:"irGuia('m-frete')",
+     resumo:'O peso volumétrico e as três tabelas de reputação.',
+     itens:['Altura × largura × comprimento ÷ 6.000',
+            'A mesma caixa custa o dobro na reputação vermelha']},
+    {nome:'Tarifas da Shopee', svg:'etiqueta', acao:"irGuia('m-shopee')",
+     resumo:'O salto dos R$ 80 e o fim do teto de R$ 100.',
+     itens:['R$ 79,99 paga R$ 20; R$ 80,00 paga R$ 27,20',
+            'No modelo padrão o vendedor não paga frete']},
+    {nome:'Tarifas da Amazon', svg:'etiqueta', acao:"irGuia('m-amazon')",
+     resumo:'Comissão por categoria, de 10% a 15%.',
+     itens:['A tabela de frete do FBA por peso e faixa de preço',
+            'Individual cobra R$ 2 por item; Profissional, R$ 19/mês']},
+    {nome:'Subir no Bling', svg:'upload', acao:"irGuia('m-bling')",
+     resumo:'O caminho da planilha pronta até o produto cadastrado.',
+     itens:['Quais colunas o Bling espera', 'O que remover antes de importar']},
+    {nome:'Perguntas frequentes', svg:'ajuda', acao:"irGuia('m-duvidas')",
+     resumo:'As dúvidas que mais aparecem, respondidas.',
+     itens:['Por que o preço mudou ao trocar a reputação',
+            'A coluna "Preço de custo" zerada está errada?']},
+    {nome:'Ebooks em PDF', svg:'baixar', breve:true,
+     resumo:'Material para baixar, imprimir e estudar offline.',
+     itens:['Ainda não está no ar — os arquivos precisam ser enviados']},
+  ],
 };
 
 /* Monta os quadros de dentro do canal. Mesmo desenho da home — quadrados,
@@ -3335,6 +3469,23 @@ function wsFluxo(f){
   </span>`;
 }
 
+/* Ícones desenhados, para as ferramentas que não têm arte própria. Ficam aqui
+   como caminho de SVG e não como arquivo: são traço simples, herdam a cor do
+   tema e não custam uma requisição a mais. */
+const WS_ICONES = {
+  livro:    '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  calc:     '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h4"/>',
+  caixa:    '<path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+  etiqueta: '<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  upload:   '<path d="M12 19V5m0 0-6 6m6-6 6 6"/><path d="M4 21h16"/>',
+  ajuda:    '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4M12 17.5h.01"/>',
+  baixar:   '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+};
+
+function wsIcone(nome){
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${WS_ICONES[nome] || WS_ICONES.livro}</svg>`;
+}
+
 function wsCards(canal){
   const lista = WS_FERRAMENTAS[canal] || [];
   return lista.map((f, i) => {
@@ -3345,7 +3496,9 @@ function wsCards(canal){
     return `<button class="${cls}"${clique}${f.breve ? ' disabled' : ''}
         onmouseenter="wsExplicar(this,'${canal}',${i})" onmouseleave="wsEsconder()"
         onfocus="wsExplicar(this,'${canal}',${i})" onblur="wsEsconder()">
-      <span class="ws-mini-ic"><img src="${f.img}" alt="" loading="lazy"/></span>
+      <span class="ws-mini-ic${f.svg ? ' desenho' : ''}">${f.svg
+        ? wsIcone(f.svg)
+        : `<img src="${f.img}" alt="" loading="lazy"/>`}</span>
       <span class="ws-mini-txt">
         <span class="ws-mini-n">${esc(f.nome)}</span>
         ${f.destaque ? `<span class="ws-mini-r">${esc(f.resumo)}</span>` : ''}
@@ -3354,6 +3507,24 @@ function wsCards(canal){
       ${f.breve ? '<span class="ws-mini-tag">em breve</span>' : ''}
     </button>`;
   }).join('');
+}
+
+/* Abre o Guia no capítulo pedido. O guia é uma view só, com âncoras — então
+   trocar de tela e rolar até a âncora é o caminho.
+
+   Dois cuidados que não são óbvios:
+   - o botão clicado fica com o foco, e some junto com a view do hub. O
+     navegador então rola atrás do elemento focado e desfaz a rolagem — por
+     isso o blur antes de trocar de tela;
+   - a rolagem é instantânea de propósito: são milhares de pixels até os
+     capítulos do fim, e a animação suave nessa distância desorienta mais do
+     que ajuda. */
+function irGuia(ancora){
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  ir('manual');
+  const alvo = ancora && document.getElementById(ancora);
+  if(!alvo) return;
+  setTimeout(() => alvo.scrollIntoView({behavior: 'instant', block: 'start'}), 0);
 }
 
 /* A explicação abre ao lado do quadro, não dentro: o quadro fica pequeno de
@@ -3375,7 +3546,8 @@ function wsExplicar(el, canal, i){
   const pop = $('wsPop');
   pop.innerHTML = `
     <div class="ws-pop-h">
-      <img src="${f.img}" alt=""/>
+      ${f.svg ? `<span class="ws-pop-ic">${wsIcone(f.svg)}</span>`
+              : `<img src="${f.img}" alt=""/>`}
       <div><div class="ws-pop-t">${esc(f.nome)}</div>
         <div class="ws-pop-s">${esc(f.resumo)}</div></div>
     </div>

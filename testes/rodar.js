@@ -886,6 +886,80 @@ secao('16. Lint das amarras entre HTML, CSS e JS');
      reais.length ? '\n      ' + reais.join('\n      ') : '');
 }
 
+/* ── 17. Caçador de degrau de taxa ─────────────────────────────────────────
+   As taxas sobem em degrau. Na Shopee, o valor fixo pula de R$ 4 para R$ 16
+   acima de R$ 79,99, e um centavo a mais derruba metade do lucro. Quem
+   precificou por markup cai nessa faixa sem perceber: cobra mais caro e ganha
+   menos. Estes testes fixam quem é pego e, tão importante quanto, quem não é. */
+secao('17. Caçador de degrau de taxa');
+{
+  const p = {margemAlvo: 0.20};
+  const linhaEm = (preco, custo, peso) => {
+    const a = SH.analisar(preco, custo, peso, p);
+    return Object.assign({linha: 1, custo, peso, pesoReal: peso}, a);
+  };
+
+  /* o caso central: R$ 85 com custo R$ 45 */
+  const caro = linhaEm(85.50, 45, 0.5);
+  const barato = linhaEm(79.99, 45, 0.5);
+  ok(caro.preco > barato.preco, 'R$ 85,50 é mais caro que R$ 79,99');
+  ok(caro.lucroLiquido < barato.lucroLiquido,
+     'e mesmo assim rende MENOS — é o degrau dos R$ 80',
+     `R$ ${caro.lucroLiquido.toFixed(2)} contra R$ ${barato.lucroLiquido.toFixed(2)}`);
+
+  const d = SH.acharDegraus([caro], p);
+  ok(d.n === 1, 'o caçador pega esse produto', 'achou ' + d.n);
+  if (d.n === 1) {
+    const c = d.casos[0];
+    perto(c.precoSugerido, 79.99, 'sugere exatamente o degrau', 0.001);
+    perto(c.ganhoPorVenda, 2.46, 'e calcula o ganho por venda', 0.02);
+    ok(c.lucroSugerido > c.lucroAtual, 'o lucro sugerido é maior que o de hoje');
+    /* acima do empate volta a compensar cobrar mais: é o outro lado do aviso */
+    ok(c.voltaACompensar > 85.50 && c.voltaACompensar < 92,
+       'diz a partir de quanto volta a compensar cobrar mais',
+       'R$ ' + c.voltaACompensar);
+    const acima = SH.analisar(c.voltaACompensar, 45, 0.5, p);
+    ok(acima.lucroLiquido >= c.lucroSugerido - 0.02,
+       'e nesse preço o lucro de fato empata com o do degrau',
+       `R$ ${acima.lucroLiquido.toFixed(2)} contra R$ ${c.lucroSugerido.toFixed(2)}`);
+  }
+
+  /* quem NÃO pode ser pego */
+  ok(SH.acharDegraus([linhaEm(79.80, 43, 0.5)], p).n === 0,
+     'produto já abaixo do degrau fica em paz');
+  ok(SH.acharDegraus([linhaEm(57.00, 30, 0.5)], p).n === 0,
+     'produto longe do degrau, embaixo, fica em paz');
+  ok(SH.acharDegraus([linhaEm(114.00, 60, 0.5)], p).n === 0,
+     'produto bem acima do empate fica em paz — ali cobrar mais compensa');
+  ok(SH.acharDegraus([linhaEm(79.99, 45, 0.5)], p).n === 0,
+     'produto pousado no degrau não tem o que melhorar');
+
+  /* o preço que o próprio app calcula nunca deve cair na zona morta: ele
+     caminha faixa por faixa justamente para isso */
+  const entradas = [];
+  for (let i = 0; i <= 160; i++) entradas.push({linha: i + 1, custo: 20 + i * 0.25, peso: 0.5});
+  const lote = SH.precificarLote(entradas, p);
+  const zona = SH.acharDegraus(lote.linhas, p);
+  ok(zona.n === 0, 'o preço calculado pelo app nunca cai na zona morta (161 custos testados)',
+     zona.n ? 'caiu em ' + zona.n : '');
+
+  /* o lote soma e ordena pelo que rende mais */
+  const varios = [linhaEm(81.70, 43, 0.5), linhaEm(85.50, 45, 0.5), linhaEm(83.60, 44, 0.5)];
+  varios.forEach((l, i) => l.linha = i + 1);
+  const lot = SH.acharDegraus(varios, p);
+  ok(lot.n === 3, 'acha os três do lote', 'achou ' + lot.n);
+  ok(lot.casos[0].ganhoPorVenda >= lot.casos[1].ganhoPorVenda
+     && lot.casos[1].ganhoPorVenda >= lot.casos[2].ganhoPorVenda,
+     'e ordena do maior ganho para o menor');
+  perto(lot.ganhoTotal, lot.casos.reduce((s, c) => s + c.ganhoPorVenda, 0),
+        'o ganho total é a soma dos casos', 0.02);
+
+  /* Amazon: a comissão é percentual, sem degrau de valor fixo — o frete é que
+     tem faixa. A ferramenta serve os dois canais, mas só aponta o que existe. */
+  ok(typeof AZ.acharDegraus === 'function', 'a Amazon também tem o caçador');
+  ok(AZ.acharDegraus([], {}).n === 0, 'lote vazio não inventa caso');
+}
+
 if (falhou) {
   console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
   falhas.forEach(f => console.log('   ✗ ' + f));

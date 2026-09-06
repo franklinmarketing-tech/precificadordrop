@@ -3983,3 +3983,28 @@ body.view-hub .ws-painel-b{padding:14px}
 .prev-fim{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
   padding:14px 4px 4px;font-size:13px;color:var(--faint)}
 .prev-fim b{color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ── quarto quadro: material de estudo ─────────────────────────────────────
+   Sem logotipo de marketplace, então usa a variante de marca em texto. A cor
+   é a do app, não a de um canal. */
+.ws-card.ws-estudo{--aro:var(--blue);--tinta:rgba(11,111,216,.10)}
+.ws-card.ws-estudo .ws-marca-txt{color:var(--blue-dk)}
+.ws-painel.ws-estudo{--aro:var(--blue)}
+.ws-painel-txt{font-family:var(--display);font-weight:800;font-size:15px;
+  letter-spacing:-.2px;color:var(--blue-dk)}
+
+/* Com quatro quadros lado a lado eles ficariam largos demais numa tela grande:
+   o teto mantém a proporção e o conjunto centralizado, em vez de esticar. */
+.ws-grade{flex-wrap:nowrap}
+.ws-card{max-width:296px}
+
+/* ícone desenhado no mini card, para as ferramentas sem arte própria */
+.ws-mini-ic.desenho{display:grid;place-items:center}
+.ws-mini-ic.desenho svg{width:60%;height:60%;fill:none;stroke:var(--blue-dk);
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ícone desenhado no balão de explicação, no lugar da arte do canal */
+.ws-pop-ic{width:38px;height:38px;flex:none;display:grid;place-items:center;
+  border-radius:11px;background:color-mix(in srgb,var(--blue) 10%,transparent)}
+.ws-pop-ic svg{width:20px;height:20px;fill:none;stroke:var(--blue-dk);
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
