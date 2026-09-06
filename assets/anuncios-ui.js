@@ -154,6 +154,8 @@ function anCasar(){
   }
   anRenderStats(); anRenderChecks(); anRenderTabela();
   mostrar('anStep4', true);
+  anRestaurarChave();
+  anMostrarConta();
   $('anStats').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
 }
 
@@ -407,14 +409,6 @@ async function garantirZip(){
   return ok;
 }
 
-function anColunaLetra(n){
-  let s = '';
-  while(n >= 0){ s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; }
-  return s;
-}
-function anEscXml(t){
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 
 /* Descobre qual XML guarda a aba, seguindo workbook.xml → rels. O nome do
    arquivo não é fixo: "Anúncios" pode ser sheet3.xml num arquivo e sheet1.xml
@@ -441,17 +435,9 @@ async function anAcharXmlDaAba(zip, nomeAba){
 }
 
 
-/* ══════════════════════════════════════════════════════════════════════════
-   TROCAR SÓ O PREÇO DENTRO DA PLANILHA DO MERCADO LIVRE
-
-   É o coração da ferramenta: o arquivo que sai tem de ser o mesmo que entrou,
-   com uma única diferença — o preço. Nada de remontar linhas: mexer só na
-   célula de preço garante que título, código, estoque, condição, envio, as
-   cores do cabeçalho e as outras abas cheguem do outro lado idênticos.
-
-   Um .xlsx é um zip de XMLs, e a biblioteca de planilhas do app não grava
-   formatação — por isso a troca é feita no XML, à mão.
-   ══════════════════════════════════════════════════════════════════════════ */
+/* ── troca os preços dentro do XML ─────────────────────────────────────────
+   Aqui só o ZIP: abrir, achar o XML da aba e devolver. A reescrita é do motor
+   (AE.trocarPrecosNoXml), que é texto puro e por isso tem teste. */
 async function anTrocarPrecos(bytes, nomeAba, colPreco, novos){
   if(!await garantirZip()) throw new Error('Não consegui carregar a biblioteca que abre o arquivo.');
 
@@ -459,25 +445,12 @@ async function anTrocarPrecos(bytes, nomeAba, colPreco, novos){
   const caminho = await anAcharXmlDaAba(zip, nomeAba);
   if(!caminho || !zip.file(caminho)) throw new Error('Não achei a aba "' + nomeAba + '" dentro do arquivo.');
 
-  let xml = await zip.file(caminho).async('string');
-  const L = anColunaLetra(colPreco);
-  let trocados = 0;
+  const xml = await zip.file(caminho).async('string');
+  const r = AE.trocarPrecosNoXml(xml, AE.letraDaColuna(colPreco), novos);
+  if(!r.trocados) return {bytes, trocados: 0};
 
-  novos.forEach((preco, linha) => {
-    const ref = L + (linha + 1);              // linha física → referência do Excel
-    /* a célula pode vir fechada (<c .../>) ou com conteúdo (<c ...>…</c>);
-       o t="s" some porque o valor deixa de ser texto compartilhado */
-    const re = new RegExp('<c r="' + ref + '"([^>]*?)(/>|>[\\s\\S]*?</c>)');
-    if(!re.test(xml)) return;
-    xml = xml.replace(re, (todo, attrs) => {
-      const estilo = (attrs.match(/\ss="(\d+)"/) || [null, null])[1];
-      trocados++;
-      return '<c r="' + ref + '"' + (estilo ? ' s="' + estilo + '"' : '') + '><v>' + preco + '</v></c>';
-    });
-  });
-
-  zip.file(caminho, xml);
-  return {bytes: await zip.generateAsync({type:'uint8array', compression:'DEFLATE'}), trocados};
+  zip.file(caminho, r.xml);
+  return {bytes: await zip.generateAsync({type:'uint8array', compression:'DEFLATE'}), trocados: r.trocados};
 }
 /* ══════════════════════════════════════════════════════════════════════════
    PUBLICAR OS PREÇOS DIRETO NO MERCADO LIVRE
@@ -523,13 +496,18 @@ async function anPublicarPrecos(){
       caixa.className = 'api-estado';
       caixa.innerHTML = `Publicando… <b>${feitos.toLocaleString('pt-BR')}</b> de ${alvo.length.toLocaleString('pt-BR')}`;
 
-      const r = await fetch('/api/ml-atualizar-precos', {
+      const r = await anApi('/api/ml-atualizar-precos', {
         method: 'POST',
         headers: {'content-type': 'application/json'},
         body: JSON.stringify({itens: fatia.map(l => ({id: l.itemId, preco: l.preco}))}),
       });
       const d = await r.json().catch(() => ({}));
       if(!r.ok){
+        if(r.status === 401 || r.status === 503 || d.precisaChave){
+          caixa.className = 'api-estado erro';
+          caixa.innerHTML = anErroChave(d);
+          return;
+        }
         if(d.precisaAutorizar){
           caixa.className = 'api-estado erro';
           caixa.innerHTML = '<b>Falta autorizar a conta que vende.</b> Abra '
@@ -560,6 +538,66 @@ async function anPublicarPrecos(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   A CHAVE DE PUBLICAÇÃO
+
+   Mexer nos preços da loja exige uma senha que o dono digita. Ela não fica no
+   código: este site é estático, e tudo que a página mandasse sozinha estaria
+   no arquivo que qualquer um baixa. Digitada, ela é comparada no servidor com
+   APP_SECRET e nunca aparece em endereço, log ou planilha.
+
+   Guardamos em sessionStorage, não em localStorage, de propósito: some quando
+   a aba fecha. Quem usa o app num computador compartilhado não deixa a chave
+   para o próximo.
+   ══════════════════════════════════════════════════════════════════════════ */
+const AN_CHAVE_PUB = 'drop-chave-publicacao';
+
+function anLerChave(){
+  const campo = $('anChave');
+  const digitada = campo && campo.value.trim();
+  if(digitada) return digitada;
+  try{ return sessionStorage.getItem(AN_CHAVE_PUB) || ''; }catch(e){ return ''; }
+}
+
+/* chamada pelo oninput do campo: quem digita uma vez não digita de novo
+   enquanto a aba estiver aberta */
+let anContaTimer = null;
+
+function anLembrarChave(){
+  const campo = $('anChave');
+  if(!campo) return;
+  /* espera parar de digitar: senão cada tecla vira uma chamada recusada */
+  clearTimeout(anContaTimer);
+  anContaTimer = setTimeout(anMostrarConta, 600);
+  try{
+    const v = campo.value.trim();
+    if(v) sessionStorage.setItem(AN_CHAVE_PUB, v);
+    else sessionStorage.removeItem(AN_CHAVE_PUB);
+  }catch(e){ /* navegador sem storage: a chave vale só para esta chamada */ }
+}
+
+function anRestaurarChave(){
+  const campo = $('anChave');
+  if(!campo || campo.value) return;
+  try{ campo.value = sessionStorage.getItem(AN_CHAVE_PUB) || ''; }catch(e){}
+}
+
+/* Toda chamada aos endpoints que tocam a conta passa por aqui. */
+function anApi(rota, opcoes){
+  const o = Object.assign({}, opcoes);
+  const chave = anLerChave();
+  o.headers = Object.assign({}, o.headers || {}, chave ? {'x-drop-chave': chave} : {});
+  return fetch(rota, o);
+}
+
+/* Mensagem para quando o servidor recusa por causa da chave. */
+function anErroChave(d){
+  if(d && d.precisaChave && d.comoResolver)
+    return '<b>Falta configurar a chave.</b> ' + esc(d.comoResolver);
+  return '<b>Chave de publicação inválida.</b> Confira o campo acima — é a mesma senha '
+    + 'que está em <b>APP_SECRET</b> nas variáveis de ambiente do projeto na Vercel.';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    QUAL CONTA ESTÁ LIGADA
 
    A tela de autorização do Mercado Livre usa a conta logada no navegador, sem
@@ -571,7 +609,7 @@ let anConta = null;
 
 async function anVerConta(){
   try{
-    const r = await fetch('/api/ml-conta');
+    const r = await anApi('/api/ml-conta');
     const d = await r.json().catch(() => ({}));
     anConta = r.ok ? d : null;
     return anConta;
@@ -579,6 +617,16 @@ async function anVerConta(){
     anConta = null;
     return null;
   }
+}
+
+/* Busca a conta e desenha o cartão. Só faz sentido com a chave preenchida —
+   sem ela o servidor recusa, e aí o cartão simplesmente não aparece. */
+async function anMostrarConta(){
+  const caixa = $('anContaCaixa');
+  if(!caixa) return;
+  if(!anLerChave()){ caixa.innerHTML = ''; return; }
+  await anVerConta();
+  caixa.innerHTML = anCartaoConta();
 }
 
 function anCartaoConta(){
@@ -593,97 +641,3 @@ function anCartaoConta(){
 }
 
 
-/* ══════════════════════════════════════════════════════════════════════════
-   GUARDAR OS ANÚNCIOS NO NAVEGADOR
-
-   O que interessa do arquivo do Mercado Livre é o código de cada SKU, e isso
-   muda pouco: anúncio novo entra de vez em quando, o resto continua igual.
-   Baixar e subir a planilha toda vez para buscar a mesma coisa é trabalho à
-   toa — então o app guarda depois do primeiro envio e oferece na volta.
-
-   Fica só neste navegador. São ~320 KB para 2.650 anúncios; o limite costuma
-   ser 5 MB, mas se estourar o app segue funcionando sem guardar.
-   ══════════════════════════════════════════════════════════════════════════ */
-const AN_CHAVE = 'drop-anuncios';
-
-/* formato enxuto: array de arrays em vez de objetos com nome de campo
-   repetido 2.650 vezes — cabe quase o dobro no mesmo espaço */
-function anGuardar(mapa, origem){
-  try{
-    const linhas = [];
-    mapa.forEach((a, sku) => linhas.push([
-      sku, a.ITEM_ID, a.FAMILY_ID || '', a.PRODUCT_NUMBER || '',
-      a.VARIATION_ID || '', a.TITLE || '',
-      (isNaN(a.PRICE) ? 0 : a.PRICE), a.QUANTITY === '' ? '' : a.QUANTITY,
-    ]));
-    localStorage.setItem(AN_CHAVE, JSON.stringify({
-      versao: 1, em: Date.now(), origem: origem || 'arquivo', linhas,
-    }));
-    return true;
-  }catch(e){
-    /* cota estourada ou navegador em modo restrito: não é erro que mereça
-       parar o fluxo, só não vai ter atalho na próxima vez */
-    return false;
-  }
-}
-
-function anLerGuardado(){
-  try{
-    const cru = localStorage.getItem(AN_CHAVE);
-    if(!cru) return null;
-    const d = JSON.parse(cru);
-    if(!d || d.versao !== 1 || !Array.isArray(d.linhas) || !d.linhas.length) return null;
-    const mapa = new Map();
-    d.linhas.forEach(L => mapa.set(L[0], {
-      ITEM_ID: L[1], FAMILY_ID: L[2], PRODUCT_NUMBER: L[3], VARIATION_ID: L[4],
-      TITLE: L[5], PRICE: Number(L[6]) || NaN, QUANTITY: L[7],
-    }));
-    return {mapa, em: d.em, origem: d.origem};
-  }catch(e){ return null; }
-}
-
-function anEsquecer(){
-  try{ localStorage.removeItem(AN_CHAVE); }catch(e){}
-  anAnuncios = null;
-  anMostrarGuardado();
-}
-
-function anDataCurta(ms){
-  const d = new Date(ms);
-  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})
-       + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-}
-
-/* o atalho aparece no passo 2, antes de pedir o arquivo de novo */
-function anMostrarGuardado(){
-  const caixa = $('anGuardado');
-  if(!caixa) return;
-  const g = anLerGuardado();
-  if(!g){ mostrar('anGuardado', false); return; }
-
-  caixa.innerHTML = `
-    <div class="an-salvo">
-      <div class="an-salvo-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
-      <div class="an-salvo-txt">
-        <b>${g.mapa.size.toLocaleString('pt-BR')} anúncios já guardados aqui</b>
-        <i>${g.origem === 'api' ? 'buscados no Mercado Livre' : 'do arquivo que você enviou'}
-           em ${esc(anDataCurta(g.em))} · ficam só neste navegador</i>
-      </div>
-      <div class="an-salvo-btns">
-        <button class="btn btn-green" onclick="anUsarGuardado()">Usar estes</button>
-        <button class="btn btn-ghost" onclick="anEsquecer()">Apagar</button>
-      </div>
-    </div>`;
-  mostrar('anGuardado', true);
-}
-
-function anUsarGuardado(){
-  const g = anLerGuardado();
-  if(!g) return;
-  anAnuncios = g.mapa;
-  anAoaML = null; anModeloML = null; anBytesML = null;   // sem arquivo: sem molde de cor
-  $('anMLInfo').innerHTML = anCartao('Anúncios guardados',
-    `<b>${g.mapa.size.toLocaleString('pt-BR')}</b> códigos por SKU · de ${esc(anDataCurta(g.em))}`);
-  mostrar('anMLInfo', true);
-  anMostrarPasso3();
-}

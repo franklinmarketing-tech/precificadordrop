@@ -113,10 +113,12 @@ function ir(v, semHash){
   $('wrap').classList.toggle('wrap-narrow', v === 'planilha');
   mostrar('btnVoltar', v !== 'hub');
 
-  /* marca no menu o marketplace da tela atual */
+  /* marca no menu o marketplace da tela atual. A view 'mkt' serve Shopee e
+     Amazon, então quem diz qual é o canal aberto é o próprio motor. */
   const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', anuncios:'ml', manual:'guia'};
+  const atual = v === 'mkt' ? (typeof mkCanal !== 'undefined' && mkCanal ? mkCanal.id : null) : MKT[v];
   document.querySelectorAll('.mn-t[data-mkt]').forEach(bt =>
-    bt.classList.toggle('aqui', bt.dataset.mkt === MKT[v]));
+    bt.classList.toggle('aqui', !!atual && bt.dataset.mkt === atual));
 
   $('logoSub').textContent = VIEWS[v].sub;
   document.title = VIEWS[v].titulo;
@@ -208,102 +210,6 @@ document.querySelectorAll('.man-sum a').forEach(a => {
     if(alvo) alvo.scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
   });
 });
-
-/* ══ LÂMPADA "SAIBA MAIS" ══════════════════════════════════════════════════
-   O balão abre FORA do cartão, ancorado na lâmpada. Ele é movido para o fim do
-   <body> no início: dentro do cartão ficaria recortado, porque o cartão tem
-   overflow escondido e ganha transform no tilt 3D — e um ancestral com
-   transform recorta até quem é position:fixed.                              */
-const FOLGA = 12;          // distância entre a lâmpada e o balão
-let dicaAberta = null, fecharTimer = null;
-
-document.querySelectorAll('.dica').forEach(lamp => {
-  const balao = lamp.parentElement.querySelector('.saibamais');
-  if(!balao) return;
-  document.body.appendChild(balao);            // sai de dentro do cartão
-  lamp._balao = balao;
-  balao._lamp = lamp;
-
-  const abrir  = () => abrirDica(lamp);
-  const agenda = () => { clearTimeout(fecharTimer); fecharTimer = setTimeout(fecharDica, 180); };
-
-  lamp.addEventListener('mouseenter', () => { clearTimeout(fecharTimer); abrir(); });
-  lamp.addEventListener('mouseleave', agenda);
-  lamp.addEventListener('focus', abrir);
-  lamp.addEventListener('blur', () => { if(!lamp.classList.contains('presa')) fecharDica(); });
-  // o ponteiro pode atravessar do botão até o balão sem que ele feche
-  balao.addEventListener('mouseenter', () => clearTimeout(fecharTimer));
-  balao.addEventListener('mouseleave', agenda);
-
-  lamp.addEventListener('click', e => {
-    e.stopPropagation();          // não abre a ferramenta do cartão
-    e.preventDefault();
-    const prendendo = !lamp.classList.contains('presa');
-    document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
-    lamp.classList.toggle('presa', prendendo);
-    prendendo ? abrirDica(lamp) : fecharDica();
-  });
-  lamp.addEventListener('keydown', e => {
-    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); lamp.click(); }
-    if(e.key === 'Escape'){ lamp.classList.remove('presa'); fecharDica(); }
-  });
-});
-
-function posicionarDica(lamp, balao){
-  const l = lamp.getBoundingClientRect();
-  const b = balao.getBoundingClientRect();
-  const vw = innerWidth, vh = innerHeight;
-
-  // abre para baixo; se não couber, abre para cima
-  const paraBaixo = l.bottom + FOLGA + b.height <= vh - 8;
-  balao.classList.toggle('p-baixo', paraBaixo);
-  balao.classList.toggle('p-cima', !paraBaixo);
-  const topo = paraBaixo ? l.bottom + FOLGA : l.top - FOLGA - b.height;
-
-  // centraliza na lâmpada e traz de volta para dentro da janela
-  let esq = l.left + l.width/2 - b.width/2;
-  esq = Math.max(10, Math.min(esq, vw - b.width - 10));
-
-  balao.style.top  = Math.round(topo) + 'px';
-  balao.style.left = Math.round(esq) + 'px';
-  // a seta aponta para a lâmpada, mesmo com o balão deslocado pela borda
-  const seta = Math.max(16, Math.min(l.left + l.width/2 - esq, b.width - 16));
-  balao.style.setProperty('--seta', Math.round(seta) + 'px');
-  balao.style.setProperty('--org', `${Math.round(seta)}px ${paraBaixo ? '0' : '100%'}`);
-}
-
-function abrirDica(lamp){
-  const balao = lamp._balao;
-  if(dicaAberta && dicaAberta !== balao) fecharDica();
-  balao.classList.add('aberto');
-  balao.setAttribute('aria-hidden', 'false');
-  lamp.setAttribute('aria-expanded', 'true');
-  posicionarDica(lamp, balao);      // medir só depois de visível, senão dá 0
-  dicaAberta = balao;
-}
-
-function fecharDica(){
-  if(!dicaAberta) return;
-  const lamp = dicaAberta._lamp;
-  if(lamp && lamp.classList.contains('presa')) return;   // preso pelo clique
-  dicaAberta.classList.remove('aberto');
-  dicaAberta.setAttribute('aria-hidden', 'true');
-  if(lamp) lamp.setAttribute('aria-expanded', 'false');
-  dicaAberta = null;
-}
-
-/* clicar fora, rolar ou redimensionar solta o balão preso */
-document.addEventListener('click', () => {
-  document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
-  fecharDica();
-});
-addEventListener('resize', () => {
-  document.querySelectorAll('.dica.presa').forEach(o => o.classList.remove('presa'));
-  fecharDica();
-});
-addEventListener('scroll', () => {
-  if(dicaAberta && dicaAberta._lamp) posicionarDica(dicaAberta._lamp, dicaAberta);
-}, {passive:true});
 
 /* ══════════════════════════════════════════════════════════════════════════
    VIEW: PRECIFICADOR MERCADO LIVRE
@@ -470,10 +376,14 @@ function fecharCalc(){ fecharPop('popCalc', 'scrimCalc'); }
 /* ── janela de progresso do cálculo ──────────────────────────────────────────
    Consultar a categoria de 500 produtos leva dezenas de segundos, de 20 em 20.
    Sem mostrar o que está acontecendo, a tela fica parada e parece travada.  */
-const PROG_ETAPAS = ['Lendo a planilha', 'Consultando o Mercado Livre', 'Calculando os preços', 'Montando a tabela'];
+const PROG_ML = ['Lendo a planilha', 'Consultando o Mercado Livre', 'Calculando os preços', 'Montando a tabela'];
+let PROG_ETAPAS = PROG_ML;
 let progEtapaAtual = 0;
 
-function progAbrir(){
+/* As etapas variam por tela: a calculadora dos outros canais não consulta
+   nada, então mostrar "Consultando o Mercado Livre" ali seria mentira. */
+function progAbrir(etapas){
+  PROG_ETAPAS = (etapas && etapas.length) ? etapas : PROG_ML;
   progEtapaAtual = 0;
   $('progBarra').style.width = '0%';
   $('progNumero').textContent = '';
@@ -707,7 +617,10 @@ function salvarParamsML(){
    Funciona assim que a aplicação estiver conectada (credenciais na Vercel). */
 async function buscarTarifaAPI(){
   const el = $('apiResposta');
-  const preco = ML.parseNumero($('apiPreco').value);
+  /* apiPrecoRef, não apiPreco: o painel de integração tem um campo de mesmo
+     propósito, e enquanto os dois dividiam o id este aqui era ignorado — a
+     consulta saía sempre com 188,19, devolvendo a tarifa da faixa errada. */
+  const preco = ML.parseNumero($('apiPrecoRef').value);
   if(isNaN(preco) || preco <= 0)
     return el.innerHTML = '<div class="api-msg ruim">Informe um preço de referência.</div>';
 
@@ -966,6 +879,7 @@ async function mlCarregar(f){
   mlCategorias = null; mlUsandoCategoria = false;
   mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
   mlDimSuspeita = false; mlDimConfirmada = false; mlDimInfo = null; mlDimFator = 1;
+  mlIndicePorLinha = new Map();
   $('mlPesoUnidade').value = 'kg';
   mlNome = f.name;
   const rd = new FileReader();
@@ -1143,10 +1057,37 @@ function mlChecarEscalaDimensao(iA, iL, iC, ip){
    ═══════════════════════════════════════════════════════════════════════════ */
 const numBr = v => String(v).replace('.', ',');
 
+/* Quem abriu a revisão. Guarda o que foi detectado, o nome do canal e o que
+   fazer com a resposta — assim a mesma tela serve o Mercado Livre, a Shopee e
+   a Amazon sem três cópias do texto explicativo, que é o valor real dela. */
+let revisarCtx = null;
+
+function revisarCtxML(){
+  return {
+    canal: 'o Mercado Livre',
+    peso: mlPesoSuspeito ? mlPesoInfo : null,
+    dim:  mlDimSuspeita  ? mlDimInfo  : null,
+    aplicar(){
+      /* toda a coluna em gramas divide tudo; planilha misturada corrige só as
+         linhas suspeitas, para não estragar quem já está em quilos */
+      if(mlPesoSuspeito)
+        $('mlPesoUnidade').value = mlPesoInfo && mlPesoInfo.todosGrandes ? 'g' : 'auto';
+      if(mlDimSuspeita && mlDimInfo) mlDimFator = mlDimInfo.fator;
+      mlValidaCol();
+      mlProcessar();
+    },
+    ignorar(){
+      mlPesoConfirmadoKg = true;
+      mlDimConfirmada = true;
+      mlValidaCol();
+    },
+  };
+}
+
 /* Peso em gramas numa coluna que diz "kg". */
 function revisarSecaoPeso(){
-  const r = mlPesoInfo;
-  if(!r || !mlPesoSuspeito) return '';
+  const r = revisarCtx && revisarCtx.peso;
+  if(!r) return '';
   const n = r.suspeitos, outros = r.n - n;
   const linhasEx = r.exemplosGrandes.map(e =>
     `<tr><td>${numBr(e.de)}</td><td class="seta">→</td><td><b>${numBr(e.para)} kg</b></td></tr>`).join('');
@@ -1161,8 +1102,8 @@ function revisarSecaoPeso(){
     <p class="pz-p"><b>Como o app identifica.</b> Duas situações: peso <b>redondo e acima
     de ${ML.PISO_GRAMAS}</b> — como <b>${numBr(r.exemplosGrandes.length ? r.exemplosGrandes[0].de : 80)}</b> —,
     porque quilo de dropshipping tem casa decimal (0,9 · 2,575) e grama vem redondo;
-    e <b>qualquer peso acima de ${ML.LIMITE_ML} kg</b>, com decimal ou sem, já que o
-    Mercado Livre não entrega nessa faixa e nenhum produto real chega lá.</p>
+    e <b>qualquer peso acima de ${ML.LIMITE_ML} kg</b>, com decimal ou sem, já que
+    ${revisarCtx.canal} não entrega nessa faixa e nenhum produto real chega lá.</p>
 
     <p class="pz-p"><b>Por que importa.</b> Lido como quilo, o produto cai nas últimas faixas
     da tabela e o frete sai em dezenas ou centenas de reais. Esse valor entra no preço
@@ -1189,8 +1130,8 @@ function revisarSecaoPeso(){
 
 /* Medidas em milimetros ou metros numa coluna que diz cm. */
 function revisarSecaoDimensao(){
-  const r = mlDimInfo;
-  if(!r || !mlDimSuspeita) return '';
+  const r = revisarCtx && revisarCtx.dim;
+  if(!r) return '';
   const emMm = r.escala === 'mm';
   const ex = r.exemplos.map(e =>
     `<tr><td>${numBr(e.de.altura)} × ${numBr(e.de.largura)} × ${numBr(e.de.comprimento)}</td>
@@ -1205,7 +1146,7 @@ function revisarSecaoDimensao(){
           ${emMm ? 'uma caixa maior que uma geladeira' : 'menor que uma moeda'}</div></div>
     </div>
 
-    <p class="pz-p"><b>Por que importa.</b> O Mercado Livre cobra o frete pelo maior valor
+    <p class="pz-p"><b>Por que importa.</b> ${revisarCtx.canal[0].toUpperCase() + revisarCtx.canal.slice(1)} cobra o frete pelo maior valor
     entre o peso da balança e o <b>peso volumétrico</b> (altura × largura × comprimento ÷ 6000).
     ${emMm ? 'Em milímetros esse cálculo dá mil vezes mais, e o frete estoura'
            : 'Em metros ele quase zera, e o frete sai abaixo do que você vai pagar de verdade'}.</p>
@@ -1251,27 +1192,27 @@ function revisarMontar(){
     : `<button class="btn btn-green" onclick="revisarIgnorar()">Entendi</button>`;
 }
 
-function revisarAbrir(){ revisarMontar(); abrirPop('popRevisar', 'scrimRevisar'); }
+/* Sem argumento, é a tela do Mercado Livre — os três chamadores antigos
+   continuam escrevendo revisarAbrir() e nada muda para eles. */
+function revisarAbrir(ctx){
+  revisarCtx = ctx || revisarCtxML();
+  revisarMontar();
+  abrirPop('popRevisar', 'scrimRevisar');
+}
 function revisarFechar(){ fecharPop('popRevisar', 'scrimRevisar'); }
 
 function revisarAplicar(){
-  /* toda a coluna em gramas divide tudo; planilha misturada corrige só as
-     linhas suspeitas, para não estragar quem já está em quilos */
-  if(mlPesoSuspeito)
-    $('mlPesoUnidade').value = mlPesoInfo && mlPesoInfo.todosGrandes ? 'g' : 'auto';
-  if(mlDimSuspeita && mlDimInfo) mlDimFator = mlDimInfo.fator;
+  const c = revisarCtx;
   revisarFechar();
-  mlValidaCol();
-  mlProcessar();
+  if(c) c.aplicar();
 }
 
 /* Mantém os valores como estão. A confirmação vale só para esta planilha:
    carregar outro arquivo volta a perguntar. */
 function revisarIgnorar(){
-  mlPesoConfirmadoKg = true;
-  mlDimConfirmada = true;
+  const c = revisarCtx;
   revisarFechar();
-  mlValidaCol();
+  if(c) c.ignorar();
 }
 
 function mlValidaCol(){
@@ -1800,9 +1741,23 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
   progNumero(`${entradas.length} produtos`);
   await respirar();
 
-  const lote = ML.precificarLote(entradas, Object.assign({}, pml, {margemAlvo: mlMargem}));
-  mlLinhas = lote.linhas;
-  mlConferencia = lote.conferencia;
+  /* Em fatias, e não de uma vez: precificar 5.000 linhas leva cerca de um
+     segundo travando a thread, e a barra ficava parada justamente na etapa
+     mais demorada. Agora ela anda, e a aba continua respondendo. */
+  const paramsLote = Object.assign({}, pml, {margemAlvo: mlMargem});
+  const BLOCO = 400;
+  mlLinhas = [];
+  for(let i = 0; i < entradas.length; i += BLOCO){
+    const fim = Math.min(i + BLOCO, entradas.length);
+    for(let k = i; k < fim; k++) mlLinhas.push(ML.precificarLinha(entradas[k], paramsLote));
+    if(entradas.length > BLOCO){
+      progEtapa(2, fim / entradas.length);
+      progNumero(`${fim.toLocaleString('pt-BR')} de ${entradas.length.toLocaleString('pt-BR')} produtos`);
+      await respirar();
+    }
+  }
+  mlReindexar();
+  mlConferencia = ML.conferir(mlLinhas);
   mlFiltro = null;
   mlPagina = 0;
 
@@ -1965,32 +1920,28 @@ function mlChecksCategoria(){
    O preço aparecia pronto e não havia como saber de onde saiu. Numa carga de
    cinco mil produtos é isso que decide se a pessoa confia no número e publica.
    ══════════════════════════════════════════════════════════════════════════ */
-function abrirLinha(indice){
-  const r = mlLinhas[indice];
-  if(!r) return;
-  const l = mlAoa[r.linha] || [];
-  /* mesma coluna que a tabela mostra: a primeira que parece descrição */
-  const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
-  const desc = iDesc >= 0 ? String(l[iDesc] || '') : '';
+/* ── o extrato de uma linha, em HTML ───────────────────────────────────────
+   Serve o Mercado Livre e os outros canais: ML.analisar() e o analisar() do
+   MK.criarMotor devolvem exatamente os mesmos campos, então o que muda entre
+   eles é só o rótulo da comissão e a nota do rodapé.
 
-  $('linhaTitulo').textContent = desc || ('Linha ' + (r.linha + 1));
-  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+   Recebe tudo por parâmetro e devolve texto — quem escreve no DOM é a tela.
+   ctx = {AVISOS, brl, canal, margem, rodape} */
+function contaHTML(ctx, r){
+  const brl = ctx.brl;
 
   if(r.preco == null){
-    const motivos = (r.avisos || []).map(a => (ML.AVISOS[a] || {}).titulo || a);
-    $('linhaCorpo').innerHTML = `
+    const motivos = (r.avisos || []).map(a => (ctx.AVISOS[a] || {}).titulo || a);
+    return `
       <div class="conta-vazio">
         <div class="conta-vazio-t">Esta linha não teve preço calculado</div>
         <div class="conta-vazio-d">${motivos.length
           ? esc(motivos.join(' · '))
           : 'Faltou algum dado para a conta fechar.'}</div>
-        <div class="conta-nota">${esc(((ML.AVISOS[(r.avisos||[])[0]] || {}).comoResolver) || 'Confira o custo e o peso dessa linha.')}</div>
+        <div class="conta-nota">${esc(((ctx.AVISOS[(r.avisos||[])[0]] || {}).comoResolver) || 'Confira o custo e o peso dessa linha.')}</div>
       </div>`;
-    abrirPop('popLinha', 'scrimLinha');
-    return;
   }
 
-  const p = pml;
   const linhaConta = (rot, val, cls) =>
     `<div class="conta-l ${cls || ''}"><span>${rot}</span><b>${val}</b></div>`;
 
@@ -2001,27 +1952,27 @@ function abrirLinha(indice){
   const volumetrico = r.pesoVolumetrico > 0 && r.pesoUsou === 'volumétrico';
 
   const linhas = [
-    linhaConta('Preço de venda', ML.brl(r.preco)),
-    linhaConta('Custo do produto', '− ' + ML.brl(r.custo), 'neg'),
-    linhaConta(`Comissão do Mercado Livre · ${(r.comissaoPct * 100).toFixed(0).replace('.', ',')}%`,
-               '− ' + ML.brl(r.comissao), 'neg'),
+    linhaConta('Preço de venda', brl(r.preco)),
+    linhaConta('Custo do produto', '− ' + brl(r.custo), 'neg'),
+    linhaConta(`Comissão ${esc(ctx.canal)} · ${(r.comissaoPct * 100).toFixed(0).replace('.', ',')}%`,
+               '− ' + brl(r.comissao), 'neg'),
   ];
   if(r.taxaFixa > 0)
-    linhas.push(linhaConta(`Taxa fixa · faixa ${esc(r.faixaPreco || '')}`, '− ' + ML.brl(r.taxaFixa), 'neg'));
+    linhas.push(linhaConta(`Taxa fixa · faixa ${esc(r.faixaPreco || '')}`, '− ' + brl(r.taxaFixa), 'neg'));
   if(r.frete > 0)
     linhas.push(linhaConta(
       `Envio · ${pesoTxt(r.peso)}${volumetrico ? ' (volumétrico)' : ''}, faixa ${esc(r.faixaPeso || '')}`,
-      '− ' + ML.brl(r.frete), 'neg'));
-  if(r.rebate > 0) linhas.push(linhaConta('Desconto que você banca', '− ' + ML.brl(r.rebate), 'neg'));
-  if(r.imposto > 0) linhas.push(linhaConta('Imposto', '− ' + ML.brl(r.imposto), 'neg'));
-  if(r.perdas > 0) linhas.push(linhaConta('Perdas com devolução', '− ' + ML.brl(r.perdas), 'neg'));
-  if(r.embalagem > 0) linhas.push(linhaConta('Embalagem', '− ' + ML.brl(r.embalagem), 'neg'));
-  linhas.push(linhaConta('Lucro líquido', ML.brl(r.lucroLiquido), 'tot'));
+      '− ' + brl(r.frete), 'neg'));
+  if(r.rebate > 0) linhas.push(linhaConta('Desconto que você banca', '− ' + brl(r.rebate), 'neg'));
+  if(r.imposto > 0) linhas.push(linhaConta('Imposto', '− ' + brl(r.imposto), 'neg'));
+  if(r.perdas > 0) linhas.push(linhaConta('Perdas com devolução', '− ' + brl(r.perdas), 'neg'));
+  if(r.embalagem > 0) linhas.push(linhaConta('Embalagem', '− ' + brl(r.embalagem), 'neg'));
+  linhas.push(linhaConta('Lucro líquido', brl(r.lucroLiquido), 'tot'));
 
   const av = (r.avisos || []).map(a =>
-    `<span class="tag ${(ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
+    `<span class="tag ${(ctx.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ctx.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
 
-  $('linhaCorpo').innerHTML = `
+  return `
     <div class="conta">${linhas.join('')}</div>
     <div class="conta-tiles">
       <div class="conta-tile"><i>Margem líquida</i><b>${(r.margemLiquida * 100).toFixed(1).replace('.', ',')}%</b></div>
@@ -2030,12 +1981,31 @@ function abrirLinha(indice){
       <div class="conta-tile"><i>Peso cobrado</i><b>${pesoTxt(r.peso)}</b></div>
     </div>
     ${volumetrico ? `<p class="conta-nota"><b>O frete usou o peso volumétrico.</b>
-      A caixa ocupa mais espaço do que pesa, e o Mercado Livre cobra pelo maior
+      A caixa ocupa mais espaço do que pesa, e ${esc(ctx.canal)} cobra pelo maior
       entre os dois — por isso o envio saiu acima do que o peso da balança sugeria.</p>` : ''}
     ${av ? `<p class="conta-nota">${av}</p>` : ''}
-    <p class="conta-nota">Margem pedida no passo 2: <b>${(mlMargem * 100).toFixed(0)}%</b> sobre a venda.
-      Tipo de anúncio: <b>${p.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'}</b>.</p>`;
+    <p class="conta-nota">Margem pedida no passo 2: <b>${(ctx.margem * 100).toFixed(0)}%</b> sobre a venda.
+      ${ctx.rodape || ''}</p>`;
+}
 
+/* Descrição da linha, para o título do pop-up. */
+function contaTitulo(cabecalho, valores, numeroLinha){
+  const iDesc = (cabecalho || []).findIndex(h => /descri|nome|produto|t[ií]tulo/i.test(String(h)));
+  const desc = iDesc >= 0 ? String((valores || [])[iDesc] || '') : '';
+  return desc || ('Linha ' + numeroLinha);
+}
+
+function abrirLinha(indice){
+  const r = mlLinhas[indice];
+  if(!r) return;
+  const l = mlAoa[r.linha] || [];
+
+  $('linhaTitulo').textContent = contaTitulo(mlCabecalho, l, r.linha + 1);
+  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+  $('linhaCorpo').innerHTML = contaHTML({
+    AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: mlMargem,
+    rodape: `Tipo de anúncio: <b>${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'}</b>.`,
+  }, r);
   abrirPop('popLinha', 'scrimLinha');
 }
 function fecharLinha(){ fecharPop('popLinha', 'scrimLinha'); }
@@ -2047,13 +2017,15 @@ function fecharLinha(){ fecharPop('popLinha', 'scrimLinha'); }
    ══════════════════════════════════════════════════════════════════════════ */
 let resumoAcao = null;
 
-function abrirResumo(aoConfirmar){
-  resumoAcao = aoConfirmar;
-  const c = mlConferencia;
-  const ok = mlLinhas.filter(r => r.preco != null);
+/* O balanço do lote, em HTML. Igual para os três canais: muda só o texto do
+   rodapé, que descreve o arquivo que cada tela gera.
+   ctx = {linhas, conferencia, brl, avisoFinal} */
+function resumoHTML(ctx){
+  const c = ctx.conferencia;
+  const brl = ctx.brl;
+  const ok = ctx.linhas.filter(r => r.preco != null);
   const soma = ok.reduce((s, r) => s + r.lucroLiquido, 0);
   const erros = c ? c.grupos.filter(g => g.gravidade === 'erro').reduce((s, g) => s + g.n, 0) : 0;
-  const comAnalise = $('mlColunasAnalise').checked;
 
   const tile = (n, rot, cor) => `<div class="res-tile2">
     <div class="res-tile2-n" style="color:${cor}">${n}</div>
@@ -2065,12 +2037,12 @@ function abrirResumo(aoConfirmar){
       <span class="res-pend-t">${esc(g.titulo)}</span>
     </div>`).join('');
 
-  $('resumoCorpo').innerHTML = `
+  return `
     <div class="res-tiles">
-      ${tile(mlLinhas.length.toLocaleString('pt-BR'), 'produtos na planilha', 'var(--ink)')}
+      ${tile(ctx.linhas.length.toLocaleString('pt-BR'), 'produtos na planilha', 'var(--ink)')}
       ${tile(ok.length.toLocaleString('pt-BR'), 'com preço calculado', 'var(--green-dk)')}
-      ${tile(ML.brl(soma), 'lucro total estimado', 'var(--green-dk)')}
-      ${tile(ML.brl(soma / (ok.length || 1)), 'lucro médio por venda', 'var(--violet-dk)')}
+      ${tile(brl(soma), 'lucro total estimado', 'var(--green-dk)')}
+      ${tile(brl(soma / (ok.length || 1)), 'lucro médio por venda', 'var(--violet-dk)')}
     </div>
 
     ${pend ? `<div class="grp-t" style="margin-top:22px">O QUE FICA PENDENTE</div>
@@ -2085,12 +2057,22 @@ function abrirResumo(aoConfirmar){
       O arquivo sai com valores novos e antigos misturados.</div>` : ''}
 
     <div class="res-aviso">
-      <b>O que vai no arquivo.</b>
-      ${comAnalise
-        ? 'A planilha original com o preço novo, mais as colunas de análise (custo, frete, lucro, margem) para você conferir. <b>Desligue as colunas de análise antes de subir no Bling.</b>'
-        : 'A planilha original com o preço novo gravado na coluna escolhida — pronta para o Bling.'}
+      <b>O que vai no arquivo.</b> ${ctx.avisoFinal}
     </div>`;
+}
 
+/* Sem contexto, é o resumo do Mercado Livre — os chamadores antigos não mudam. */
+function abrirResumo(aoConfirmar, ctx){
+  resumoAcao = aoConfirmar;
+  const comAnalise = $('mlColunasAnalise').checked;
+  $('resumoCorpo').innerHTML = resumoHTML(ctx || {
+    linhas: mlLinhas,
+    conferencia: mlConferencia,
+    brl: ML.brl,
+    avisoFinal: comAnalise
+      ? 'A planilha original com o preço novo, mais as colunas de análise (custo, frete, lucro, margem) para você conferir. <b>Desligue as colunas de análise antes de subir no Bling.</b>'
+      : 'A planilha original com o preço novo gravado na coluna escolhida — pronta para o Bling.',
+  });
   abrirPop('popResumo', 'scrimResumo');
 }
 function fecharResumo(){ fecharPop('popResumo', 'scrimResumo'); }
@@ -2152,12 +2134,26 @@ function mlEditar(linha, campo, valor){
 
 /* Recalcula só depois que o usuário sai do campo: refazer a tabela a cada
    tecla faria o input perder o foco no meio da digitação. */
+/* Número da linha na planilha → posição dela em mlLinhas.
+
+   Existe para tirar busca linear de dentro de laço: montar a tabela fazia um
+   indexOf por linha desenhada (600 × 5.000 = 3 milhões de comparações a cada
+   redesenho), e corrigir uma célula fazia mais um find e mais um indexOf. Com
+   o Map, cada um vira uma consulta direta. */
+let mlIndicePorLinha = new Map();
+
+function mlReindexar(){
+  mlIndicePorLinha = new Map();
+  mlLinhas.forEach((r, i) => mlIndicePorLinha.set(r.linha, i));
+}
+
 /* Recalcula SÓ a linha corrigida. Antes isso chamava mlProcessar(), que
    reprocessa a planilha inteira e reconsulta o Mercado Livre — em 5 mil
    produtos, cada correção custava dezenas de segundos e a tabela voltava para
    o topo, perdendo o lugar onde o usuário estava. */
 function mlEditarPronto(linha){
-  const r = mlLinhas.find(x => x.linha === linha);
+  const iLinha = mlIndicePorLinha.get(linha);
+  const r = iLinha == null ? null : mlLinhas[iLinha];
   if(!r){ mlProcessar(); return; }
 
   const ip = parseInt($('mlPeso').value), ic = parseInt($('mlCusto').value);
@@ -2198,7 +2194,7 @@ function mlEditarPronto(linha){
     peso, dimensoes: dims, comissaoProduto: comissao,
   }, params);
 
-  mlLinhas[mlLinhas.indexOf(r)] = novo;
+  mlLinhas[iLinha] = novo;   /* mesma posição: o índice continua valendo */
   mlConferencia = ML.conferir(mlLinhas);
   mlRenderStats();
   mlRenderChecks();
@@ -2279,8 +2275,13 @@ function mlRenderTabela(){
 
       /* a linha inteira ganha cor quando tem problema: numa página de 600,
          procurar a última coluna é inviável */
+      /* só o nome da classe: juntar com tr-clic num único class=. Quando isto
+         era ' class="tr-alerta"' pronto, a linha com aviso saía com DOIS
+         atributos class e o navegador ficava com o primeiro — a linha
+         continuava clicável, mas perdia o cursor de mão e o realce, justo nas
+         linhas que o usuário mais quer abrir. */
       const grav = !r.avisos || !r.avisos.length ? '' :
-        (r.avisos.some(a => (ML.AVISOS[a] || {}).gravidade === 'erro') ? ' class="tr-erro"' : ' class="tr-alerta"');
+        (r.avisos.some(a => (ML.AVISOS[a] || {}).gravidade === 'erro') ? ' tr-erro' : ' tr-alerta');
 
       const tdCusto = campo(r, 'custo', ed.custo != null ? ed.custo :
         (r.custo != null ? r.custo.toFixed(2).replace('.', ',') : ''), 'R$');
@@ -2294,14 +2295,14 @@ function mlRenderTabela(){
           ? `<div class="vol" title="A caixa é grande para o peso: o Mercado Livre cobra o peso volumétrico (altura × largura × comprimento ÷ 6000)">frete cobra ${pesoTxt(r.peso)}</div>`
           : '');
 
-      if(r.preco == null) return `<tr${grav}>
+      if(r.preco == null) return `<tr class="${grav.trim()}">
         <td style="color:var(--faint)">${r.linha + 1}</td>
         <td title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
         <td>${tdCusto}</td><td>${tdPeso}</td>
         <td colspan="${tdsVazios - 2}" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
-      const iReal = mlLinhas.indexOf(r);
-      return `<tr${grav} class="tr-clic" onclick="if(!event.target.closest('input,button,select,a'))abrirLinha(${iReal})" title="Ver a conta desta linha">
+      const iReal = mlIndicePorLinha.get(r.linha);
+      return `<tr class="tr-clic${grav}" onclick="if(!event.target.closest('input,button,select,a'))abrirLinha(${iReal})" title="Ver a conta desta linha">
         <td class="c-linha">${r.linha + 1}</td>
         <td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
         <td class="c-custo">${tdCusto}</td>
@@ -2482,6 +2483,7 @@ function mlReset(){
   mlCategorias = null; mlUsandoCategoria = false;
   mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
   mlDimSuspeita = false; mlDimConfirmada = false; mlDimInfo = null; mlDimFator = 1;
+  mlIndicePorLinha = new Map();
   $('mlPesoUnidade').value = 'kg';
   $('mlFi').value = '';
   mlPasso(1);
@@ -3003,6 +3005,49 @@ function plProcessar(){
   plAba(plAbaAtual, null);
 }
 
+/* Quantas mudanças a prévia mostra de uma vez.
+
+   Sem teto, um catálogo de 5.000 produtos gerava uma entrada por linha
+   alterada, cada uma carregando a descrição original inteira: 5 a 15 MB de
+   innerHTML de um golpe e uns 15 mil nós no DOM. A aba congelava. A prévia
+   existe para conferir por amostragem — quem quer o conteúdo completo baixa
+   o arquivo. */
+const PL_PREV_LOTE = 50;
+let plPrevMostrando = 0, plPrevItens = [], plPrevMontar = null;
+
+/* Desenha os primeiros e oferece o resto num botão. */
+function plPrevRender(itens, montar, vazio){
+  const el = $('plPrev');
+  if(!itens.length){ el.innerHTML = `<div class="vazio">${vazio}</div>`; return; }
+  plPrevItens = itens; plPrevMontar = montar;
+  plPrevMostrando = Math.min(PL_PREV_LOTE, itens.length);
+  el.innerHTML = itens.slice(0, plPrevMostrando).map(montar).join('') + plPrevRodape();
+}
+
+function plPrevRodape(){
+  const faltam = plPrevItens.length - plPrevMostrando;
+  if(faltam <= 0)
+    return plPrevItens.length > PL_PREV_LOTE
+      ? `<div class="prev-fim">as ${plPrevItens.length.toLocaleString('pt-BR')} mudanças estão à mostra</div>` : '';
+  return `<div class="prev-fim">
+    mostrando <b>${plPrevMostrando.toLocaleString('pt-BR')}</b> de
+    <b>${plPrevItens.length.toLocaleString('pt-BR')}</b> mudanças
+    <button type="button" class="btn btn-ghost" onclick="plPrevMais()">
+      Ver mais ${Math.min(PL_PREV_LOTE, faltam)}</button>
+  </div>`;
+}
+
+/* Acrescenta o próximo lote no fim, sem redesenhar o que já está na tela. */
+function plPrevMais(){
+  const el = $('plPrev');
+  const rodape = el.querySelector('.prev-fim');
+  const ate = Math.min(plPrevMostrando + PL_PREV_LOTE, plPrevItens.length);
+  const novo = plPrevItens.slice(plPrevMostrando, ate).map(plPrevMontar).join('');
+  plPrevMostrando = ate;
+  if(rodape) rodape.remove();
+  el.insertAdjacentHTML('beforeend', novo + plPrevRodape());
+}
+
 function plAba(qual, btn){
   plAbaAtual = qual;
   if(btn){
@@ -3013,21 +3058,19 @@ function plAba(qual, btn){
   const m  = plRes.mudancas;
 
   if(qual === 'desc'){
-    if(!m.descricao.length) return el.innerHTML = '<div class="vazio">Nenhuma descrição precisou de ajuste.</div>';
-    el.innerHTML = m.descricao.map(x => `
+    plPrevRender(m.descricao, x => `
       <div class="prev">
         <div class="prev-l">LINHA ${x.linha}<span class="tag">${x.antes.length} → ${x.depois.length} caracteres</span></div>
         <div class="prev-a">${esc(x.antes)}</div>
         <div class="prev-b"><b>${esc(x.depois)}</b></div>
-      </div>`).join('');
+      </div>`, 'Nenhuma descrição precisou de ajuste.');
   }
   else if(qual === 'curta'){
-    if(!m.curta.length) return el.innerHTML = '<div class="vazio">Nenhum bloco cadastral encontrado no fim das descrições.</div>';
-    el.innerHTML = m.curta.map(x => `
+    plPrevRender(m.curta, x => `
       <div class="prev">
         <div class="prev-l">LINHA ${x.linha}<span class="tag">${x.campos} campos removidos do fim</span></div>
         <div class="cut">${esc(x.removido)}</div>
-      </div>`).join('');
+      </div>`, 'Nenhum bloco cadastral encontrado no fim das descrições.');
   }
   else{
     const iAV = PE.colToIndex(params.colCondicao);
@@ -3038,13 +3081,12 @@ function plAba(qual, btn){
       const antes = String(plAoa[r][iAV] == null ? '' : plAoa[r][iAV]);
       if(antes !== params.valorCondicao) linhas.push({linha: r + 1, antes});
     }
-    if(!linhas.length) return el.innerHTML = `<div class="vazio">Todas as linhas já estavam como "${esc(params.valorCondicao)}".</div>`;
-    el.innerHTML = linhas.map(x => `
+    plPrevRender(linhas, x => `
       <div class="prev">
         <div class="prev-l">LINHA ${x.linha}</div>
         <div class="prev-a">${esc(x.antes || '(vazio)')}</div>
         <div class="prev-b"><b>${esc(params.valorCondicao)}</b></div>
-      </div>`).join('');
+      </div>`, `Todas as linhas já estavam como "${esc(params.valorCondicao)}".`);
   }
 }
 
@@ -3317,6 +3359,15 @@ function wsCards(canal){
 /* A explicação abre ao lado do quadro, não dentro: o quadro fica pequeno de
    propósito, e a lista do que a ferramenta faz não caberia nele. */
 let wsTimer = null;
+
+/* Tira o balão de dentro da view e o pendura no <body>.
+
+   Sem isto, position:fixed não vale: #view-hub tem transform, e qualquer
+   ancestral com transform vira o ponto de referência de quem é fixed — as
+   coordenadas de tela saíam deslocadas e o balão caía por cima dos quadros. */
+function wsSoltarPop(pop){
+  if(pop.parentElement !== document.body) document.body.appendChild(pop);
+}
 function wsExplicar(el, canal, i){
   clearTimeout(wsTimer);
   const f = (WS_FERRAMENTAS[canal] || [])[i];
@@ -3332,14 +3383,37 @@ function wsExplicar(el, canal, i){
     <ul class="ws-pop-l">${(f.itens || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
     ${f.breve ? '<div class="ws-pop-breve">Ainda não está no ar — está sendo preparada.</div>' : ''}`;
 
-  /* fica preso à tela: sem isso o balão sai pela direita nos últimos quadros */
+  /* AO LADO DO QUADRO APONTADO — direita se couber, senão esquerda; e só
+     quando não há espaço de nenhum dos dois lados é que vai abaixo ou acima,
+     sempre sem cobrir o quadro sob o mouse.
+
+     O balão vive no <body> (ver wsSoltarPop): #view-hub tem transform, e um
+     ancestral com transform faz até position:fixed se ancorar nele em vez da
+     tela — as contas abaixo são de viewport e sairiam deslocadas. */
+  wsSoltarPop(pop);
+
+  const FOLGA = 14, BORDA = 12;
   const r = el.getBoundingClientRect();
   pop.classList.remove('hide');
   const larg = pop.offsetWidth, alt = pop.offsetHeight;
-  let x = r.left + r.width / 2 - larg / 2;
-  x = Math.max(12, Math.min(x, window.innerWidth - larg - 12));
-  let y = r.bottom + 10;
-  if(y + alt > window.innerHeight - 12) y = Math.max(12, r.top - alt - 10);
+  const limite = (v, max) => Math.max(BORDA, Math.min(v, max));
+
+  /* nasce alinhado ao topo do quadro, sem sair da tela */
+  let y = limite(r.top, window.innerHeight - alt - BORDA);
+  let x;
+
+  if(r.right + FOLGA + larg <= window.innerWidth - BORDA){
+    x = r.right + FOLGA;                       // cabe à direita do quadro
+  }else if(r.left - FOLGA - larg >= BORDA){
+    x = r.left - FOLGA - larg;                 // cabe à esquerda do quadro
+  }else{
+    /* sem espaço dos lados: abaixo, e se não couber, acima — nunca em cima */
+    x = limite(r.left + r.width / 2 - larg / 2, window.innerWidth - larg - BORDA);
+    y = r.bottom + FOLGA + alt <= window.innerHeight - BORDA
+      ? r.bottom + FOLGA
+      : Math.max(BORDA, r.top - FOLGA - alt);
+  }
+
   pop.style.left = x + 'px';
   pop.style.top = y + 'px';
 }

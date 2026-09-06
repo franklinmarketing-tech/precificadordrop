@@ -18,27 +18,42 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v1';
+const VERSAO = 'v2';   // v2: a lista abaixo passou a ter os 12 scripts
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
+/* Tem de listar TODOS os scripts que o index.html carrega. Faltavam sete —
+   os de marketplace, os de anúncios e o pwa.js — e offline eles caíam no
+   fallback de HTML, ou seja, o navegador recebia uma página inteira como
+   corpo de um .js e a tela quebrava com "Unexpected token '<'". */
 const SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
   '/assets/hub.css',
   '/assets/views.css',
-  '/assets/app.js',
-  '/assets/ml-engine.js',
-  '/assets/ml-fretes.js',
-  '/assets/planilha-engine.js',
   '/assets/xlsx-utils.js',
+  '/assets/ml-fretes.js',
+  '/assets/ml-engine.js',
+  '/assets/planilha-engine.js',
+  '/assets/mkt-engine.js',
+  '/assets/mkt-amazon.js',
+  '/assets/mkt-shopee.js',
+  '/assets/anuncios-engine.js',
+  '/assets/app.js',
+  '/assets/anuncios-ui.js',
+  '/assets/mkt-ui.js',
+  '/assets/pwa.js',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_SHELL)
-      .then(c => c.addAll(SHELL))
+      /* um a um em vez de addAll: com addAll, um único arquivo que falhe
+         derruba a instalação inteira em silêncio e o app fica SEM offline
+         nenhum. Assim o que baixou fica guardado, e o que faltou volta a ser
+         tentado na próxima visita. */
+      .then(c => Promise.allSettled(SHELL.map(u => c.add(u))))
       .then(() => self.skipWaiting())          // ativa sem esperar as abas antigas fecharem
   );
 });
@@ -76,7 +91,11 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_SHELL).then(c => c.put(request, copia));
           return resp;
         })
-        .catch(() => caches.match(request).then(r => r || caches.match('/index.html')))
+        /* O fallback para o index só vale para NAVEGAÇÃO. Devolver HTML no
+           lugar de um .js que não está no cache produzia um erro de sintaxe
+           em vez de uma falha de rede honesta. */
+        .catch(() => caches.match(request).then(r =>
+          r || (request.mode === 'navigate' ? caches.match('/index.html') : Promise.reject(new Error('offline')))))
     );
     return;
   }

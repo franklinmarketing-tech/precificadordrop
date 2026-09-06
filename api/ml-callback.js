@@ -4,14 +4,46 @@
 
    O refresh_token aparece na tela uma única vez: guarde-o na variável de
    ambiente ML_REFRESH_TOKEN do projeto na Vercel.
+
+   Esta página mostra um segredo, então só responde a quem começou o fluxo
+   aqui: o `state` que volta do Mercado Livre tem de bater com o cookie que
+   /api/ml-auth deixou. Sem a conferência, um link com um `code` de fora
+   faria esta página imprimir um refresh_token para quem o abrisse.
    ══════════════════════════════════════════════════════════════════════════ */
+import {timingSafeEqual} from 'node:crypto';
+
+function iguais(a, b) {
+  const x = Buffer.from(String(a || ''), 'utf8');
+  const y = Buffer.from(String(b || ''), 'utf8');
+  if (x.length !== y.length || !x.length) return false;
+  return timingSafeEqual(x, y);
+}
+
+function cookie(req, nome) {
+  const crus = String(req.headers.cookie || '').split(';');
+  for (const c of crus) {
+    const i = c.indexOf('=');
+    if (i > 0 && c.slice(0, i).trim() === nome) return decodeURIComponent(c.slice(i + 1).trim());
+  }
+  return '';
+}
+
 export default async function handler(req, res) {
-  const { code, error } = req.query;
+  const { code, error, state } = req.query;
   const clientId = process.env.ML_CLIENT_ID;
   const secret   = process.env.ML_CLIENT_SECRET;
 
   if (error) return res.status(400).send('Autorização negada: ' + error);
   if (!code)  return res.status(400).send('Faltou o parâmetro code. Comece por /api/ml-auth');
+
+  /* o cookie morre aqui, dando certo ou não: cada autorização usa um state novo */
+  res.setHeader('set-cookie', 'drop_oauth_state=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+
+  const esperado = cookie(req, 'drop_oauth_state');
+  if (!esperado || !iguais(state, esperado))
+    return res.status(400).send(
+      'Autorização não confere. Isso acontece quando a página ficou aberta por mais de 10 minutos, '
+      + 'ou quando o link não veio de /api/ml-auth. Comece de novo por /api/ml-auth.');
   if (!clientId || !secret)
     return res.status(500).send('ML_CLIENT_ID / ML_CLIENT_SECRET não configurados na Vercel.');
 

@@ -9,6 +9,7 @@
    `scroll` que devolvemos até acabar.
    ══════════════════════════════════════════════════════════════════════════ */
 import {tokenDoVendedor, idDoVendedor, responderErro} from './_ml-token.js';
+import {mesmaOrigem, limitar, exigirChave} from './_guarda.js';
 
 const POR_PAGINA = 100;   // teto do search do ML
 const LOTE_DETALHE = 20;  // teto do multiget /items?ids=
@@ -28,6 +29,8 @@ function skuDe(item) {
 }
 
 export default async function handler(req, res) {
+  if (!mesmaOrigem(req, res) || !limitar(req, res) || !exigirChave(req, res)) return;
+
   try {
     const token = await tokenDoVendedor();
     const uid = await idDoVendedor(token);

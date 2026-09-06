@@ -9,8 +9,21 @@
 
 let mkCanal = null;      // motor do canal aberto
 let mkAoa = null, mkCab = [], mkLinhaCab = 0, mkNomeArquivo = '';
+/* o arquivo cru, para reescrever em cima dele na hora de baixar */
+let mkBytes = null, mkAbaNome = '';
 let mkLinhas = [], mkConf = null, mkFiltro = null, mkPagina = 0;
 const MK_POR_PAGINA = 100;
+
+/* Peso em gramas numa coluna que diz "kg". Sem isto, uma planilha com 350 na
+   coluna de peso era lida como 350 kg: na Amazon o frete pulava de R$ 17 para
+   R$ 1.244 e o preço saía dez vezes maior — com um aviso amarelo de "peso
+   alto" que não impedia nada. Na Shopee o preço não muda (o vendedor não paga
+   frete), mas o peso declarado a menos é cobrado depois da entrega. */
+let mkPesoSuspeito = false, mkPesoConfirmadoKg = false, mkPesoInfo = null;
+let mkPesosConvertidos = new Set();
+/* número da linha na planilha → posição em mkLinhas, para a linha clicada
+   achar o próprio registro sem varrer o vetor */
+let mkIndicePorLinha = new Map();
 
 const MK_CANAIS = {
   shopee: {motor: () => window.MktShopee, nome: 'Shopee',
@@ -26,7 +39,8 @@ function mkAbrir(id){
   mkCanal = motor;
   mkCanal._def = def;
   mkLinhas = []; mkConf = null; mkFiltro = null; mkPagina = 0;
-  mkAoa = null;
+  mkAoa = null; mkBytes = null; mkAbaNome = '';
+  mkPesoSuspeito = false; mkPesoConfirmadoKg = false; mkPesoInfo = null;
 
   $('mkMarca').innerHTML = `<img src="${def.logo}" alt="${esc(def.nome)}"/>`;
   $('mkTitulo').innerHTML = `Precificar <span class="grad">${esc(def.nome)}.</span>`;
@@ -49,7 +63,8 @@ async function mkCarregar(file){
   if(!file || !mkCanal) return;
   try{
     await garantirXLSX();
-    const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
+    mkBytes = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(mkBytes, {type:'array'});
     /* mesma leitura da calculadora do Mercado Livre: a aba boa nem sempre é a
        primeira e o cabeçalho nem sempre está na linha 1 */
     const abas = wb.SheetNames.map((nome, i) => ({
@@ -62,6 +77,7 @@ async function mkCarregar(file){
     const nomeAba = escolha.nome || wb.SheetNames[0];
     const aoa = (abas.find(a => a.nome === nomeAba) || abas[0]).aoa;
 
+    mkAbaNome = nomeAba;
     const det = ML.detectarCabecalho(aoa);
     mkLinhaCab = det && det.linha != null ? det.linha : 0;
     mkAoa = aoa;
@@ -104,11 +120,23 @@ function mkMontarForm(){
 
   $('mkColunas').innerHTML = `
     <label class="campo"><span>Custo do produto</span>${sel('mkColCusto', mkAcha(['custo','preço de custo','preco','valor']))}</label>
-    <label class="campo"><span>Peso</span>${sel('mkColPeso', mkAcha(['peso (kg)','peso']), true)}</label>
+    <label class="campo"><span>Peso</span>${sel('mkColPeso', mkAcha(['peso (kg)','peso']), true)}
+      <div class="uni-peso" id="mkUniBox">
+        <span>Os números estão em</span>
+        <select id="mkPesoUnidade" onchange="mkChecarPeso()">
+          <option value="kg">quilos (2,5 = 2,5 kg)</option>
+          <option value="g">gramas (2000 = 2 kg)</option>
+          <option value="auto">misturado — corrigir só os que parecem gramas</option>
+        </select>
+      </div>
+      <div class="uni-alerta hide" id="mkUniAlerta"></div></label>
     <label class="campo"><span>Altura</span>${sel('mkColA', mkAcha(['altura']), true)}</label>
     <label class="campo"><span>Largura</span>${sel('mkColL', mkAcha(['largura']), true)}</label>
     <label class="campo"><span>Comprimento</span>${sel('mkColC', mkAcha(['comprimento']), true)}</label>
     <label class="campo"><span>Gravar o preço em</span>${sel('mkColPreco', mkAcha(['preço','preco','valor']))}</label>`;
+
+  const selPeso = $('mkColPeso');
+  if(selPeso) selPeso.addEventListener('change', mkChecarPeso);
 
   /* as perguntas do canal saem do FORM que ele mesmo declara */
   const P = mkCanal.PADRAO;
@@ -120,6 +148,10 @@ function mkMontarForm(){
     if(f.tipo === 'numero')
       return `<label class="campo" data-campo="${f.id}"><span>${esc(f.rot)}${f.ajuda ? ` <i>${esc(f.ajuda)}</i>` : ''}</span>
         <input type="number" id="mkP_${f.id}" min="0" step="0.01" value="${Number(P[f.id]) || 0}"/></label>`;
+    /* o motor trabalha com fração (0,06); quem preenche pensa em % */
+    if(f.tipo === 'percentual')
+      return `<label class="campo" data-campo="${f.id}"><span>${esc(f.rot)}${f.ajuda ? ` <i>${esc(f.ajuda)}</i>` : ''}</span>
+        <input type="number" id="mkP_${f.id}" min="0" max="99" step="0.1" value="${((Number(P[f.id]) || 0) * 100).toFixed(2).replace(/\.?0+$/, '')}"/></label>`;
     return `<label class="sw" data-campo="${f.id}" style="grid-column:1/-1">
       <input type="checkbox" id="mkP_${f.id}"${P[f.id] ? ' checked' : ''}/>
       ${esc(f.rot)}${f.ajuda ? ` — ${esc(f.ajuda)}` : ''}</label>`;
@@ -141,6 +173,56 @@ function mkMontarForm(){
     mostrar('mkRessalvas', !!rs.length);
   }
   mkAtualizarForm();
+  mkChecarPeso();
+}
+
+/* ── peso em gramas ────────────────────────────────────────────────────────
+   Mesma detecção da calculadora do Mercado Livre (ML.detectarEscalaPeso): a
+   coluna inteira é analisada e a troca é oferecida, nunca feita por conta
+   própria — catálogo de item pesado de verdade existe. */
+function mkChecarPeso(){
+  const caixa = $('mkUniAlerta');
+  const selCol = $('mkColPeso'), selUni = $('mkPesoUnidade');
+  if(!caixa || !selCol) return;
+
+  const ip = parseInt(selCol.value);
+  mostrar('mkUniBox', ip >= 0);
+  if(isNaN(ip) || ip < 0 || !mkAoa){
+    mkPesoSuspeito = false; mostrar('mkUniAlerta', false); return;
+  }
+
+  const r = ML.detectarEscalaPeso(mkAoa.slice(mkLinhaCab + 1).map(l => l && l[ip]));
+  const jaResolvido = selUni && selUni.value !== 'kg';
+  mkPesoSuspeito = r.suspeita && !jaResolvido && !mkPesoConfirmadoKg;
+  if(!mkPesoSuspeito){ mostrar('mkUniAlerta', false); return; }
+
+  mkPesoInfo = r;
+  const n = r.suspeitos;
+  caixa.innerHTML = `<b>${n} peso${n === 1 ? '' : 's'} ${n === 1 ? 'parece' : 'parecem'} estar em gramas.</b>
+    Precisa de uma conferência antes de calcular.
+    <div class="uni-btns"><button type="button" class="sim" onclick="mkRevisarPeso()">Conferir agora</button></div>`;
+  mostrar('mkUniAlerta', true);
+}
+
+/* Abre a MESMA tela de revisão do Mercado Livre, com o contexto deste canal.
+   Dimensão fica de fora por enquanto: a conversão de mm depende do cálculo de
+   frete do ML, que não vale para Shopee nem Amazon. */
+function mkRevisarPeso(){
+  revisarAbrir({
+    canal: 'a ' + mkCanal.nome,
+    peso: mkPesoSuspeito ? mkPesoInfo : null,
+    dim: null,
+    aplicar(){
+      const sel = $('mkPesoUnidade');
+      if(sel) sel.value = mkPesoInfo && mkPesoInfo.todosGrandes ? 'g' : 'auto';
+      mkChecarPeso();
+      mkCalcular();
+    },
+    ignorar(){
+      mkPesoConfirmadoKg = true;
+      mkChecarPeso();
+    },
+  });
 }
 
 /* campos que só fazem sentido em certas escolhas somem quando não fazem */
@@ -160,6 +242,7 @@ function mkLerParams(){
     if(!el) return;
     if(f.tipo === 'switch') p[f.id] = el.checked;
     else if(f.tipo === 'numero') p[f.id] = Number(el.value) || 0;
+    else if(f.tipo === 'percentual') p[f.id] = (Number(el.value) || 0) / 100;
     else p[f.id] = el.value;
   });
   const m = $('mkMargem');
@@ -168,14 +251,34 @@ function mkLerParams(){
 }
 
 /* ── calcular ────────────────────────────────────────────────────────────── */
-function mkCalcular(){
+async function mkCalcular(){
   if(!mkAoa || !mkCanal) return;
   const iCusto = parseInt($('mkColCusto').value);
   const iPeso  = parseInt($('mkColPeso').value);
   const iA = parseInt($('mkColA').value), iL = parseInt($('mkColL').value), iC = parseInt($('mkColC').value);
   if(isNaN(iCusto)) return;
 
+  /* enquanto a escala do peso não for resolvida, não calcula: deixar passar
+     produz frete de centenas de reais e o usuário só descobre olhando linha
+     por linha na coluna Situação */
+  if(mkPesoSuspeito){ mkRevisarPeso(); return; }
+
   const p = mkLerParams();
+
+  /* A planilha real mistura as duas escalas (0,9 kg e 2000 g lado a lado),
+     então "misturado" converte por linha: só o que passa do limite físico,
+     impossível num produto de verdade, vira grama. */
+  const unidade = ($('mkPesoUnidade') || {}).value || 'kg';
+  mkPesosConvertidos = new Set();
+  const comUnidade = (v, linha) => {
+    if(v === '' || v == null) return v;
+    if(unidade === 'g') return /[a-z]/i.test(String(v)) ? v : String(v) + ' g';
+    if(unidade !== 'auto') return v;
+    const r = ML.normalizarPesoLinha(v, true);
+    if(r.convertido){ mkPesosConvertidos.add(linha); return r.kg; }
+    return v;
+  };
+
   const entradas = [];
   for(let r = mkLinhaCab + 1; r < mkAoa.length; r++){
     const L = mkAoa[r];
@@ -183,12 +286,39 @@ function mkCalcular(){
     const dims = (iA >= 0 && iL >= 0 && iC >= 0)
       ? {altura: ML.parseNumero(L[iA]), largura: ML.parseNumero(L[iL]), comprimento: ML.parseNumero(L[iC])}
       : null;
-    entradas.push({linha: r, custo: L[iCusto], peso: iPeso >= 0 ? L[iPeso] : '', dimensoes: dims});
+    entradas.push({linha: r, custo: L[iCusto],
+                   peso: iPeso >= 0 ? comUnidade(L[iPeso], r) : '', dimensoes: dims});
   }
   if(!entradas.length){ alert('Não achei linhas de produto abaixo do cabeçalho.'); return; }
 
-  const lote = mkCanal.precificarLote(entradas, p);
-  mkLinhas = lote.linhas; mkConf = lote.conferencia;
+  /* Em fatias, com a mesma janela de progresso do Mercado Livre: antes esta
+     tela calculava em silêncio e, com planilha grande, parecia travada. */
+  progAbrir(['Lendo a planilha', 'Calculando os preços', 'Montando a tabela']);
+  progEtapa(0);
+  progNumero(`${entradas.length.toLocaleString('pt-BR')} produtos`);
+  await respirar();
+
+  progEtapa(1);
+  const BLOCO = 400;
+  mkLinhas = [];
+  try{
+    for(let i = 0; i < entradas.length; i += BLOCO){
+      const fim = Math.min(i + BLOCO, entradas.length);
+      for(let k = i; k < fim; k++) mkLinhas.push(mkCanal.precificarLinha(entradas[k], p));
+      if(entradas.length > BLOCO){
+        progEtapa(1, fim / entradas.length);
+        progNumero(`${fim.toLocaleString('pt-BR')} de ${entradas.length.toLocaleString('pt-BR')} produtos`);
+        await respirar();
+      }
+    }
+    mkIndicePorLinha = new Map();
+    mkLinhas.forEach((r, i) => mkIndicePorLinha.set(r.linha, i));
+    mkConf = mkCanal.conferir(mkLinhas);
+    progEtapa(2);
+    await respirar();
+  }finally{
+    progFechar();
+  }
   mkFiltro = null; mkPagina = 0;
 
   if(!mkConf.precificados){
@@ -202,6 +332,9 @@ function mkCalcular(){
 
 function mkRecomecar(){
   mkAoa = null; mkLinhas = []; mkConf = null; mkFiltro = null; mkPagina = 0;
+  mkBytes = null; mkAbaNome = '';
+  mkPesoSuspeito = false; mkPesoConfirmadoKg = false; mkPesoInfo = null;
+  mkPesosConvertidos = new Set();
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   window.scrollTo({top:0, behavior: reduzido ? 'instant' : 'smooth'});
@@ -281,13 +414,17 @@ function mkRenderTabela(){
     pagina.map(r => {
       const L = mkAoa[r.linha] || [];
       const desc = iDesc >= 0 ? String(L[iDesc] || '') : '';
-      const grav = r.avisos.some(a => (A[a]||{}).gravidade === 'erro') ? ' class="tr-erro"'
-        : (r.avisos.length ? ' class="tr-alerta"' : '');
+      /* só o nome da classe, para juntar com tr-clic num class= só: dois
+         atributos class fariam o navegador ficar com o primeiro e a linha
+         perderia o cursor de mão */
+      const grav = r.avisos.some(a => (A[a]||{}).gravidade === 'erro') ? ' tr-erro'
+        : (r.avisos.length ? ' tr-alerta' : '');
       const sit = r.avisos.length
         ? r.avisos.map(a => `<span class="tag ${(A[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((A[a]||{}).titulo || a)}</span>`).join(' ')
         : '<span style="color:var(--green-dk)">ok</span>';
       const num = v => v == null ? '—' : mkCanal.brl(v);
-      return `<tr${grav}>
+      const i = mkIndicePorLinha.get(r.linha);
+      return `<tr class="tr-clic${grav}" onclick="mkAbrirLinha(${i})" title="Ver a conta desta linha">
         <td class="c-linha">${r.linha + 1}</td>
         <td class="c-desc" title="${esc(desc)}">${esc(desc.slice(0,60)) || '—'}</td>
         <td class="c-num c-custo">${r.custo == null ? '—' : mkCanal.brl(r.custo)}</td>
@@ -307,47 +444,89 @@ function mkRenderTabela(){
       </div>` : '';
 }
 
+/* ── a conta de uma linha ──────────────────────────────────────────────────
+   Mesmo pop-up e mesma função do Mercado Livre (contaHTML, em app.js): os dois
+   motores devolvem os mesmos campos, então o que muda é o rótulo do canal. */
+function mkAbrirLinha(indice){
+  const r = mkLinhas[indice];
+  if(!r) return;
+  const L = mkAoa[r.linha] || [];
+
+  $('linhaTitulo').textContent = contaTitulo(mkCab, L, r.linha + 1);
+  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+  $('linhaCorpo').innerHTML = contaHTML({
+    AVISOS: mkCanal.AVISOS,
+    brl: mkCanal.brl,
+    canal: 'da ' + mkCanal.nome,
+    margem: (Number(($('mkMargem') || {}).value) || 20) / 100,
+    rodape: `Canal: <b>${esc(mkCanal.nome)}</b>.`,
+  }, r);
+  abrirPop('popLinha', 'scrimLinha');
+}
+
 /* ── baixar ──────────────────────────────────────────────────────────────── */
 async function mkBaixar(){
   if(!mkLinhas.length) return;
   const iPreco = parseInt($('mkColPreco').value);
-  const semPreco = mkLinhas.filter(r => r.preco == null).length;
-  if(semPreco){
-    const ok = confirm(
-      `${semPreco.toLocaleString('pt-BR')} ${semPreco === 1 ? 'produto ficou' : 'produtos ficaram'} sem preço calculado.\n\n`
-      + `Nessas linhas a coluna "${mkCab[iPreco]}" mantém o valor que já estava lá — o arquivo vai ter preços novos e antigos misturados.\n\n`
-      + 'Gerar assim mesmo?');
-    if(!ok) return;
-  }
+  /* o mesmo resumo do Mercado Livre, em vez do confirm() do navegador: é a
+     última tela antes de gerar o arquivo, e vale mostrar o balanço do lote */
+  abrirResumo(mkBaixarAgora, {
+    linhas: mkLinhas,
+    conferencia: mkConf,
+    brl: mkCanal.brl,
+    avisoFinal: `A planilha original com o preço novo gravado em `
+      + `"${esc(mkCab[iPreco] || 'nova coluna')}", mais as colunas de análise `
+      + `(custo, comissão, envio, lucro, margem) para você conferir.`,
+  });
+}
+
+async function mkBaixarAgora(){
+  const iPreco = parseInt($('mkColPreco').value);
   try{
     await garantirXLSX();
-    const saidaAoa = mkAoa.map(l => (l || []).slice());
+    /* Relê o arquivo enviado e troca só o que muda. Montar a aba do zero a
+       partir do que foi lido com raw:false gravava tudo como texto — o Excel
+       mostrava "número armazenado como texto" e nenhuma soma funcionava.
+
+       O que isto preserva: os tipos (número continua número), o formato
+       numérico de cada célula e as outras abas do arquivo. O que NÃO
+       preserva: cores, negrito e bordas — a versão livre do SheetJS lê
+       estilo mas não sabe gravá-lo. Quando a formatação importa, o caminho é
+       o da tela de Anúncios, que edita o XML do arquivo direto.
+
+       Diferente do Mercado Livre, esta tela não poda linhas vazias: r.linha já
+       é a posição real na aba, sem precisar de ajuste. */
+    const wb = XLSX.read(mkBytes, {type:'array'});
+    const nomeAba = mkAbaNome || wb.SheetNames[0];
+    XU.normalizarRef(wb.Sheets[nomeAba]);
+    const ws = XU.clonarWs(wb.Sheets[nomeAba]);
     const base = mkCab.length;
+
     const NOVAS = ['Custo','Peso cobrado (kg)','Preço de venda','Comissão','Taxa fixa',
                    'Envio','Receita líquida','Lucro líquido','Margem líquida','Conferência'];
-    NOVAS.forEach((t, k) => { saidaAoa[mkLinhaCab] = saidaAoa[mkLinhaCab] || []; saidaAoa[mkLinhaCab][base + k] = t; });
+    NOVAS.forEach((t, k) => XU.escrever(ws, mkLinhaCab, base + k, t));
 
     mkLinhas.forEach(r => {
-      const L = saidaAoa[r.linha] = saidaAoa[r.linha] || [];
-      if(iPreco >= 0 && r.preco != null) L[iPreco] = r.preco;
+      if(iPreco >= 0 && r.preco != null) XU.escrever(ws, r.linha, iPreco, r.preco);
       const conf = (r.avisos || []).map(a => (mkCanal.AVISOS[a] || {}).titulo || a).join(' · ');
       const vals = r.preco == null
         ? [r.custo, '', '', '', '', '', '', '', '', conf || 'sem preço calculado']
         : [r.custo, r.peso, r.preco, -r.comissao, -r.taxaFixa, -r.frete,
            r.receitaLiquida, r.lucroLiquido, +(r.margemLiquida).toFixed(4), conf];
-      vals.forEach((v, k) => L[base + k] = v === undefined ? '' : v);
+      vals.forEach((v, k) => XU.escrever(ws, r.linha, base + k, v === undefined ? '' : v));
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(saidaAoa);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Produtos');
-    const saida = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([saida], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = mkNomeArquivo.replace(/\.[^.]+$/, '') + '_' + mkCanal.id.toUpperCase() + '.xlsx';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    const cols = ws['!cols'] ? ws['!cols'].slice() : [];
+    NOVAS.forEach((_, k) => cols[base + k] = {wch: k === NOVAS.length - 1 ? 40 : 18});
+    ws['!cols'] = cols;
+
+    /* as outras abas vão junto: o usuário mandou um arquivo com elas, e sumir
+       com dados sem avisar é pior do que carregar aba a mais */
+    const saida = XLSX.utils.book_new();
+    wb.SheetNames.forEach(n => XLSX.utils.book_append_sheet(
+      saida, n === nomeAba ? ws : wb.Sheets[n], XU.nomeDeAbaValido(n, 'Aba')));
+    XLSX.writeFile(saida, mkNomeArquivo.replace(/\.[^.]+$/, '') + '_' + mkCanal.id.toUpperCase() + '.xlsx');
+
     $('mkBtnDl').innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
       + `Baixado — ${mkConf.precificados.toLocaleString('pt-BR')} preços`;
   }catch(e){

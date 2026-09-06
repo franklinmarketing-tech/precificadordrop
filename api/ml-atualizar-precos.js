@@ -9,15 +9,20 @@
    • no máximo 50 por chamada. A tela chama em lotes e vai mostrando; se algo
      estiver errado, o estrago para no primeiro lote em vez de varrer a loja;
    • devolve o resultado item a item, com o preço anterior. É o que permite
-     conferir depois — e voltar atrás, se for o caso.
+     conferir depois — e voltar atrás, se for o caso;
+   • exige a chave de publicação (APP_SECRET), digitada por quem manda. Sem
+     ela nada passa — nem quando a chave não está configurada.
    ══════════════════════════════════════════════════════════════════════════ */
 import {tokenDoVendedor, responderErro} from './_ml-token.js';
+import {protegido} from './_guarda.js';
 
 const MAX_LOTE = 50;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST')
     return res.status(405).json({erro: 'Use POST. Este endpoint muda preço de anúncio no ar.'});
+
+  if (!protegido(req, res, {max: 60, janelaMs: 60000})) return;
 
   try {
     const corpo = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});

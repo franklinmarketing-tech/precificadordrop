@@ -102,67 +102,6 @@ body.view-hub{overflow-x:hidden}
 .tool.soon{opacity:.9}
 .tool.soon .tool-title{color:#3d4354}
 
-/* ── LÂMPADA E PAINEL "SAIBA MAIS" ────────────────────────
-   O cartão ficou com título, uma linha e o botão. Todo o detalhe — o que a
-   ferramenta faz, item por item — vive num painel que a lâmpada abre por cima
-   do próprio cartão. Fica dentro dele de propósito: o cartão tem overflow
-   escondido por causa do canto arredondado, então um balão externo sairia
-   cortado. */
-.dica{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;cursor:help;z-index:5;
-  background:linear-gradient(180deg,var(--sup),#eef2fb);
-  box-shadow:0 1px 0 var(--gloss) inset,0 3px 9px -3px rgba(20,30,60,.25);
-  transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .3s ease}
-.dica svg{width:15px;height:15px;fill:none;stroke:var(--blue-dk);stroke-width:1.9;
-  stroke-linecap:round;stroke-linejoin:round;transition:stroke .3s ease}
-.dica:hover,.dica:focus-visible{transform:scale(1.14);outline:none;
-  box-shadow:0 1px 0 var(--gloss) inset,0 6px 16px -4px rgba(47,90,224,.55),0 0 0 3px rgba(79,124,255,.25)}
-.dica:hover svg,.dica:focus-visible svg{stroke:#111}
-/* pisca de leve de tempos em tempos, para ser notada */
-.dica::after{content:'';position:absolute;inset:0;border-radius:50%;
-  border:1.5px solid rgba(79,124,255,.55);animation:dicaRing 3.6s ease-out infinite;
-  animation-play-state:paused;        /* seis anéis pulsando sem parar; agora só sob o mouse */
-  animation-delay:var(--sd,0s)}
-@keyframes dicaRing{0%{transform:scale(1);opacity:.75}55%,100%{transform:scale(1.75);opacity:0}}
-.tool:hover .dica::after{animation-play-state:running}
-.dica:hover::after{animation:none}
-
-/* O balão sai do cartão, ancorado na lâmpada. Ele vive no fim do <body>, não
-   dentro do cartão: o cartão tem overflow escondido e recebe transform no
-   tilt 3D, e transform faz até position:fixed ser recortado por ele. Quem
-   posiciona é o JS, que também escolhe abrir para baixo ou para cima. */
-.saibamais{position:fixed;z-index:200;width:320px;max-width:calc(100vw - 24px);
-  padding:18px 20px;border-radius:18px;text-align:left;
-  display:flex;flex-direction:column;gap:9px;pointer-events:none;
-  background:linear-gradient(168deg,var(--sup),var(--sup-2));
-  border:1px solid rgba(255,255,255,.95);backdrop-filter:blur(18px);
-  box-shadow:0 1px 0 var(--gloss) inset,0 24px 50px -18px rgba(20,30,60,.4),
-             0 6px 16px -6px rgba(20,30,60,.22);
-  opacity:0;visibility:hidden;transform:translateY(-6px) scale(.97);
-  transform-origin:var(--org,50% 0);
-  transition:opacity .24s ease,transform .34s cubic-bezier(.16,1,.3,1),visibility .24s}
-.saibamais.aberto{opacity:1;visibility:visible;transform:none;pointer-events:auto}
-/* a setinha que liga o balão à lâmpada */
-.saibamais::before{content:'';position:absolute;left:var(--seta,50%);width:13px;height:13px;
-  background:inherit;border-left:1px solid rgba(255,255,255,.95);
-  border-top:1px solid rgba(255,255,255,.95);transform:translateX(-50%) rotate(45deg)}
-.saibamais.p-baixo::before{top:-7px}
-.saibamais.p-cima::before{bottom:-7px;transform:translateX(-50%) rotate(225deg)}
-
-.sm-topo{display:flex;align-items:center;gap:9px;font-family:var(--display);
-  font-weight:700;font-size:16px;letter-spacing:-.2px;color:var(--ink)}
-.sm-topo svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--blue-dk);
-  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.saibamais p{font-size:14px;line-height:1.62;color:var(--sub);margin:0}
-.saibamais ul{list-style:none;margin:3px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
-.saibamais li{position:relative;padding-left:18px;font-size:13.5px;line-height:1.5;color:var(--sub)}
-.saibamais li b{color:var(--ink);font-weight:600}
-.saibamais li::before{content:'';position:absolute;left:0;top:6px;width:7px;height:7px;
-  border-radius:50%;background:linear-gradient(160deg,#7ea1ff,#2f5ae0);
-  box-shadow:0 2px 5px -1px rgba(79,124,255,.7)}
-@media(max-width:620px){.saibamais{width:calc(100vw - 24px)}}
-}
-
 .lift-1{transform:translateZ(22px)}
 .lift-2{transform:translateZ(38px)}
 
@@ -257,8 +196,6 @@ body.view-hub{overflow-x:hidden}
   .tool-cta{font-size:11.5px;padding:7px 13px}
   .tool-num{font-size:36px;bottom:11px;right:16px}
   .tool-status{top:16px;right:50px;font-size:10.5px;padding:5px 10px}
-  .dica{top:13px;right:14px;width:27px;height:27px}
-  .dica svg{width:14px;height:14px}
   /* o título cede altura antes dos cartões: é ele que sobra, não o botão */
   .hub-head{margin-bottom:11px}
   .hub-head h1{font-size:25px}
@@ -660,8 +597,11 @@ body.view-hub{overflow-x:hidden}
 .vol.conv{color:var(--green-dk);font-weight:600}
 
 /* unidade do peso: 2000 numa coluna "kg" quase sempre é grama */
-.uni-peso{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12.5px;color:var(--sub)}
-.uni-peso select{flex:1;min-width:0;padding:7px 9px;font-size:12.5px}
+.uni-peso{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12.5px;color:var(--sub);
+  flex-wrap:wrap}
+/* na coluna estreita dos marketplaces o rótulo e o select não cabem lado a
+   lado, e o texto da opção saía cortado — aqui eles empilham */
+.uni-peso select{flex:1 1 190px;min-width:0;padding:7px 9px;font-size:12.5px}
 .uni-alerta{margin-top:9px;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.5;
   background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:var(--ink)}
 .uni-alerta b{font-weight:700}
@@ -1978,24 +1918,1908 @@ body.view-hub .ws-painel-b{padding:14px}
   body.view-hub .hub-head{margin-bottom:8px}
 }
 
-/* ═══ ANÚNCIOS GUARDADOS ═══════════════════════════════════
-   O código de cada SKU muda pouco: anúncio novo entra de vez em quando, o
-   resto continua igual. Baixar e subir a planilha toda vez para buscar a
-   mesma coisa é trabalho à toa. */
-.an-salvo{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px;
-  border-radius:13px;background:color-mix(in srgb,var(--green) 9%,var(--sup));
-  border:1px solid color-mix(in srgb,var(--green) 30%,transparent)}
-.an-salvo-ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;
-  background:linear-gradient(160deg,#28dd8a,#079254);
-  box-shadow:0 4px 10px -3px rgba(18,183,106,.6)}
-.an-salvo-ic svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.8;
+/* ═══ OS DOIS ARQUIVOS ═════════════════════════════════════
+   A ferramenta pede dois e só: lado a lado, numerados, para ficar claro de
+   cara que são dois e quais são. Cada um marca quando chega. */
+.dois-arquivos{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.dois-arquivos{grid-template-columns:1fr}}
+.arq{padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--sup-2);
+  transition:border-color .2s,background .2s}
+.arq.pronto{border-color:color-mix(in srgb,var(--green) 45%,transparent);
+  background:color-mix(in srgb,var(--green) 6%,var(--sup))}
+/* caixa alta com espaçamento: em duas palavras curtas o título vira rótulo
+   de etapa, que é o papel dele aqui — não é frase para ler, é para localizar */
+.arq-n{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:800;
+  letter-spacing:1.2px;text-transform:uppercase;color:var(--ink)}
+.arq-num{width:22px;height:22px;flex:none;border-radius:7px;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#fff;
+  background:linear-gradient(160deg,#7ea1ff,#2f5ae0)}
+.arq.pronto .arq-num{background:linear-gradient(160deg,#28dd8a,#079254)}
+.arq-d{font-size:12.5px;color:var(--sub);line-height:1.5;margin:5px 0 12px}
+.zone-sm{padding:20px 16px;min-height:0}
+.zone-sm .zone-ic{width:44px;height:44px}
+.zone-sm .zone-t{font-size:14px}
+.zone-sm .zone-s{font-size:12px}
+.arq .file-row{margin-top:12px}
+
+/* as pastilhas da home e os filtros da tabela são o mesmo objeto: herdam o
+   desenho para o app não ter três pastilhas diferentes fazendo o mesmo papel */
+.chip{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:13px;
+  font-weight:600;cursor:pointer;padding:9px 15px;border-radius:100px;color:var(--sub);
+  border:1px solid var(--line);
+  background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 8px -6px rgba(20,30,60,.4);
+  transition:transform .16s cubic-bezier(.16,1,.3,1),border-color .16s,color .16s,box-shadow .16s}
+.chip::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;
+  background:linear-gradient(160deg,#7ea1ff,var(--blue));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 14%,transparent)}
+.chip:hover:not(.off){transform:translateY(-2px);border-color:var(--blue);color:var(--ink);
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 20px -10px rgba(47,90,224,.55)}
+.chip.off{opacity:.5;cursor:default;border-style:dashed;box-shadow:none}
+.chip.off::before{background:var(--faint);box-shadow:none}
+
+/* filtro da tabela: mesma família, com o número da contagem dentro */
+.filtro-bar .f-atalho{background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 8px -6px rgba(20,30,60,.4)}
+.filtro-bar .f-atalho:hover:not(.zero){transform:translateY(-2px);
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 20px -10px rgba(47,90,224,.55)}
+
+/* ═══ FLUXO DE UMA FERRAMENTA ══════════════════════════════
+   De onde o arquivo vem e para onde vai. Uma ferramenta de planilha só faz
+   sentido quando se sabe o que entra e o que sai. */
+.ws-fluxo{display:inline-flex;align-items:center;gap:7px;margin-top:9px;
+  padding:5px 10px;border-radius:100px;width:fit-content;
+  background:var(--sup-3);border:1px solid var(--line)}
+.ws-fluxo-p{font-size:11.5px;font-weight:700;letter-spacing:.3px;color:var(--sub);
+  white-space:nowrap}
+.ws-fluxo svg{width:13px;height:13px;flex:none;fill:none;stroke:var(--blue);
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ws-pop .ws-fluxo{margin-top:12px}
+
+/* ═══ CAIXA DE EXPLICAÇÃO ══════════════════════════════════
+   Um aviso dentro de um passo. Não confundir com .dica, que é o balãozinho
+   redondo e ABSOLUTO do canto dos cards do hub — reusar aquele nome espremia
+   o texto dentro de um círculo de 30px.
+
+   Esta regra já existiu e sumiu numa substituição de bloco minha; sem ela o
+   SVG cresce até ocupar a caixa inteira, porque nada limita o tamanho dele. */
+.nota-box{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin-bottom:16px;
+  border-radius:13px;background:color-mix(in srgb,var(--blue) 7%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--blue) 22%,transparent);
+  font-size:13.5px;line-height:1.6;color:var(--sub)}
+.nota-box svg{width:19px;height:19px;flex:none;margin-top:1px;fill:none;
+  stroke:var(--blue-dk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nota-box b{color:var(--ink);font-weight:700}
+.nota-box ul{margin:6px 0 0;padding-left:18px}
+.nota-box li{margin-bottom:5px}
+
+/* ═══ MARCA DO CANAL NA CALCULADORA ════════════════════════
+   Faltava a regra e o logo saía no tamanho natural do arquivo — ocupava meia
+   tela. Aqui ele é um selo do lado do título, como o do Mercado Livre. */
+.mk-marca{display:inline-flex;align-items:center;justify-content:center;flex:none;
+  padding:11px 16px;border-radius:14px;background:var(--sup);border:1px solid var(--line);
+  box-shadow:0 1px 0 var(--gloss) inset,0 8px 20px -12px rgba(20,30,60,.45)}
+.mk-marca img{height:26px;width:auto;max-width:150px;object-fit:contain;display:block}
+@media(max-width:620px){
+  .mk-marca{padding:9px 13px}
+  .mk-marca img{height:21px;max-width:120px}
+}
+
+.lift-1{transform:translateZ(22px)}
+.lift-2{transform:translateZ(38px)}
+
+/* o número é só um índice de leitura — dá ordem à página sem virar "passo" */
+.tool-num{position:absolute;right:16px;bottom:10px;font-family:var(--display);font-weight:800;
+  font-size:34px;letter-spacing:-2px;line-height:1;color:var(--spark,#4f7cff);opacity:.11;
+  transform:translateZ(6px);pointer-events:none;transition:opacity .4s ease}
+.tool:hover .tool-num{opacity:.2}
+/* empilhados, a ordem já se lê sozinha — e aqui o número cairia atrás do botão */
+@media(max-width:1040px){.tool-num{display:none}}
+
+.tool-status{position:absolute;top:20px;right:56px;font-size:11px;font-weight:600;letter-spacing:1.2px;
+  padding:6px 12px;border-radius:100px;transform:translateZ(46px)}
+.st-live{background:linear-gradient(180deg,#1ed67f,#0e9a58);color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 6px 14px -4px rgba(18,183,106,.65),0 0 0 4px rgba(18,183,106,.16)}
+/* o selo ATIVO fica verde nos dois: ali a cor diz o estado, não decora */
+.st-soon{background:linear-gradient(180deg,#fbfcff,#eceffa);color:var(--faint);
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 8px -3px rgba(20,30,60,.18)}
+
+/* Os ícones agora são renders 3D com fundo recortado, no lugar do SVG dentro
+   de uma pastilha colorida. Ficam soltos, com sombra própria — é o que dá o ar
+   de ícone de aplicativo. */
+.tool-ic{width:58px;height:58px;display:flex;align-items:center;justify-content:center;
+  margin:0 0 11px;position:relative;
+  animation:icFloat 5s ease-in-out infinite;animation-delay:var(--sd,0s);
+  transition:transform .45s cubic-bezier(.16,1,.3,1)}
+.tool-ic::before{content:'';position:absolute;bottom:4px;width:52%;height:12px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(20,30,60,.22),transparent 70%);filter:blur(5px)}
+.tool-ic img{width:58px;height:58px;object-fit:contain;position:relative;
+  filter:drop-shadow(0 8px 14px rgba(20,30,60,.2))}
+@keyframes icFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.tool:hover .tool-ic{transform:translateZ(60px) scale(1.1) rotate(-3deg);animation-play-state:paused}
+
+
+.tool-body{margin-top:0}
+.tool-title{font-family:var(--display);font-weight:800;font-size:18px;line-height:1.15;
+  margin-bottom:5px;letter-spacing:-.4px}
+@media(max-width:1040px){.tool-title{font-size:17px}}
+.tool-desc{font-size:13.5px;color:var(--sub);line-height:1.5}
+
+
+.live-box{margin-top:auto;padding:14px 16px;border-radius:16px;transform:translateZ(30px);
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));border:1px solid rgba(18,183,106,.18);
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 22px -14px rgba(18,183,106,.5);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.live-box.azul{background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border-color:rgba(79,124,255,.2);box-shadow:0 1px 0 var(--gloss) inset,0 10px 22px -14px rgba(79,124,255,.5)}
+.live-box.azul .live-lbl{color:var(--blue-dk)}
+.live-box.azul .bars i{background:linear-gradient(180deg,#8fb0ff,#2f5ae0);box-shadow:0 4px 10px -4px rgba(79,124,255,.8)}
+.live-lbl{font-size:10.5px;font-weight:600;letter-spacing:1.4px;color:var(--green-dk);margin-bottom:4px}
+.live-price{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:800;font-size:27px;letter-spacing:-.8px;line-height:1}
+.live-meta{font-variant-numeric:tabular-nums;font-size:12px;color:var(--faint);margin-top:5px}
+.live-meta b{color:var(--green-dk);font-weight:600}
+.bars{display:flex;align-items:flex-end;gap:5px;height:42px}
+.bars i{width:8px;border-radius:4px 4px 2px 2px;transform-origin:bottom;
+  background:linear-gradient(180deg,#28dd8a,#0b9a59);box-shadow:0 4px 10px -4px rgba(18,183,106,.8);animation:grow 2.8s ease-in-out infinite}
+.bars i:nth-child(1){height:40%;animation-delay:0s}
+.bars i:nth-child(2){height:66%;animation-delay:.35s}
+.bars i:nth-child(3){height:52%;animation-delay:.7s}
+.bars i:nth-child(4){height:88%;animation-delay:1.05s}
+@keyframes grow{0%,100%{transform:scaleY(.72)}50%{transform:scaleY(1)}}
+
+.tool-cta{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;letter-spacing:.5px;
+  margin-top:auto;padding:9px 15px;border-radius:100px;align-self:flex-start;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,var(--sup),var(--sup-3));box-shadow:0 1px 0 var(--gloss) inset,0 4px 10px -4px rgba(20,30,60,.22);
+  transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s ease}
+.tool-cta svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.tool:hover .tool-cta{transform:translateZ(40px);box-shadow:0 1px 0 var(--gloss) inset,0 10px 20px -8px rgba(20,30,60,.3)}
+.tool.live .tool-cta{background:linear-gradient(180deg,#5d87ff,#2145c9);color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 18px -6px rgba(47,90,224,.7)}
+.tool.live .tool-cta::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:sheen 3.4s ease-in-out infinite;animation-play-state:paused}
+.tool:hover .tool-cta::after{animation-play-state:running}
+.tool.live:hover .tool-cta svg{transform:translateX(4px)}
+.tool.soon{cursor:default}
+.tool.soon .tool-cta{color:var(--faint)}
+
+/* Em notebook (768px de altura é o caso mais comum) o cartão inteiro precisa
+   caber sem rolagem — sem isso o botão fica escondido atrás da borda, que é
+   justamente o que o visitante tem que clicar. Compacta em vez de cortar. */
+@media(min-width:1041px) and (max-height:920px){
+  .bento{gap:11px}
+  .tool{padding:15px 18px;border-radius:18px}
+  .tool::after,.glare{border-radius:18px}
+  .tool-ic,.tool-ic img{width:56px;height:56px}
+  .tool-ic{margin-bottom:10px}
+  .tool-title{font-size:19px;margin-bottom:6px}
+  .tool-desc{font-size:13px;line-height:1.5}
+  .tool-body{margin-top:0}
+  .tool-cta{font-size:11.5px;padding:7px 13px}
+  .tool-num{font-size:36px;bottom:11px;right:16px}
+  .tool-status{top:16px;right:50px;font-size:10.5px;padding:5px 10px}
+  /* o título cede altura antes dos cartões: é ele que sobra, não o botão */
+  .hub-head{margin-bottom:11px}
+  .hub-head h1{font-size:25px}
+  .hub-head .h-sub{font-size:13.5px;line-height:1.5;margin-top:5px;max-width:480px}
+  .hub-prova{gap:20px}
+  .prv b{font-size:17px}
+}
+/* Mais apertado ainda: a descrição sai e ficam título, os três itens e o
+   botão. É a parte que a lista já cobre — melhor perdê-la que espremer tudo. */
+@media(min-width:1041px) and (max-height:700px){
+  .tool-desc{display:none}
+  .tool-title{margin-bottom:0}
+}
+
+.strip{display:flex;gap:24px;flex-wrap:wrap}
+.strip span{font-size:11.5px;letter-spacing:1.6px;color:var(--faint);display:inline-flex;align-items:center;gap:7px}
+.strip b{color:var(--sub);font-weight:600}
+.sdot{width:6px;height:6px;border-radius:50%}   /* piscavam em loop; parados dizem a mesma coisa */
+.hub-foot{display:flex;align-items:center;justify-content:space-between;padding-top:12px;margin-top:14px;border-top:1px solid var(--line)}
+.pagenum{font-family:var(--display);font-weight:800;font-size:13.5px;color:#ccd2e0}
+
+/* ═══ PRECIFICADOR ML ═════════════════════════════════════ */
+.modos{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.modo{flex:1;min-width:220px;padding:14px 16px;border-radius:14px;cursor:pointer;font-family:inherit;font-size:14px;
+  border:1px solid var(--line);background:var(--sup-t);color:var(--sub);text-align:left;
+  transition:all .22s cubic-bezier(.16,1,.3,1);display:flex;align-items:center;gap:11px}
+.modo svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.modo:hover{border-color:#c3cde4;transform:translateY(-2px)}
+.modo.active{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;
+  box-shadow:0 8px 18px -6px rgba(79,124,255,.7)}
+
+.margens{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:10px}
+@media(max-width:640px){.margens{grid-template-columns:repeat(3,1fr)}}
+.margem{font-variant-numeric:tabular-nums;padding:13px 6px;border-radius:12px;border:1px solid var(--line);
+  background:var(--sup-t2);color:var(--sub);cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;
+  transition:all .2s cubic-bezier(.16,1,.3,1);text-align:center}
+.margem:hover{border-color:#b9c6e6;color:var(--ink);transform:translateY(-2px)}
+.margem.active{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;border-color:transparent;
+  box-shadow:0 8px 18px -6px rgba(18,183,106,.7)}
+.margem-custom{position:relative}
+.margem-custom input{padding-right:38px}
+.margem-custom span{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--green-dk);font-weight:600;pointer-events:none}
+
+.resultado{border-radius:18px;overflow:hidden;background:linear-gradient(165deg,var(--sup),color-mix(in srgb,var(--green) 7%,var(--sup)));
+  border:1px solid rgba(18,183,106,.25);box-shadow:0 1px 0 var(--gloss) inset,0 20px 44px -26px rgba(18,183,106,.55);
+  animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.res-top{padding:22px 24px 18px;border-bottom:1px solid rgba(18,183,106,.13)}
+.res-lbl{font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--green-dk);margin-bottom:9px;text-transform:uppercase}
+.res-preco{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:800;font-size:40px;letter-spacing:-1.5px;line-height:1}
+.res-faixa{font-size:13px;color:var(--faint);margin-top:7px}
+.res-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;padding:18px 24px}
+@media(max-width:700px){.res-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.res-grid{grid-template-columns:1fr}}
+.res-tile{background:var(--sup-t2);border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+.res-tile-l{font-size:11px;font-weight:600;color:var(--faint);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase}
+.res-tile-v{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:700;font-size:16px}
+.res-taxas{padding:0 24px 18px;display:flex;gap:20px;flex-wrap:wrap}
+.res-taxas span{font-size:13px;color:var(--sub)}
+.res-taxas b{color:var(--faint);font-weight:500}
+.copiar{padding:8px 15px;border-radius:100px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;
+  letter-spacing:.5px;background:rgba(18,183,106,.12);color:var(--green-dk);transition:all .2s}
+.copiar:hover{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;box-shadow:0 6px 14px -5px rgba(18,183,106,.8)}
+.aviso{font-size:13.5px;color:var(--red);background:rgba(229,72,77,.07);border:1px solid rgba(229,72,77,.25);
+  border-radius:12px;padding:12px 15px;margin-top:12px}
+
+/* ═══ EDITOR DE PLANILHA ══════════════════════════════════ */
+.prev-list{max-height:330px;overflow:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+.prev{background:var(--sup-t2);border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+.prev-l{font-size:11px;font-weight:600;color:var(--faint);letter-spacing:1.1px;margin-bottom:6px}
+.prev-a{font-size:13.5px;color:var(--faint);text-decoration:line-through;text-decoration-color:rgba(229,72,77,.55);line-height:1.55;word-break:break-word}
+.prev-b{font-size:14px;color:var(--ink);line-height:1.55;margin-top:5px;word-break:break-word}
+.prev-b b{color:var(--green-dk);font-weight:600}
+.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:100px;background:var(--sup-3);color:var(--faint);margin-left:6px}
+.cut{font-size:13px;color:var(--red);background:rgba(229,72,77,.06);border:1px dashed rgba(229,72,77,.3);
+  border-radius:9px;padding:9px 11px;margin-top:6px;white-space:pre-wrap;line-height:1.5;max-height:120px;overflow:auto}
+
+/* drawer de parâmetros */
+.scrim{position:fixed;inset:0;background:rgba(14,16,24,.45);backdrop-filter:blur(3px);opacity:0;pointer-events:none;
+  transition:opacity .3s ease;z-index:200}
+.scrim.open{opacity:1;pointer-events:auto}
+/* Os parâmetros abrem como janela no meio da tela, não mais como gaveta na
+   lateral: centralizados eles ficam à vista, em vez de disputar espaço com o
+   conteúdo que a pessoa está conferindo. */
+.drawer{position:fixed;top:50%;left:50%;z-index:201;
+  width:min(600px,calc(100vw - 32px));max-height:min(88vh,900px);border-radius:22px;overflow:hidden;
+  background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 1px 0 var(--gloss) inset,0 30px 70px -22px rgba(20,30,60,.5),
+             0 8px 24px -10px rgba(20,30,60,.3);
+  display:flex;flex-direction:column;
+  opacity:0;visibility:hidden;transform:translate(-50%,-48%) scale(.97);
+  transition:opacity .26s ease,transform .38s cubic-bezier(.16,1,.3,1),visibility .26s}
+.drawer.open{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1)}
+@media(max-width:700px){.drawer{width:calc(100vw - 16px);max-height:92vh;border-radius:18px}}
+.drawer-h{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.drawer-t{font-family:var(--display);font-weight:800;font-size:16px}
+.drawer-s{font-size:12px;font-weight:600;color:var(--faint);margin-top:3px;letter-spacing:.6px}
+.x{width:34px;height:34px;flex:none;border-radius:11px;border:1px solid var(--line);background:var(--sup);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s}
+.x:hover{background:var(--sup-3);transform:rotate(90deg)}
+.x svg{width:15px;height:15px;fill:none;stroke:var(--sub);stroke-width:2;stroke-linecap:round}
+.drawer-b{flex:1;overflow-y:auto;padding:22px 24px}
+.drawer-f{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;background:var(--sup)}
+.drawer-f .btn{flex:1}
+.grp{margin-bottom:24px}
+.grp-t{font-size:12px;font-weight:600;letter-spacing:1.4px;color:var(--blue-dk);margin-bottom:4px}
+.grp-d{font-size:13px;color:var(--faint);line-height:1.6;margin-bottom:12px}
+.f{margin-bottom:13px}
+.f label{display:block;font-size:13px;font-weight:500;color:var(--sub);margin-bottom:6px}
+.f .hint{font-size:12px;color:var(--faint);margin-top:5px;line-height:1.5}
+.sw{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--sub);cursor:pointer;padding:9px 0}
+.sw input{appearance:none;width:38px;height:22px;border-radius:100px;background:#d9e0ee;position:relative;cursor:pointer;
+  transition:background .25s;flex:none}
+.sw input::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 5px rgba(20,30,60,.3);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.sw input:checked{background:linear-gradient(90deg,#5f89ff,#2f5ae0)}
+.sw input:checked::after{transform:translateX(16px)}
+
+/* tela de conclusão (classe própria: ".done" sozinha colidiria com .step-dot.done) */
+.conclusao{text-align:center;padding:48px 0}
+.done-ic{margin:0 auto 18px;width:76px;height:76px}
+.done-ic svg{width:76px;height:76px}
+.chk-circle{fill:none;stroke:var(--green);stroke-width:1.5;stroke-dasharray:63;stroke-dashoffset:63;animation:drawCircle .5s ease forwards}
+.chk-mark{fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;
+  stroke-dashoffset:14;animation:drawCheck .35s ease .45s forwards}
+@keyframes drawCircle{to{stroke-dashoffset:0}}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+.done-t{font-family:var(--display);font-weight:800;font-size:26px;color:var(--green-dk);margin-bottom:10px;
+  animation:fadeUp .4s ease .5s both}
+.done-d{color:var(--sub);font-size:14.5px;line-height:1.85;margin-bottom:28px;animation:fadeUp .4s ease .58s both}
+
+/* ═══ IDENTIDADE E CONTEXTO DO MERCADO LIVRE ══════════════ */
+.ml-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.ml-selo{display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border-radius:14px;flex:none;
+  background:linear-gradient(165deg,#ffe600,#ffd400);color:#2d3277;font-weight:700;font-size:14.5px;letter-spacing:-.2px;
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 22px -10px rgba(255,214,0,.9),0 2px 6px rgba(20,30,60,.12)}
+.ml-selo svg{width:30px;height:21px;flex:none}
+@media(max-width:620px){.ml-selo{font-size:13.5px;padding:8px 13px}.ml-selo svg{width:24px;height:17px}}
+
+.ctx{display:flex;align-items:stretch;gap:18px;flex-wrap:wrap;margin-bottom:18px;padding:16px 18px;border-radius:18px;
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(255,255,255,.9);box-shadow:var(--sombra-card)}
+.ctx-bloco{display:flex;flex-direction:column;gap:8px}
+.ctx-lbl{font-size:11.5px;font-weight:600;letter-spacing:1.2px;color:var(--blue-dk);text-transform:uppercase}
+.ctx-opts{display:flex;gap:7px;flex-wrap:wrap}
+.ctx-opt{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:100px;cursor:pointer;
+  font-family:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:var(--sup-t2);
+  color:var(--sub);transition:all .2s cubic-bezier(.16,1,.3,1)}
+.ctx-opt:hover{border-color:#c3cde4;color:var(--ink);transform:translateY(-1px)}
+.ctx-opt b{font-weight:700;opacity:.75}
+
+/* Marcador de escolha: um anel afundado que ganha o ponto quando a opção está
+   selecionada. Antes o único sinal era o fundo colorido, e em opções de cor
+   parecida não dava para ver o que estava valendo. */
+.ctx-opt .radio{width:15px;height:15px;border-radius:50%;flex:none;position:relative;
+  background:linear-gradient(180deg,var(--sup-3),var(--sup-3));
+  box-shadow:0 1px 2px rgba(20,30,60,.22) inset,0 -1px 1px var(--gloss) inset,
+             0 1px 0 rgba(255,255,255,.85);
+  transition:box-shadow .25s ease,background .25s ease}
+.ctx-opt .radio::after{content:'';position:absolute;inset:0;margin:auto;
+  width:7px;height:7px;border-radius:50%;background:var(--ponto,#2f5ae0);
+  transform:scale(.62);opacity:.5;
+  transition:transform .34s cubic-bezier(.34,1.56,.64,1),opacity .2s ease,background .2s ease}
+.ctx-opt.active .radio{background:linear-gradient(180deg,rgba(0,0,0,.16),rgba(0,0,0,.05));
+  box-shadow:0 1px 3px rgba(0,0,0,.3) inset,0 1px 0 rgba(255,255,255,.5)}
+.ctx-opt.active .radio::after{transform:scale(1);opacity:1;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.ctx-opt:hover .radio::after{transform:scale(.8);opacity:.85}
+.ctx-opt.active:hover .radio::after{transform:scale(1);opacity:1}
+/* a cor do ponto acompanha a reputação, quando a opção ainda não está ativa */
+.ctx-opt.rep-verde{--ponto:#079254}
+.ctx-opt.rep-amarela{--ponto:#e0a800}
+.ctx-opt.rep-vermelha{--ponto:#d93a3f}
+.ctx-opt.active{color:#fff;border-color:transparent}
+.ctx-opt.rep-verde.active{background:linear-gradient(180deg,#1ed67f,#0d9455);box-shadow:0 8px 18px -6px rgba(18,183,106,.7)}
+.ctx-opt.rep-amarela.active{background:linear-gradient(180deg,#ffd83d,#e0a800);color:#4a3600;box-shadow:0 8px 18px -6px rgba(240,180,0,.7)}
+.ctx-opt.rep-vermelha.active{background:linear-gradient(180deg,#ff7a5c,#d93a3f);box-shadow:0 8px 18px -6px rgba(229,72,77,.7)}
+.ctx-opt[data-anuncio].active{background:linear-gradient(180deg,#5f89ff,#2f5ae0);box-shadow:0 8px 18px -6px rgba(79,124,255,.7)}
+.ctx .btn{margin-left:auto}
+@media(max-width:760px){.ctx .btn{margin-left:0;width:100%}}
+
+/* extrato de custos da calculadora */
+.resultado.ruim{border-color:rgba(229,72,77,.3);background:linear-gradient(165deg,var(--sup),color-mix(in srgb,var(--red) 8%,var(--sup)));
+  box-shadow:0 1px 0 var(--gloss) inset,0 20px 44px -26px rgba(229,72,77,.4)}
+.extrato{padding:6px 22px 18px}
+.ex-linha{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:9px 0;
+  border-bottom:1px dashed rgba(20,30,60,.08)}
+.ex-linha:last-child{border-bottom:none}
+.ex-l{font-size:14px;color:var(--sub)}
+.ex-l i{font-style:normal;font-size:12px;color:var(--faint);margin-left:6px}
+.ex-v{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:600;font-size:15.5px;white-space:nowrap}
+.ex-linha.total{border-top:1.5px solid rgba(20,30,60,.12);border-bottom:none;margin-top:6px;padding-top:12px}
+.ex-linha.total .ex-l{font-weight:700;color:var(--ink);font-size:15px}
+.ex-linha.total .ex-v{font-size:19px;font-weight:800}
+
+/* como o preço é formado */
+.formula{display:flex;flex-direction:column;gap:2px}
+.f-linha{display:grid;grid-template-columns:190px 1fr auto;gap:14px;align-items:baseline;padding:10px 14px;border-radius:10px}
+.f-linha:nth-child(odd){background:rgba(20,30,60,.025)}
+.f-linha.destaque{background:rgba(18,183,106,.09);font-weight:600}
+.f-t{font-size:14px;font-weight:600;color:var(--ink)}
+.f-d{font-size:13px;color:var(--faint)}
+.f-v{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600;color:var(--blue-dk);white-space:nowrap}
+@media(max-width:640px){.f-linha{grid-template-columns:1fr auto}.f-d{display:none}}
+
+/* ═══ EDITOR DE FAIXAS (tipo planilha) ════════════════════ */
+.faixas{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--sup);
+  box-shadow:0 1px 0 var(--gloss) inset,0 6px 16px -12px rgba(20,30,60,.3)}
+.fx-cab,.fx-linha{display:grid;grid-template-columns:82px 1fr 1.45fr 30px;gap:8px;align-items:center;padding:8px 10px}
+.fx-cab{background:linear-gradient(180deg,var(--sup-3),var(--sup-3));border-bottom:1px solid var(--line)}
+.fx-cab span{font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--faint);text-transform:uppercase}
+.fx-linha{border-bottom:1px solid #f1f4fa;transition:background .15s}
+.fx-linha:last-child{border-bottom:none}
+.fx-linha:hover{background:var(--sup-3)}
+.fx-de{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600;color:var(--faint);white-space:nowrap}
+.fx-inf{font-size:13px;font-style:italic;color:var(--faint)}
+
+.fx-campo{position:relative;display:flex;align-items:center}
+.fx-campo .fx-pre{position:absolute;left:10px;font-size:12.5px;font-weight:700;color:var(--faint);pointer-events:none}
+.fx-campo input{font-variant-numeric:tabular-nums;width:100%;padding:9px 10px 9px 32px;border:1px solid #dfe5f0;
+  border-radius:9px;font-family:inherit;font-size:14.5px;font-weight:600;color:var(--ink);background:var(--sup);
+  outline:none;transition:border-color .15s,box-shadow .15s}
+.fx-campo input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+
+.fx-tipo{display:flex;gap:2px;margin-left:6px;padding:2px;border-radius:8px;background:var(--sup-3);flex:none}
+.fx-tipo button{border:none;background:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;
+  color:var(--faint);padding:5px 8px;border-radius:6px;transition:all .15s}
+.fx-tipo button.on{background:var(--sup);color:var(--blue-dk);box-shadow:0 1px 4px rgba(20,30,60,.18)}
+.fx-tipo button:hover:not(.on){color:var(--sub)}
+
+.fx-del{width:26px;height:26px;border-radius:8px;border:none;background:none;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;color:#c3cbdb;transition:all .15s}
+.fx-del:hover:not(:disabled){background:rgba(229,72,77,.1);color:var(--red)}
+.fx-del:disabled{opacity:.3;cursor:not-allowed}
+.fx-del svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+
+.fx-rodape{display:flex;gap:8px;padding:9px 10px;background:var(--sup-3);border-top:1px solid var(--line);flex-wrap:wrap}
+.fx-add,.fx-reset{display:inline-flex;align-items:center;gap:6px;border:1px dashed #c8d2e6;background:var(--sup);
+  cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--blue-dk);padding:7px 12px;
+  border-radius:9px;transition:all .15s}
+.fx-add:hover,.fx-reset:hover{background:var(--sup-3);border-color:var(--blue);transform:translateY(-1px)}
+.fx-reset{border-style:solid;color:var(--sub)}
+.fx-add svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+
+.fx-exemplo{margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(79,124,255,.055);
+  border:1px solid rgba(79,124,255,.16)}
+.fx-ex-t{font-size:11px;font-weight:700;letter-spacing:.9px;color:var(--blue-dk);text-transform:uppercase;margin-bottom:8px}
+.fx-ex-linhas{display:flex;gap:7px;flex-wrap:wrap}
+.fx-ex{display:flex;flex-direction:column;gap:2px;padding:7px 11px;border-radius:9px;background:var(--sup);
+  border:1px solid var(--line);min-width:78px}
+.fx-ex span{font-variant-numeric:tabular-nums;font-size:12px;color:var(--faint)}
+.fx-ex b{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:700}
+@media(max-width:520px){
+  .fx-cab,.fx-linha{grid-template-columns:70px 1fr 1.3fr 26px;gap:5px;padding:7px}
+  .fx-campo input{padding-left:27px;font-size:13.5px}
+  .fx-tipo button{padding:4px 6px;font-size:11.5px}
+}
+
+/* ═══ CAMPOS "AMARELOS" DA PLANILHA ═══════════════════════ */
+.amarelos{margin-top:18px;padding:15px 16px;border-radius:15px;
+  background:color-mix(in srgb,var(--amber) 12%,var(--sup));
+  border:1px solid rgba(224,168,0,.28);box-shadow:0 1px 0 var(--gloss) inset}
+.am-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.am-t{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;letter-spacing:1px;
+  color:var(--amber-dk);text-transform:uppercase}
+.am-t i{font-style:normal;font-size:12px;font-weight:500;letter-spacing:.2px;color:var(--amber-dk);text-transform:none}
+.am-marca{width:13px;height:13px;border-radius:4px;flex:none;
+  background:linear-gradient(160deg,#ffe600,#f0b400);box-shadow:0 1px 0 var(--gloss) inset,0 2px 5px -1px rgba(224,168,0,.6)}
+.am-limpar{border:1px solid rgba(224,168,0,.4);background:var(--sup-t);cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:600;color:var(--amber-dk);padding:6px 12px;border-radius:8px;transition:all .15s}
+.am-limpar:hover{background:var(--sup);transform:translateY(-1px)}
+
+.am-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:900px){.am-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.am-grid{grid-template-columns:1fr 1fr}}
+.am-grid label{display:block;font-size:12px;font-weight:600;color:#7a5800;margin-bottom:5px}
+.am-grid input{font-variant-numeric:tabular-nums;width:100%;padding:10px 12px;border-radius:10px;
+  border:1px solid rgba(224,168,0,.45);background:color-mix(in srgb,var(--amber) 9%,var(--sup));font-family:inherit;font-size:14.5px;font-weight:600;
+  color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+.am-grid input::placeholder{color:#c4ab6e;font-weight:500}
+.am-grid input:focus{border-color:#e0a800;box-shadow:0 0 0 3px rgba(224,168,0,.18);background:var(--sup)}
+.am-grid small{display:block;font-size:11px;color:var(--amber-dk);margin-top:4px;line-height:1.35}
+
+/* ═══ CONSULTA À API DO MERCADO LIVRE ═════════════════════ */
+.api-box{margin-top:6px;padding:14px 15px;border-radius:14px;background:rgba(79,124,255,.05);
+  border:1px dashed rgba(79,124,255,.35)}
+.api-t{font-size:12.5px;font-weight:700;letter-spacing:.8px;color:var(--blue-dk);text-transform:uppercase;margin-bottom:4px}
+.api-d{font-size:12.5px;color:var(--faint);line-height:1.6;margin-bottom:12px}
+.api-box .btn svg{width:14px;height:14px}
+.api-msg{margin-top:11px;padding:11px 13px;border-radius:11px;font-size:13px;line-height:1.6;
+  background:var(--sup);border:1px solid var(--line);color:var(--sub)}
+.api-msg.bom{border-color:rgba(18,183,106,.35);background:rgba(18,183,106,.06);color:var(--green-dk)}
+.api-msg.ruim{border-color:rgba(229,72,77,.35);background:rgba(229,72,77,.05);color:var(--red)}
+.api-msg small{display:block;margin-top:8px;color:var(--faint);font-size:12px}
+.api-linha{display:flex;align-items:baseline;gap:10px;margin-top:7px;color:var(--ink)}
+.api-linha span{flex:1;font-size:13px;color:var(--sub)}
+.api-linha b{font-variant-numeric:tabular-nums;font-size:15.5px;font-family:var(--display)}
+.api-linha i{font-variant-numeric:tabular-nums;font-style:normal;font-size:12.5px;color:var(--faint)}
+.am-vol{font-size:12px;color:var(--amber-dk);background:var(--sup-t);padding:5px 11px;border-radius:8px;
+  border:1px solid rgba(224,168,0,.3)}
+.am-vol b{color:#5c4100}
+
+/* ═══ REGRAS DO FRETE EM VIGOR ════════════════════════════ */
+.regras{display:flex;flex-direction:column;gap:8px}
+.regra{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;
+  padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--sup-t)}
+.regra.on{border-color:rgba(18,183,106,.3);background:rgba(18,183,106,.05)}
+.regra.off{border-color:rgba(20,30,60,.1);background:rgba(20,30,60,.03)}
+.regra-ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.regra.on .regra-ic{background:linear-gradient(160deg,#28dd8a,#079254);box-shadow:0 3px 8px -2px rgba(18,183,106,.7)}
+.regra.off .regra-ic{background:#c8cfdd}
+.regra-ic svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.regra-t{font-size:14px;font-weight:600;color:var(--ink)}
+.regra-d{font-size:13px;color:var(--faint);line-height:1.5;margin-top:2px}
+.regra-d b{color:var(--sub)}
+.regra-v{font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:var(--green-dk);white-space:nowrap}
+.regra.off .regra-v{color:var(--faint)}
+@media(max-width:600px){.regra{grid-template-columns:22px 1fr}.regra-v{grid-column:2;margin-top:4px}}
+
+/* ═══ CONFERÊNCIA DO LOTE ═════════════════════════════════ */
+.chk-btn{border:1px solid var(--line);background:var(--sup);cursor:pointer;font-family:inherit;font-size:12.5px;
+  font-weight:600;color:var(--blue-dk);padding:8px 14px;border-radius:10px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.chk-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.chk-btn:hover{background:var(--sup-3);border-color:var(--blue);transform:translateY(-1px);
+  box-shadow:0 4px 12px -4px rgba(79,124,255,.45)}
+.chk-btn:hover svg{transform:translateX(2px)}
+.chk-btn.on{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px -4px rgba(47,90,224,.6)}
+.chk-btn.on svg{transform:rotate(180deg)}
+/* o botão fica na linha do título, não centrado num card que cresceu com o
+   "como resolver" — no card alto ele acabava flutuando longe de tudo */
+.chk{grid-template-columns:26px minmax(0,1fr) auto;display:grid;align-items:start;column-gap:13px}
+.chk > .chk-btn{align-self:start;margin-top:1px}
+@media(max-width:600px){
+  .chk{grid-template-columns:26px 1fr}
+  .chk > .chk-btn{grid-column:2;justify-self:start;margin-top:10px}
+}
+
+.tag-erro{background:rgba(229,72,77,.12);color:var(--red)}
+.tag-alerta{background:rgba(247,144,9,.14);color:var(--amber-dk)}
+
+.filtro-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;
+  border-radius:11px;background:rgba(79,124,255,.07);border:1px solid rgba(79,124,255,.2);
+  font-size:13px;color:var(--sub)}
+.filtro-bar b{color:var(--ink)}
+.filtro-bar button{border:none;background:var(--sup);cursor:pointer;font-family:inherit;
+  font-size:12px;font-weight:600;color:var(--blue-dk);padding:6px 12px;border-radius:8px;
+  box-shadow:0 1px 4px rgba(20,30,60,.15)}
+.filtro-bar button:hover{background:var(--sup-3)}
+.filtro-bar .busca{flex:1 1 220px;min-width:0;border:1px solid rgba(79,124,255,.28);background:var(--sup);
+  border-radius:8px;padding:7px 11px;font-family:inherit;font-size:13px;color:var(--ink)}
+.filtro-bar .busca:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,124,255,.14)}
+.filtro-bar .ed-aviso{color:var(--amber-dk,#96690a)}
+
+/* linha com problema: a cor no fundo acha o erro numa página de 600 */
+/* ── peso das colunas ──────────────────────────────────────
+   Preço, lucro e peso são o que o usuário veio conferir; linha e descrição
+   são referência. Antes tudo saía no mesmo cinza de 11,5px e a leitura ficava
+   plana — daí a sensação de "não sei o que preciso fazer". */
+.tbl-wrap .c-linha{color:var(--faint);font-size:13px}
+.tbl-wrap .c-desc{color:var(--sub)}
+.tbl-wrap .c-custo{color:var(--amber);font-weight:600}
+.tbl-wrap .c-peso{font-weight:600}
+.tbl-wrap .c-preco{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink)}
+.tbl-wrap .c-taxa{color:var(--red);font-size:13px;opacity:.85}
+.tbl-wrap .c-lucro{font-family:var(--display);font-weight:700;font-size:14.5px}
+.tbl-wrap .c-lucro.pos{color:var(--green-dk)}
+.tbl-wrap .c-lucro.neg{color:var(--red)}
+
+/* a linha que o filtro foi buscar: pisca uma vez ao chegar, senão a tabela
+   filtrada parece igual à de antes e o usuário não sabe onde olhar */
+@keyframes achei{
+  0%{background:rgba(79,124,255,.3)}
+  100%{background:transparent}
+}
+.tbl-wrap tr.tr-achei > td{animation:achei 1.6s ease-out}
+
+.tbl-wrap tr.tr-erro > td{background:rgba(229,72,77,.055)}
+.tbl-wrap tr.tr-alerta > td{background:rgba(245,158,11,.055)}
+.tbl-wrap tr.tr-erro:hover > td{background:rgba(229,72,77,.1)}
+.tbl-wrap tr.tr-alerta:hover > td{background:rgba(245,158,11,.1)}
+
+/* célula corrigível: parece texto até receber o cursor */
+.cel-ed{display:flex;align-items:center;gap:3px}
+.cel-ed > span{color:var(--faint);font-size:11.5px;flex:none}
+.cel-ed input{width:100%;min-width:52px;border:1px solid transparent;background:transparent;
+  border-radius:6px;padding:3px 5px;font-family:inherit;font-size:inherit;color:inherit;
+  font-variant-numeric:tabular-nums}
+.cel-ed input:hover{border-color:var(--line);background:var(--sup)}
+.cel-ed input:focus{outline:none;border-color:var(--blue);background:var(--sup);
+  box-shadow:0 0 0 3px rgba(79,124,255,.14)}
+.cel-ed.mexido input{border-color:rgba(18,183,106,.5);background:rgba(18,183,106,.07);font-weight:700}
+/* no toque o campo precisa de alvo maior que o do mouse */
+@media(hover:none){.cel-ed input{padding:9px 7px;border-color:var(--line);background:var(--sup)}}
+
+.cel-ed + .vol,.vol{font-size:11px;color:var(--faint);margin:2px 0 0 5px;white-space:nowrap}
+.vol.conv{color:var(--green-dk);font-weight:600}
+
+/* unidade do peso: 2000 numa coluna "kg" quase sempre é grama */
+.uni-peso{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12.5px;color:var(--sub);
+  flex-wrap:wrap}
+/* na coluna estreita dos marketplaces o rótulo e o select não cabem lado a
+   lado, e o texto da opção saía cortado — aqui eles empilham */
+.uni-peso select{flex:1 1 190px;min-width:0;padding:7px 9px;font-size:12.5px}
+.uni-alerta{margin-top:9px;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.5;
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);color:var(--ink)}
+.uni-alerta b{font-weight:700}
+.uni-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.uni-alerta button{border:none;cursor:pointer;font-family:inherit;
+  font-size:13px;font-weight:700;padding:10px 15px;border-radius:9px;min-height:38px}
+.uni-alerta button.sim{color:#fff;background:var(--amber-dk,#b45309)}
+.uni-alerta button.nao{color:var(--sub);background:var(--sup);border:1px solid var(--line)}
+.uni-alerta button:hover{filter:brightness(1.06)}
+/* o cálculo fica bloqueado até a resposta: o alerta chama atenção para si */
+.uni-alerta.pisca{animation:uniPisca .45s ease-in-out 3}
+@keyframes uniPisca{50%{background:rgba(245,158,11,.3);
+  box-shadow:0 0 0 5px rgba(245,158,11,.22);transform:scale(1.015)}}
+
+/* Filtros: alvo grande e com cara de botão. Antes eram pastilhas de 10px que
+   não pareciam clicáveis — e são o caminho para achar o que está errado. */
+/* filtro ligado: além de dizer o que está filtrando, diz o que fazer com essas
+   linhas — é aqui que o usuário está olhando quando precisa da instrução */
+.f-ativo{display:flex;align-items:flex-start;gap:12px;width:100%;padding:13px 15px;
+  border-radius:12px;background:var(--sup);border:1px solid rgba(79,124,255,.28);font-size:13.5px;
+  box-shadow:0 2px 10px -4px rgba(20,30,60,.14)}
+.f-ativo.grave{border-color:rgba(229,72,77,.35);background:linear-gradient(100deg,color-mix(in srgb,var(--red) 10%,var(--sup)),var(--sup) 60%)}
+/* o seletor generico esticava tambem o icone, que virava uma faixa larga
+   atravessando a barra — so o bloco de texto cresce */
+.f-ativo > div:not(.f-ativo-ic){flex:1;min-width:0}
+.f-ativo b{color:var(--ink)}
+.f-ativo-ic{width:26px;height:26px;flex:0 0 26px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(160deg,#fbbf24,#b45309);
+  box-shadow:0 4px 10px -3px rgba(245,158,11,.5)}
+.f-ativo.grave .f-ativo-ic{background:linear-gradient(160deg,#ff7a7d,#d63a3f);
+  box-shadow:0 4px 10px -3px rgba(229,72,77,.6)}
+.f-ativo-ic svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.6;
   stroke-linecap:round;stroke-linejoin:round}
-.an-salvo-txt{flex:1;min-width:180px}
-.an-salvo-txt b{display:block;font-size:14.5px;color:var(--ink)}
-.an-salvo-txt i{display:block;font-style:normal;font-size:12.5px;color:var(--sub);
-  margin-top:2px;line-height:1.45}
-.an-salvo-btns{display:flex;gap:8px;flex-wrap:wrap}
-.an-salvo-btns .btn{padding:9px 16px;font-size:13.5px}
+.f-ativo-t{font-size:14.5px;color:var(--sub)}
+.f-ativo-t b{font-family:var(--display);font-weight:700}
+/* a instrução é o motivo de a pessoa estar aqui: destacada, não em nota de
+   rodapé cinza — era a queixa de "não sei o que preciso fazer" */
+.f-ajuda{font-size:13.5px;color:var(--sub);line-height:1.55;margin-top:7px;
+  padding-left:11px;border-left:2px solid rgba(79,124,255,.35)}
+.f-ativo.grave .f-ajuda{border-left-color:rgba(229,72,77,.4)}
+.f-ajuda b{display:block;font-size:11px;font-weight:700;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--blue-dk);margin-bottom:2px}
+.f-ativo.grave .f-ajuda b{color:var(--red)}
+.f-ativo button{flex:none;align-self:center}
+@media(max-width:600px){
+  .f-ativo{flex-wrap:wrap}
+  .f-ativo button{width:100%;margin-top:4px}
+}
+
+.f-atalhos{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.filtro-bar .f-atalho{font-size:13.5px;font-weight:600;padding:10px 14px;min-height:40px;
+  color:var(--sub);display:inline-flex;gap:8px;align-items:center;border-radius:10px;
+  border:1px solid var(--line);background:var(--sup);box-shadow:0 1px 3px rgba(20,30,60,.09);
+  transition:transform .12s,border-color .12s,box-shadow .12s}
+.filtro-bar .f-atalho:hover:not(.zero){border-color:var(--blue);color:var(--blue-dk);
+  transform:translateY(-1px);box-shadow:0 3px 10px rgba(79,124,255,.2)}
+.filtro-bar .f-atalho b{font-variant-numeric:tabular-nums;background:rgba(229,72,77,.13);
+  color:var(--red);min-width:22px;text-align:center;padding:2px 6px;border-radius:6px;font-size:13px}
+.filtro-bar .f-atalho.on{background:var(--blue);color:#fff;border-color:var(--blue);
+  box-shadow:0 3px 10px rgba(79,124,255,.32)}
+.filtro-bar .f-atalho.on b{background:rgba(255,255,255,.24);color:#fff}
+/* sem ocorrências: fica visível como referência, mas claramente inativo */
+.filtro-bar .f-atalho.zero{opacity:.5;cursor:default;box-shadow:none;background:transparent;
+  border-style:dashed}
+.filtro-bar .f-atalho.zero b{background:rgba(20,30,60,.07);color:var(--faint)}
+.f-titulo{width:100%;font-size:12px;font-weight:700;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--faint);margin-bottom:-2px}
+
+.pag-tam{display:inline-flex;align-items:center;gap:5px;color:var(--faint)}
+.pag-tam button{padding:5px 10px;font-size:12.5px}
+.pag-tam button.on{border-color:var(--blue);color:var(--blue-dk);background:rgba(79,124,255,.09)}
+
+/* sem o wrap, os botões de tamanho de página forçavam 400px de largura e a
+   rolagem lateral vazava para a página inteira no celular */
+.paginacao{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;
+  flex-wrap:wrap}
+.paginacao button{border:1px solid var(--line);background:var(--sup);cursor:pointer;font-family:inherit;
+  font-size:13px;font-weight:600;color:var(--sub);padding:9px 16px;border-radius:10px;transition:all .15s}
+.paginacao button:hover:not(:disabled){border-color:var(--blue);color:var(--blue-dk);transform:translateY(-1px)}
+.paginacao button:disabled{opacity:.4;cursor:not-allowed}
+.paginacao span{font-variant-numeric:tabular-nums;font-size:13px;color:var(--faint)}
+
+/* ═══ MANUAL ══════════════════════════════════════════════
+   Sumário fixo à esquerda e o texto à direita. A impressão sai limpa: o
+   "Gerar PDF" é o próprio diálogo do navegador, que já salva em PDF — sem
+   biblioteca nova só para isso. */
+.man-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  flex-wrap:wrap;margin-bottom:22px}
+.man{display:grid;grid-template-columns:212px 1fr;gap:34px;align-items:start}
+@media(max-width:900px){.man{grid-template-columns:1fr;gap:20px}}
+
+.man-sum{position:sticky;top:18px;display:flex;flex-direction:column;gap:1px;padding:14px;
+  border-radius:16px;background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 26px -14px rgba(20,30,60,.25)}
+.man-sum-t{font-size:10.5px;font-weight:600;letter-spacing:1.4px;color:var(--faint);padding:2px 9px 8px}
+.man-sum a{font-size:13.5px;color:var(--sub);text-decoration:none;padding:7px 9px;border-radius:9px;
+  transition:background .2s ease,color .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.man-sum a:hover{background:rgba(79,124,255,.1);color:var(--ink);transform:translateX(3px)}
+@media(max-width:900px){.man-sum{position:static}}
+
+.man-txt{max-width:760px}
+.man-txt section{padding:26px 0;border-bottom:1px solid var(--line)}
+.man-txt section:first-child{padding-top:0}
+.man-txt section:last-of-type{border-bottom:none}
+.man-txt h2{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:-.5px;
+  margin-bottom:12px;scroll-margin-top:20px}
+.man-txt h3{font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:-.2px;
+  margin:20px 0 8px;color:var(--ink)}
+.man-txt p{font-size:15px;line-height:1.75;color:var(--sub);margin-bottom:11px}
+.man-txt strong,.man-txt b{color:var(--ink);font-weight:600}
+.man-txt ul,.man-txt ol{margin:0 0 12px;padding-left:19px;display:flex;flex-direction:column;gap:8px}
+.man-txt li{font-size:15px;line-height:1.65;color:var(--sub)}
+.man-txt li::marker{color:var(--blue)}
+
+.man-form{background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(79,124,255,.22);border-radius:13px;padding:14px 17px;
+  font-variant-numeric:tabular-nums;font-size:15px;color:var(--blue-dk)!important;
+  font-weight:600;box-shadow:0 1px 0 var(--gloss) inset}
+
+.man-passos{display:flex;flex-direction:column;gap:11px;margin-top:14px}
+.man-passos div{display:flex;gap:13px;align-items:flex-start}
+.man-passos b{width:26px;height:26px;flex:none;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:13.5px;font-weight:700;color:#fff;
+  background:linear-gradient(160deg,#7ea1ff,#2f5ae0);
+  box-shadow:0 4px 10px -3px rgba(79,124,255,.7)}
+.man-passos span{font-size:15px;line-height:1.6;color:var(--sub);padding-top:3px}
+
+.man-fim{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:3px}
+.man-fim b{font-family:var(--display);font-size:14.5px;font-weight:700}
+.man-fim span{font-size:12.5px;color:var(--faint)}
+
+/* impressão: só o manual, em preto no branco e sem cortar seção ao meio */
+@media print{
+  .bg,.topbar,.rodape,.man-sum,.man-head .btn,.hub-foot{display:none!important}
+  body,.shell,.wrap{height:auto!important;overflow:visible!important;background:var(--sup)!important}
+  .wrap{max-width:none;padding:0}
+  .man{grid-template-columns:1fr}
+  .man-txt{max-width:none}
+  .man-txt section{break-inside:avoid;page-break-inside:avoid}
+  .man-txt h2{break-after:avoid;page-break-after:avoid}
+  .man-head h1{font-size:26px}
+  .view{animation:none}
+}
+
+/* ═══ PAINEL DA INTEGRAÇÃO COM A API ══════════════════════
+   A tela distingue duas fontes: o que o Mercado Livre responde ao vivo e o
+   que vem de tabela conferida dentro do app. Sem essa separação, dá para
+   achar que tudo se atualiza sozinho — e não é o caso do custo fixo nem do
+   frete, que a API não expõe. */
+.api-ok,.api-erro{padding:14px 16px;border-radius:13px;margin-bottom:14px}
+.api-ok{background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(18,183,106,.22)}
+.api-erro{background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(224,49,49,.22)}
+.api-ok-t{font-weight:600;font-size:14.5px;color:var(--ink);margin-bottom:4px}
+.api-ok-d{font-size:13px;line-height:1.6;color:var(--sub)}
+.api-ok-d + .api-ok-d{margin-top:6px}
+
+.api-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:820px){.api-cols{grid-template-columns:1fr}}
+.api-col{padding:14px;border-radius:13px;background:var(--sup-t);
+  border:1px solid var(--line)}
+.api-col-t{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;
+  letter-spacing:.5px;color:var(--ink);margin-bottom:11px}
+.api-marca{width:9px;height:9px;border-radius:50%;flex:none}
+.api-marca.viva{background:linear-gradient(160deg,#28dd8a,#079254);
+  box-shadow:0 0 0 3px rgba(18,183,106,.18)}
+.api-marca.tabela{background:linear-gradient(160deg,#a9b4c9,#6c7891)}
+.api-lista{display:flex;flex-direction:column;gap:11px}
+.api-item b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.api-item span{font-size:12.5px;line-height:1.55;color:var(--sub)}
+.api-item code{font-family:ui-monospace,monospace;font-size:12px;background:rgba(20,30,60,.06);
+  padding:1px 5px;border-radius:5px}
+
+.api-teste{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+  padding-top:14px;border-top:1px solid var(--line)}
+.api-teste label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--sub)}
+.api-teste input{width:150px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+  font-family:inherit;font-size:14.5px;background:var(--sup);color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.api-teste input:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+
+.api-res{margin-top:14px;padding:14px 16px;border-radius:13px;
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(79,124,255,.2)}
+.api-res-t{font-size:13px;color:var(--sub);margin-bottom:10px}
+.api-linha{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;
+  padding:7px 0;border-bottom:1px solid rgba(20,30,60,.06);font-size:14.5px}
+.api-linha:last-of-type{border-bottom:none}
+.api-linha b{font-family:var(--display);font-size:16px;color:var(--blue-dk);
+  font-variant-numeric:tabular-nums}
+.api-linha span:last-child{font-variant-numeric:tabular-nums;color:var(--sub);min-width:72px;text-align:right}
+.api-res-d{margin-top:9px;padding-top:9px;border-top:1px solid rgba(20,30,60,.06);
+  font-size:12.5px;line-height:1.6;color:var(--sub)}
+
+.api-nota{font-size:13px;line-height:1.6;color:var(--sub);margin-bottom:14px}
+.api-ideias{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:820px){.api-ideias{grid-template-columns:1fr}}
+.api-ideia{padding:14px;border-radius:13px;background:var(--sup-t);
+  border:1px solid var(--line);transition:border-color .25s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.api-ideia:hover{border-color:rgba(79,124,255,.35);transform:translateY(-2px)}
+.api-ideia.bloq{opacity:.62}
+.api-ideia-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.api-ideia-h b{font-size:14px;font-weight:600;color:var(--ink)}
+.api-ideia p{font-size:12.5px;line-height:1.6;color:var(--sub);margin:0}
+.api-tag{display:inline-block;margin-top:9px;font-size:11px;font-weight:600;letter-spacing:.4px;
+  padding:4px 9px;border-radius:100px;color:var(--blue-dk);background:rgba(79,124,255,.12)}
+.api-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  letter-spacing:.3px;padding:4px 9px;border-radius:100px;white-space:nowrap;flex:none}
+.api-chip svg{width:10px;height:10px;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.api-chip.ok{background:rgba(18,183,106,.14);color:var(--green-dk);stroke:var(--green-dk)}
+.api-chip.nao{background:rgba(20,30,60,.08);color:var(--faint);stroke:var(--faint)}
+
+/* ═══ TARIFA POR CATEGORIA (consulta ao Mercado Livre) ════ */
+.cat-box{margin:0 0 18px;padding:14px 16px;border-radius:13px;
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(79,124,255,.2)}
+.cat-liga{display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.cat-liga input{position:absolute;opacity:0;width:0;height:0}
+.cat-sw{width:40px;height:23px;border-radius:100px;flex:none;position:relative;margin-top:1px;
+  background:linear-gradient(180deg,#e2e7f2,#d3daea);transition:background .3s ease;
+  box-shadow:0 1px 3px rgba(20,30,60,.12) inset}
+.cat-sw::after{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;
+  background:var(--sup);box-shadow:0 2px 5px rgba(20,30,60,.28);
+  transition:transform .32s cubic-bezier(.16,1,.3,1)}
+.cat-liga input:checked + .cat-sw{background:linear-gradient(180deg,#6b93ff,#2145c9)}
+.cat-liga input:checked + .cat-sw::after{transform:translateX(17px)}
+.cat-liga input:focus-visible + .cat-sw{box-shadow:0 0 0 3px rgba(79,124,255,.3)}
+.cat-txt b{display:block;font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.cat-txt i{font-style:normal;font-size:13px;line-height:1.55;color:var(--sub)}
+
+.cat-aviso{font-size:13px;line-height:1.5;margin-top:0;max-height:0;overflow:hidden;
+  transition:max-height .3s ease,margin-top .3s ease,opacity .3s ease;opacity:0}
+.cat-aviso.mostra{max-height:70px;margin-top:11px;opacity:1;
+  padding-top:11px;border-top:1px solid rgba(79,124,255,.16);color:var(--sub)}
+.cat-aviso.ok{color:var(--green-dk)}
+.cat-aviso.alerta{color:var(--amber-dk,#a8630a)}
+.cat-aviso.ruim{color:var(--red)}
+
+.cat-prog{margin-top:12px}
+.cat-barra{height:6px;border-radius:100px;background:rgba(20,30,60,.09);overflow:hidden}
+.cat-barra i{display:block;height:100%;width:0;border-radius:100px;
+  background:linear-gradient(90deg,#7ea1ff,#2f5ae0);transition:width .35s ease}
+.cat-prog-t{font-size:12.5px;color:var(--sub);margin-top:6px;font-variant-numeric:tabular-nums}
+
+.td-cat{font-size:12.5px;color:var(--sub);max-width:170px}
+.td-cat b{display:inline-block;margin-left:6px;font-variant-numeric:tabular-nums;
+  color:var(--blue-dk);font-weight:700}
+.td-cat.vazia{color:var(--faint);font-style:italic}
+
+/* ═══ PESQUISA DE MERCADO ═════════════════════════════════ */
+.mer-busca{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.mer-busca input{padding:11px 14px;border-radius:11px;border:1px solid var(--line);
+  font-family:inherit;font-size:15px;background:var(--sup);color:var(--ink)}
+.mer-busca input:first-child{flex:1;min-width:260px}
+.mer-busca input:nth-child(2){width:110px;font-variant-numeric:tabular-nums}
+.mer-busca input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+
+.mer-res{margin-top:16px;display:grid;gap:14px}
+.mer-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:1.2px;
+  color:var(--faint);margin-bottom:7px;text-transform:uppercase}
+.mer-res-cat,.mer-res-tar,.mer-res-obr,.mer-res-sug{padding:14px 16px;border-radius:13px;
+  background:var(--sup-t);border:1px solid var(--line)}
+.mer-res-cat b{font-family:var(--display);font-size:17px;letter-spacing:-.3px;margin-right:10px}
+.mer-res-cat code,.mer-cod{font-family:ui-monospace,monospace;font-size:12.5px;
+  background:rgba(79,124,255,.12);color:var(--blue-dk);padding:3px 8px;border-radius:7px}
+.mer-res-tar{display:flex;gap:26px;align-items:flex-end;flex-wrap:wrap;
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border-color:rgba(79,124,255,.2)}
+.mer-tar{display:flex;flex-direction:column;gap:3px}
+.mer-tar span{font-size:12px;color:var(--faint)}
+.mer-tar b{font-family:var(--display);font-size:26px;letter-spacing:-1px;color:var(--blue-dk);
+  font-variant-numeric:tabular-nums;line-height:1}
+.mer-tar-n{font-size:12px;color:var(--sub);margin-left:auto;max-width:230px;line-height:1.5}
+.mer-tags{display:flex;flex-wrap:wrap;gap:7px}
+.mer-tag{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:100px;
+  background:rgba(255,122,26,.13);color:var(--amber-dk)}
+
+.mer-termos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:8px}
+.mer-termo{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;
+  background:var(--sup-t2);border:1px solid var(--line);cursor:pointer;
+  font-family:inherit;text-align:left;
+  transition:border-color .2s ease,transform .3s cubic-bezier(.16,1,.3,1),background .2s ease}
+.mer-termo:hover{border-color:rgba(79,124,255,.4);background:var(--sup);transform:translateY(-2px)}
+.mer-pos{width:22px;height:22px;flex:none;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:11.5px;font-weight:700;color:var(--blue-dk);
+  background:rgba(79,124,255,.13);font-variant-numeric:tabular-nums}
+.mer-kw{flex:1;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mer-termo svg{width:13px;height:13px;flex:none;fill:none;stroke:var(--faint);stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s ease,transform .3s ease}
+.mer-termo:hover svg{stroke:var(--blue-dk);transform:translateX(3px)}
+
+.mer-trilha{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--line)}
+.mer-migalha{background:none;border:none;font-family:inherit;font-size:13.5px;color:var(--blue-dk);
+  cursor:pointer;padding:4px 8px;border-radius:7px;transition:background .2s ease}
+.mer-migalha:hover{background:rgba(79,124,255,.1)}
+.mer-seta{color:var(--faint);font-size:13.5px}
+.mer-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:8px}
+.mer-cat{display:flex;flex-direction:column;gap:5px;align-items:flex-start;padding:11px 13px;
+  border-radius:11px;background:var(--sup-t2);border:1px solid var(--line);
+  cursor:pointer;font-family:inherit;text-align:left;
+  transition:border-color .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.mer-cat:hover{border-color:rgba(79,124,255,.4);transform:translateY(-2px)}
+.mer-cat b{font-size:14px;font-weight:600;color:var(--ink)}
+.mer-cat code{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--faint)}
+.mer-folha{padding:18px;border-radius:13px;display:flex;flex-direction:column;gap:8px;
+  align-items:flex-start;background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(79,124,255,.2)}
+.mer-folha b{font-family:var(--display);font-size:17px;letter-spacing:-.3px}
+
+/* ═══ BARRA DE CONTEXTO — escolhas à esquerda, efeito à direita ═══ */
+
+.ctx-lado{margin-left:auto;display:flex;flex-direction:column;gap:12px;justify-content:center;
+  padding-left:20px;border-left:1px solid var(--line)}
+@media(max-width:1180px){.ctx-lado{margin-left:0;padding-left:0;border-left:none;
+  width:100%;padding-top:14px;border-top:1px solid var(--line)}}
+.ctx-agora{display:flex;flex-direction:column;gap:8px}
+.ctx-agora .ctx-lbl{color:var(--faint)}
+.ctx-agora-l{display:flex;gap:20px;flex-wrap:wrap}
+.ctx-agora-l span{display:flex;flex-direction:column;gap:2px}
+.ctx-agora-l i{font-style:normal;font-size:11px;letter-spacing:.4px;color:var(--faint);
+  text-transform:uppercase}
+.ctx-agora-l b{font-size:14px;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ═══ POP-UPS DO PRECIFICADOR ═════════════════════════════
+   O drawer lateral serve para parâmetros, que são muitos campos curtos. Estes
+   dois têm conteúdo largo — calculadora e tabelas — então abrem centralizados. */
+.pop{position:fixed;top:50%;left:50%;z-index:202;
+  width:min(660px,calc(100vw - 32px));max-height:min(88vh,900px);
+  display:flex;flex-direction:column;border-radius:22px;overflow:hidden;
+  background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(18px);
+  box-shadow:0 1px 0 var(--gloss) inset,0 30px 70px -22px rgba(20,30,60,.5),
+             0 8px 24px -10px rgba(20,30,60,.28);
+  opacity:0;visibility:hidden;transform:translate(-50%,-48%) scale(.97);
+  transition:opacity .26s ease,transform .38s cubic-bezier(.16,1,.3,1),visibility .26s}
+.pop.open{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1)}
+.pop-largo{width:min(1000px,calc(100vw - 32px))}
+.pop-h{padding:18px 22px;border-bottom:1px solid var(--line);flex:none;
+  display:flex;align-items:center;justify-content:space-between;gap:16px}
+.pop-h>div:first-child{min-width:0}   /* deixa o título quebrar/truncar em vez de empurrar o x */
+.pop-t{font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.3px}
+.pop-s{font-size:10.5px;font-weight:600;letter-spacing:1.3px;color:var(--faint);margin-top:3px}
+.pop-b{padding:20px 22px 24px;overflow:auto;flex:1;min-height:0}
+.pop-b > div > .panel:first-child{margin-top:0}
+/* ── pop-up: conferir a unidade do peso ───────────────────────────────────── */
+.pop-peso{width:min(560px,calc(100vw - 32px))}
+.pop-f{padding:16px 22px;border-top:1px solid var(--line);flex:none;
+  display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;background:rgba(246,249,255,.7)}
+.pop-f .btn{flex:0 1 auto}
+.pz-alerta{display:flex;align-items:center;gap:14px;padding:15px 17px;border-radius:13px;
+  background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.34);margin-bottom:17px}
+.pz-num{font-family:var(--display);font-size:30px;font-weight:800;line-height:1;
+  color:var(--amber-dk,#b45309);font-variant-numeric:tabular-nums}
+.pz-sub{font-size:13px;color:var(--sub);margin-top:2px;line-height:1.45}
+.pz-p{font-size:14px;line-height:1.62;color:var(--sub);margin:0 0 13px}
+.pz-p b{color:var(--ink)}
+.pz-nota{font-size:13px;color:var(--faint);margin:16px 0 0;padding-top:14px;
+  border-top:1px dashed var(--line)}
+.pz-tab{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:16px 0}
+.pz-tab-t{padding:10px 14px;font-size:12px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--faint);background:rgba(246,249,255,.9);
+  border-bottom:1px solid var(--line)}
+.pz-tab table{width:100%;border-collapse:collapse;background:var(--sup)}
+.pz-tab th{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--faint);text-align:left;padding:8px 14px;border-bottom:1px solid var(--line)}
+.pz-tab td{padding:9px 14px;font-size:14.5px;color:var(--sub);border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums}
+.pz-tab tr:last-child td{border-bottom:none}
+.pz-tab td b{color:var(--green-dk)}
+.pz-tab .seta{width:26px;text-align:center;color:var(--faint)}
+.pz-mais td{font-size:12.5px;color:var(--faint);font-style:italic}
+.pz-ok{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:12px;
+  background:rgba(18,183,106,.09);border:1px solid rgba(18,183,106,.3);font-size:14px}
+.pz-ok.aviso{background:rgba(245,158,11,.09);border-color:rgba(245,158,11,.3)}
+.pz-ok svg{width:17px;height:17px;flex:none;margin-top:1px;fill:none;stroke:var(--green-dk);
+  stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:700px){
+  .pop-f{padding:14px 16px}
+  .pop-f .btn{flex:1 1 100%}
+}
+
+/* ── janela de progresso do cálculo ───────────────────────────────────────── */
+.pop-prog{width:min(430px,calc(100vw - 32px));padding:30px 30px 26px;text-align:center;
+  align-items:center}
+.prog-ic{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;
+  justify-content:center;margin-bottom:16px;
+  background:linear-gradient(160deg,var(--blue),var(--blue-dk));
+  box-shadow:0 8px 20px -8px rgba(79,124,255,.75)}
+.prog-ic svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;animation:progGira 1.6s linear infinite}
+@keyframes progGira{to{transform:rotate(360deg)}}
+.prog-t{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:-.3px;
+  color:var(--ink)}
+.prog-s{font-size:13.5px;color:var(--sub);margin:7px 0 16px;line-height:1.45;min-height:34px}
+.pop-prog .cat-barra{width:100%;height:8px}
+.prog-n{font-size:13px;color:var(--faint);margin-top:9px;font-variant-numeric:tabular-nums;
+  min-height:16px}
+.prog-passos{display:flex;flex-direction:column;gap:9px;margin-top:20px;width:100%;
+  padding-top:18px;border-top:1px solid var(--line);text-align:left}
+.prog-passo{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--faint)}
+.prog-passo.agora{color:var(--ink);font-weight:700}
+.prog-passo.feito{color:var(--sub)}
+.prog-bolinha{width:18px;height:18px;border-radius:50%;flex:none;display:flex;
+  align-items:center;justify-content:center;border:2px solid var(--line);background:var(--sup)}
+.prog-passo.agora .prog-bolinha{border-color:var(--blue);
+  box-shadow:0 0 0 4px rgba(79,124,255,.16)}
+.prog-passo.feito .prog-bolinha{border-color:var(--green-dk);background:var(--green-dk)}
+.prog-bolinha svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:3.4;
+  stroke-linecap:round;stroke-linejoin:round}
+
+body.sem-rolagem{overflow:hidden}
+@media(max-width:700px){
+  .pop{width:calc(100vw - 16px);max-height:92vh;border-radius:18px}
+  .pop-b{padding:16px}
+}
+
+/* atalho para a calculadora, no alto da planilha */
+.ctx-esq{display:flex;flex-direction:column;gap:14px;flex:1;min-width:0}
+.ctx-linha{display:flex;align-items:flex-end;gap:14px 22px;flex-wrap:wrap}
+
+.calc-card{display:flex;align-items:center;gap:12px;width:100%;
+  padding:10px 14px;border-radius:13px;cursor:pointer;font-family:inherit;text-align:left;
+  background:linear-gradient(150deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(79,124,255,.2);
+  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .28s ease,border-color .28s ease}
+.calc-card:hover{transform:translateY(-2px);border-color:rgba(79,124,255,.45);
+  box-shadow:0 12px 26px -14px rgba(47,90,224,.5)}
+.calc-card:focus{outline:none}
+.calc-card:focus-visible{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(79,124,255,.3)}
+.calc-ic{flex:none;display:flex;align-items:center;justify-content:center}
+.calc-ic img{width:40px;height:40px;object-fit:contain;
+  filter:drop-shadow(0 4px 8px rgba(20,30,60,.2));
+  transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.calc-card:hover .calc-ic img{transform:scale(1.1) rotate(-5deg)}
+.calc-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.calc-txt b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.2px;color:var(--ink)}
+.calc-txt i{font-style:normal;font-size:12.5px;color:var(--sub)}
+.calc-cta{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;
+  font-weight:600;letter-spacing:.5px;padding:8px 14px;border-radius:100px;color:#fff;
+  background:linear-gradient(180deg,#5d87ff,#2145c9);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 7px 16px -6px rgba(47,90,224,.7)}
+.calc-cta svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.calc-card:hover .calc-cta svg{transform:translateX(4px)}
+@media(max-width:620px){.calc-card{flex-wrap:wrap}.calc-cta{width:100%;justify-content:center}
+  .ctx-linha{gap:14px}}
+
+/* "Está valendo" virou botão: abre os custos oficiais */
+
+
+
+/* ═══ CARTÕES DE CONFIGURAÇÃO ═════════════════════════════
+   Ficam sob o resumo "Está valendo", porque é o resumo que levanta a dúvida:
+   "de onde vem esses 13%?" e "como eu mudo isso?". Cor e forma diferentes dos
+   demais cartões do app — âmbar e roxo, cantos mais fechados —, porque não são
+   ferramentas: são os ajustes por trás delas. */
+.ctx-cards{display:flex;gap:9px;flex-wrap:wrap}
+.cfg-card{display:flex;align-items:center;gap:11px;padding:10px 14px;border-radius:12px;
+  cursor:pointer;font-family:inherit;text-align:left;border:1px solid transparent;
+  transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .28s ease,filter .28s ease}
+.cfg-card:hover{transform:translateY(-2px)}
+.cfg-ic{width:32px;height:32px;flex:none;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;background:rgba(255,255,255,.28);
+  box-shadow:0 1px 0 rgba(255,255,255,.4) inset}
+.cfg-ic svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.cfg-tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cfg-tx b{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.1px;white-space:nowrap}
+.cfg-tx i{font-style:normal;font-size:11.5px;color:rgba(255,255,255,.82);white-space:nowrap}
+
+.cfg-custos{background:linear-gradient(155deg,#ffb454,#e07c0a);
+  box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 9px 20px -8px rgba(224,124,10,.7)}
+.cfg-custos:hover{box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 14px 26px -10px rgba(224,124,10,.8)}
+.cfg-params{background:linear-gradient(155deg,#a98cff,#6d3fe0);
+  box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 9px 20px -8px rgba(109,63,224,.7)}
+.cfg-params:hover{box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 14px 26px -10px rgba(109,63,224,.8)}
+@media(max-width:620px){.ctx-cards{width:100%}.cfg-card{flex:1;min-width:150px}}
+
+/* ═══ MENU DO GUIA ════════════════════════════════════════ */
+.mn-guia{width:330px}
+.mn-g{display:flex;flex-direction:column;gap:2px;width:100%;padding:9px 11px;border-radius:10px;
+  background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;
+  transition:background .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.mn-g:hover{background:rgba(109,63,224,.09);transform:translateX(3px)}
+.mn-g b{font-size:14px;font-weight:600;color:var(--ink)}
+.mn-g i{font-style:normal;font-size:12px;color:var(--faint);line-height:1.4}
+.mn-g-tudo{flex-direction:row;align-items:center;justify-content:center;gap:7px;
+  margin-top:8px;padding:10px;border-radius:10px;font-size:12.5px;font-weight:600;
+  letter-spacing:.4px;color:#fff;background:linear-gradient(180deg,#8f7bf0,#5b3fc4);
+  box-shadow:0 6px 14px -5px rgba(91,63,196,.65)}
+.mn-g-tudo:hover{background:linear-gradient(180deg,#9c8af3,#6647cf);transform:none}
+.mn-g-tudo svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ═══ FICHA DO ANÚNCIO ════════════════════════════════════ */
+.fi-bloco{padding:14px 16px;border-radius:13px;background:var(--sup-t);
+  border:1px solid var(--line)}
+.fi-campo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;
+  border-bottom:1px solid rgba(20,30,60,.06)}
+.fi-campo:last-child{border-bottom:none}
+.fi-campo b{font-size:14px;font-weight:600;color:var(--ink);min-width:130px}
+.fi-campo code{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--faint);
+  background:rgba(20,30,60,.05);padding:2px 7px;border-radius:6px}
+.fi-vals{font-size:12px;color:var(--sub);flex:1;min-width:180px}
+
+/* a ficha de referência é de outro produto: o aviso não é decoração */
+.fi-ref{background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border-color:rgba(255,122,26,.28)}
+.fi-aviso{font-size:13px;line-height:1.6;color:var(--amber-dk);margin:8px 0 12px;
+  padding:10px 12px;border-radius:10px;background:var(--sup-t)}
+.fi-refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:7px}
+.fi-ref-l{display:flex;flex-direction:column;gap:2px;padding:8px 11px;border-radius:9px;
+  background:var(--sup-t2);border:1px solid rgba(20,30,60,.06)}
+.fi-ref-l i{font-style:normal;font-size:11px;letter-spacing:.4px;color:var(--faint);
+  text-transform:uppercase}
+.fi-ref-l b{font-size:13.5px;font-weight:600;color:var(--ink)}
+.fi-ref-l.perigo{border-color:rgba(224,49,49,.35);background:rgba(255,245,245,.92)}
+.fi-tag{margin-top:4px;align-self:flex-start;font-size:10.5px;font-weight:700;letter-spacing:.5px;
+  padding:2px 7px;border-radius:100px;background:rgba(224,49,49,.15);color:var(--red)}
+
+/* ═══ MAIS VENDIDOS ═══════════════════════════════════════ */
+/* ═══ PASTILHAS DE ATALHO ══════════════════════════════════
+   Categorias, filtros da tabela e atalhos usavam a mesma pastilha de contorno
+   fino, que não parecia clicável e sumia no fundo. Agora têm superfície
+   própria, um ponto na cor do accent que dá ritmo à lista, e levantam no
+   hover — é o mesmo objeto em todo o app, então é uma regra só. */
+.cp-atalhos{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.cp-atalho-t{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--faint);margin-right:2px}
+
+.cp-atalho{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;
+  font-size:13px;font-weight:600;padding:9px 15px;border-radius:100px;color:var(--sub);
+  border:1px solid var(--line);
+  background:linear-gradient(170deg,var(--sup),var(--sup-2));
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 8px -6px rgba(20,30,60,.4);
+  transition:transform .16s cubic-bezier(.16,1,.3,1),border-color .16s,color .16s,box-shadow .16s}
+/* o ponto marca o começo de cada item e dá ritmo a uma lista longa */
+.cp-atalho::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;
+  background:linear-gradient(160deg,#7ea1ff,var(--blue));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 14%,transparent);
+  transition:box-shadow .16s,transform .16s}
+.cp-atalho:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--ink);
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 20px -10px rgba(47,90,224,.55)}
+.cp-atalho:hover::before{transform:scale(1.15);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 22%,transparent)}
+.cp-atalho:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.cp-atalho:active{transform:translateY(0)}
+
+.cp-lista{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.cp-item{display:flex;align-items:center;gap:13px;padding:10px 13px;border-radius:12px;
+  background:var(--sup-t2);border:1px solid var(--line);
+  transition:border-color .2s ease,transform .3s cubic-bezier(.16,1,.3,1)}
+.cp-item:hover{border-color:rgba(79,124,255,.35);transform:translateX(3px)}
+.cp-pos{width:26px;height:26px;flex:none;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:12.5px;font-weight:700;color:#fff;
+  background:linear-gradient(160deg,#7ea1ff,#2f5ae0);font-variant-numeric:tabular-nums;
+  box-shadow:0 4px 10px -3px rgba(79,124,255,.65)}
+.cp-item img,.cp-semfoto{width:46px;height:46px;flex:none;border-radius:10px;object-fit:contain;
+  background:var(--sup);border:1px solid var(--line)}
+.cp-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cp-txt b{font-size:14px;font-weight:600;color:var(--ink);line-height:1.35}
+.cp-txt i{font-style:normal;font-size:12px;color:var(--faint)}
+.cp-btn{flex:none;font-family:inherit;font-size:11.5px;font-weight:600;letter-spacing:.4px;
+  padding:7px 13px;border-radius:100px;border:none;cursor:pointer;color:#fff;
+  background:linear-gradient(180deg,#5d87ff,#2145c9);
+  box-shadow:0 5px 12px -4px rgba(47,90,224,.6);transition:transform .25s ease}
+.cp-btn:hover{transform:translateY(-1px)}
+@media(max-width:620px){.cp-item{flex-wrap:wrap}.cp-btn{width:100%}}
+
+/* ═══ SEÇÕES POR MARKETPLACE ══════════════════════════════
+   Cada marketplace tem a sua conta e as suas regras. Separar por seção deixa
+   claro o que já existe em cada um — e onde uma ferramenta nova vai entrar. */
+.secoes{display:flex;flex-direction:column;gap:14px;padding-bottom:8px}
+.mkt{padding:15px 17px;border-radius:18px;position:relative;
+  background:linear-gradient(168deg,var(--sup),var(--sup-2));
+  border:1px solid var(--borda,rgba(20,30,60,.1));
+  box-shadow:0 1px 0 var(--gloss) inset,0 10px 30px -22px rgba(20,30,60,.3)}
+.mkt-ml{--borda:rgba(255,224,0,.5);--selo:#2d2a00;--selofundo:linear-gradient(160deg,#ffe600,#f5cb00)}
+.mkt-shopee{--borda:rgba(238,77,45,.3);--selo:#fff;--selofundo:linear-gradient(160deg,#ff7a55,#ee4d2d)}
+.mkt-amazon{--borda:rgba(255,153,0,.34);--selo:#3a2400;--selofundo:linear-gradient(160deg,#ffb84d,#ff9900)}
+
+.mkt-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.mkt-selo{display:inline-flex;align-items:center;gap:8px;padding:6px 13px;border-radius:100px;
+  font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:-.2px;
+  color:var(--selo);background:var(--selofundo);
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 7px 16px -7px rgba(20,30,60,.4)}
+.mkt-selo svg{width:18px;height:18px;flex:none}
+.mkt-n{font-size:12px;letter-spacing:.7px;color:var(--faint);text-transform:uppercase}
+/* Títulos internos das seções: um traço na cor do marketplace, o texto, e uma
+   linha que se dissolve à direita. Antes era texto solto boiando entre grades. */
+.mkt-sub{display:flex;align-items:center;gap:10px;margin:15px 0 9px;
+  font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--sub);text-transform:uppercase}
+.mkt-sub::before{content:'';width:16px;height:3px;border-radius:100px;flex:none;
+  background:var(--selofundo,linear-gradient(90deg,#7ea1ff,#2f5ae0));
+  box-shadow:0 2px 6px -2px rgba(20,30,60,.4)}
+.mkt-sub::after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,var(--borda,rgba(20,30,60,.14)),transparent)}
+.mkt-nota{margin-top:11px;font-size:12.5px;line-height:1.6;color:var(--sub);
+  padding:10px 12px;border-radius:11px;background:var(--sup-t);
+  border:1px dashed var(--borda)}
+
+/* cartões menores: as consultas de apoio, que não são o trabalho principal */
+/* Cartões menores: as consultas de apoio. Ganham a mesma linguagem dos
+   grandes — camadas de sombra, borda de luz no topo e o ícone soltando do
+   plano no hover — só que em escala menor, porque não são o trabalho. */
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(238px,100%),1fr));gap:10px;
+  perspective:900px}
+.minis-g{grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr))}
+
+.mini{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:13px;height:58px;
+  cursor:pointer;font-family:inherit;text-align:left;position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.9);transform-style:preserve-3d;
+  background:linear-gradient(162deg,var(--sup),var(--sup-2) 60%,var(--sup-2));
+  box-shadow:0 1px 0 var(--gloss) inset,0 -1px 0 rgba(20,30,60,.05) inset,
+             0 1px 2px rgba(20,30,60,.05),0 5px 12px -6px rgba(20,30,60,.18),
+             0 14px 26px -16px rgba(20,30,60,.28);
+  transition:transform .4s cubic-bezier(.16,1,.3,1),box-shadow .35s ease,border-color .3s ease}
+
+/* o fio de luz que corre na borda superior dá a espessura da peça */
+.mini::before{content:'';position:absolute;top:0;left:14%;right:14%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,1),transparent);
+  opacity:.9;pointer-events:none}
+/* brilho que segue o cartão no hover */
+.mini::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;
+  background:radial-gradient(220px circle at 22% 0%,rgba(79,124,255,.18),transparent 62%);
+  transition:opacity .35s ease}
+.mini:hover{transform:translateY(-4px) rotateX(4deg) scale(1.015);
+  border-color:rgba(79,124,255,.4);
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 6px rgba(20,30,60,.06),
+             0 14px 24px -10px rgba(20,30,60,.3),0 30px 48px -26px rgba(47,90,224,.55)}
+.mini:hover::after{opacity:1}
+.mini:focus-visible{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(79,124,255,.28)}
+
+.mini img{width:30px;height:30px;flex:none;object-fit:contain;position:relative;
+  filter:drop-shadow(0 4px 7px rgba(20,30,60,.28));
+  transition:transform .42s cubic-bezier(.16,1,.3,1),filter .35s ease}
+.mini:hover img{transform:translateZ(26px) scale(1.14) rotate(-5deg);
+  filter:drop-shadow(0 8px 13px rgba(20,30,60,.34))}
+.mini span{display:flex;flex-direction:column;gap:1px;min-width:0;position:relative;
+  transform:translateZ(10px)}
+.mini b{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini i{font-style:normal;font-size:11.5px;color:var(--faint);line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.mini.off{cursor:default;
+  background:linear-gradient(162deg,var(--sup),var(--sup-2));
+  box-shadow:0 1px 0 var(--gloss) inset,0 3px 8px -5px rgba(20,30,60,.16)}
+.mini.off:hover{transform:none;border-color:var(--line-2)}
+.mini.off:hover::after{opacity:0}
+.mini.off img{filter:grayscale(.55) drop-shadow(0 3px 5px rgba(20,30,60,.14))}
+.mini.off:hover img{transform:none}
+.mini.off b{color:var(--sub)}
+
+@media(prefers-reduced-motion:reduce){
+  .mini:hover{transform:translateY(-2px)}
+  .mini:hover img{transform:none}
+}
+
+/* selo do marketplace no menu do topo */
+.mn-selo{width:9px;height:9px;border-radius:50%;flex:none}
+.mn-selo.ml{background:linear-gradient(160deg,#ffe600,#f5cb00)}
+.mn-selo.shopee{background:linear-gradient(160deg,#ff7a55,#ee4d2d)}
+.mn-selo.amazon{background:linear-gradient(160deg,#ffb84d,#ff9900)}
+.mn-nota{padding:10px 11px;margin-top:6px;font-size:12px;line-height:1.55;color:var(--faint);
+  border-top:1px solid var(--line)}
+
+/* ═══ "CONFIRA ANTES DE CALCULAR" ═════════════════════════
+   Reputação e tipo de anúncio já vêm preenchidos, então o que falta não é
+   escolher: é reparar que estão ali. A tabela de frete da reputação vermelha
+   custa o dobro da verde, e Premium tem 5 pontos a mais de comissão — quem
+   passa direto precifica errado sem perceber. Some no primeiro toque. */
+/* Só texto, ao lado dos seletores: chama a atenção sem tomar uma faixa
+   inteira da barra, que era o que a caixa fazia. */
+.ctx-alerta{display:inline-flex;align-items:center;gap:7px;align-self:flex-end;
+  padding:0 0 7px;background:none;border:none;box-shadow:none;
+  animation:alertaEntra .55s cubic-bezier(.16,1,.3,1) both .35s;
+  transition:opacity .4s ease,transform .4s ease,max-width .4s ease,margin .4s ease}
+@keyframes alertaEntra{from{opacity:0;transform:translateY(-6px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes alertaResp{0%,100%{box-shadow:0 2px 6px -2px rgba(224,124,10,.7),0 0 0 0 rgba(224,124,10,.45)}
+  60%{box-shadow:0 2px 6px -2px rgba(224,124,10,.7),0 0 0 7px rgba(224,124,10,0)}}
+.ctx-al-ic{width:17px;height:17px;flex:none;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#ffb454,#e07c0a);
+  box-shadow:0 2px 6px -2px rgba(224,124,10,.7);
+  animation:alertaResp 2.6s ease-in-out infinite 1s}
+.ctx-al-ic svg{width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+.ctx-al-tx{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.ctx-al-tx b{font-size:12px;font-weight:700;color:var(--amber-dk);letter-spacing:.2px}
+.ctx-al-tx i{font-style:normal;font-size:12px;color:var(--faint)}
+
+.ctx-alerta.feito{animation:none}
+.ctx-alerta.feito .ctx-al-ic{animation:none}
+.ctx-alerta.feito .ctx-al-ic{background:linear-gradient(160deg,#28dd8a,#079254);
+  box-shadow:0 3px 8px -2px rgba(18,183,106,.7)}
+.ctx-alerta.feito .ctx-al-tx b{color:var(--green-dk)}
+.ctx-alerta.feito .ctx-al-tx i{color:#0e8f63}
+.ctx-alerta.some{opacity:0;transform:translateX(6px);max-width:0;margin:0;padding:0;
+  pointer-events:none;overflow:hidden}
+
+/* enquanto não conferiu, os dois grupos respiram junto com o aviso */
+.ctx-bloco.pedeconfere{position:relative}
+.ctx-bloco.pedeconfere::before{content:'';position:absolute;inset:-8px -10px;border-radius:14px;
+  background:rgba(255,180,84,.1);border:1px dashed rgba(224,124,10,.35);
+  pointer-events:none;animation:confereRespira 2.8s ease-in-out infinite 1s}
+@keyframes confereRespira{0%,100%{opacity:.45}50%{opacity:1}}
+.ctx-bloco.pedeconfere .ctx-lbl{color:var(--amber-dk)}
+
+@media(prefers-reduced-motion:reduce){
+  .ctx-alerta,.ctx-bloco.pedeconfere::before{animation:none}
+}
+
+/* ═══ BOTÃO DE PARÂMETROS COM LED NA BORDA ════════════════
+   Laranja, e com uma luz correndo a volta. É o único ajuste que muda o
+   resultado de tudo que vem depois — precisa se separar dos outros botões. */
+.btn-led{position:relative;isolation:isolate;color:#fff;border:none;
+  background:linear-gradient(150deg,#ffb454,#e07c0a);
+  box-shadow:0 1px 0 rgba(255,255,255,.32) inset,0 9px 22px -8px rgba(224,124,10,.75)}
+.btn-led:hover{filter:brightness(1.06);transform:translateY(-2px);
+  box-shadow:0 1px 0 rgba(255,255,255,.32) inset,0 14px 28px -10px rgba(224,124,10,.85)}
+.btn-led svg{stroke:#fff}
+/* a luz que dá a volta: máscara vaza o miolo para ficar só na borda */
+.btn-led::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;
+  pointer-events:none;
+  background:conic-gradient(from var(--led,0deg),rgba(255,255,255,0) 0deg,
+    rgba(255,255,255,.95) 30deg,rgba(255,236,190,1) 55deg,rgba(255,255,255,0) 110deg,
+    rgba(255,255,255,0) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:ledGira 2.6s linear infinite;animation-play-state:paused}
+.btn-led:hover::before{animation-play-state:running}
+@property --led{syntax:'<angle>';inherits:false;initial-value:40deg}
+@keyframes ledGira{to{--led:360deg}}
+@media(prefers-reduced-motion:reduce){.btn-led::before{animation:none}}
+
+/* o cartão de parâmetros do precificador recebe o mesmo LED */
+.cfg-params{position:relative;isolation:isolate}
+.cfg-params::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;
+  pointer-events:none;
+  background:conic-gradient(from var(--led,0deg),rgba(255,255,255,0) 0deg,
+    rgba(255,255,255,.9) 30deg,rgba(226,214,255,1) 55deg,rgba(255,255,255,0) 110deg,
+    rgba(255,255,255,0) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:ledGira 2.6s linear infinite;animation-play-state:paused}
+.cfg-params:hover::before{animation-play-state:running}
+
+/* páginas legais: o mesmo texto do guia, numa coluna só */
+.man-txt.legal{max-width:760px}
+.man-txt.legal section{padding:22px 0}
+.man-txt.legal h2{font-size:18px}
+
+/* o selo passou para o hero, na altura do título: ali sobrava espaço, e no
+   cabeçalho ele empurrava o menu para uma segunda linha */
+.hub-lado{display:flex;flex-direction:column;align-items:flex-end;gap:18px;
+  padding-top:4px}          /* alinha o selo com a primeira linha do título */
+@media(max-width:820px){.hub-lado{align-items:flex-start}}
+
+/* ═══ PWA — BANNER DE INSTALAÇÃO ═══════════════════════════
+   Flutua no canto inferior, no estilo dos cartões do resto do app —
+   camadas de sombra e borda de luz — para não parecer um anúncio importado. */
+.pwa-banner{position:fixed;left:18px;right:18px;bottom:18px;z-index:180;
+  max-width:460px;margin:0 auto;display:flex;align-items:center;gap:13px;
+  padding:14px 16px;border-radius:18px;
+  background:linear-gradient(165deg,var(--sup),var(--sup-2));
+  border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(16px);
+  box-shadow:0 1px 0 var(--gloss) inset,0 22px 50px -18px rgba(20,30,60,.45),
+             0 6px 18px -8px rgba(20,30,60,.25);
+  animation:pwaSobe .5s cubic-bezier(.16,1,.3,1) both}
+@keyframes pwaSobe{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.pwa-banner.hide{display:none}
+.pwa-banner img{width:44px;height:44px;flex:none;border-radius:12px;
+  box-shadow:0 4px 12px -4px rgba(20,30,60,.35)}
+.pwa-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pwa-tx b{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:-.1px}
+.pwa-tx i{font-style:normal;font-size:12.5px;color:var(--sub);line-height:1.4}
+.pwa-btn{flex:none;font-family:inherit;font-size:13.5px;font-weight:600;color:#fff;
+  border:none;padding:10px 16px;border-radius:100px;cursor:pointer;
+  background:linear-gradient(180deg,#5d87ff,#2145c9);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 8px 18px -6px rgba(47,90,224,.7);
+  transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.pwa-btn:hover{transform:translateY(-2px)}
+.pwa-x{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border-radius:50%;
+  background:var(--sup);border:1px solid var(--line);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 8px -2px rgba(20,30,60,.3)}
+.pwa-x svg{width:11px;height:11px;fill:none;stroke:var(--sub);stroke-width:2.4}
+@media(max-width:520px){
+  .pwa-banner{left:12px;right:12px;bottom:12px;padding:12px 14px}
+  .pwa-tx i{display:none}                     /* no celular sobra só o essencial */
+}
+
+/* botão "Instalar app" no rodapé: ícone + texto na mesma linha dos outros links */
+#peInstalar{display:inline-flex;align-items:center;gap:6px}
+
+/* aviso de versão nova, no rodapé da tela — reaproveita o mesmo tom do resto */
+.pwa-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(80px);
+  z-index:190;display:flex;align-items:center;gap:12px;padding:11px 12px 11px 18px;
+  border-radius:100px;background:#18213e;color:#eef2ff;
+  box-shadow:0 20px 44px -16px rgba(0,0,0,.5);font-size:14px;
+  transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.pwa-toast.on{transform:translateX(-50%) translateY(0)}
+.pwa-toast button{font-family:inherit;font-size:13.5px;font-weight:700;color:#18213e;
+  background:var(--sup);border:none;padding:8px 14px;border-radius:100px;cursor:pointer}
+
+/* ═══ PASSO A PASSO NO iOS ═══════════════════════════════ */
+.ios-passo{display:flex;gap:13px;align-items:flex-start;padding:13px 0;
+  border-bottom:1px solid var(--line)}
+.ios-passo:last-of-type{border-bottom:none}
+.ios-passo div{font-size:14.5px;line-height:1.6;color:var(--sub);padding-top:2px}
+.ios-n{width:24px;height:24px;flex:none;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13.5px;font-weight:700;color:#fff;
+  background:linear-gradient(160deg,#7ea1ff,#2f5ae0);
+  box-shadow:0 4px 10px -3px rgba(79,124,255,.7)}
+.ios-ic{width:16px;height:16px;display:inline-block;vertical-align:-3px;margin:0 1px;
+  fill:none;stroke:var(--blue-dk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ios-nota{margin-top:14px;font-size:13px;line-height:1.6;color:var(--faint);
+  padding:11px 13px;border-radius:11px;background:rgba(20,30,60,.04)}
+
+/* Três ferramentas na família Mercado Livre: em duas colunas a terceira
+   ficava sozinha na linha de baixo, com metade da faixa vazia ao lado. */
+.bento-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1040px){.bento-3{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.bento-3{grid-template-columns:1fr}}
+.tool-3{--ring:rgba(18,183,106,.43);--glow:rgba(18,183,106,.2);--halo:rgba(18,183,106,.5);--spark:#12b76a}
+
+/* ═══ RESUMO DA MUDANÇA DE PREÇO ══════════════════════════
+   É o bloco que decide se a carga pode subir, então ganha tratamento de
+   painel e não de parágrafo: número grande em mono, barra com a proporção
+   real e um tile por direção. Antes era texto corrido e ninguém parava
+   para ler antes de gerar o arquivo. */
+.an-var{position:relative;overflow:hidden;padding:20px 22px;border-radius:18px;
+  margin-bottom:18px;border:1px solid var(--line-2);
+  background:linear-gradient(160deg,var(--sup) 0%,var(--sup-2) 60%,var(--sup-3) 100%);
+  box-shadow:0 1px 0 var(--gloss) inset,0 16px 34px -22px rgba(20,30,60,.5)}
+/* fio de luz no topo, na cor do que está acontecendo */
+.an-var::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--fio,var(--blue)),transparent)}
+.an-var{--fio:var(--blue)}
+.an-var.unilateral{--fio:var(--amber);border-color:color-mix(in srgb,var(--amber) 42%,transparent)}
+
+.an-var-topo{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;margin-bottom:16px}
+.an-var-lbl{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--faint)}
+.an-var-h{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.3px;
+  color:var(--sub);margin-top:4px}
+.an-var-h em{font-style:normal;font-family:var(--mono);font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.an-var-mediana{text-align:right;flex:none}
+.an-var-mediana span{display:block;font-size:11px;font-weight:700;letter-spacing:1.4px;
+  text-transform:uppercase;color:var(--faint)}
+.an-var-mediana b{display:block;font-family:var(--mono);font-size:30px;font-weight:700;
+  letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+.an-var-mediana b.sobe{color:var(--green-dk)}
+.an-var-mediana b.desce{color:var(--red)}
+
+/* a proporção real, não uma barra decorativa */
+.an-var-barra{display:flex;height:7px;border-radius:100px;overflow:hidden;gap:2px;
+  background:var(--sup-3);margin-bottom:16px}
+.an-var-barra i{display:block}
+.an-var-barra .b-sobe{background:linear-gradient(90deg,#2BE08D,var(--green))}
+.an-var-barra .b-desce{background:linear-gradient(90deg,var(--red),#c72343)}
+.an-var-barra .b-igual{background:var(--faint)}
+
+.an-var-tiles{display:grid;gap:10px;
+  grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.5fr)}
+@media(max-width:820px){.an-var-tiles{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.an-var-tiles{grid-template-columns:1fr}}
+.an-tile{display:flex;flex-direction:column;gap:2px;padding:13px 15px;border-radius:13px;
+  background:var(--sup);border:1px solid var(--line);
+  box-shadow:0 1px 0 var(--gloss) inset}
+.an-tile-ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+  margin-bottom:5px}
+.an-tile-ic svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.t-sobe  .an-tile-ic{background:linear-gradient(160deg,#3ce89a,var(--green));
+  box-shadow:0 4px 10px -3px rgba(18,183,106,.65)}
+.t-desce .an-tile-ic{background:linear-gradient(160deg,#ff7a90,var(--red));
+  box-shadow:0 4px 10px -3px rgba(229,72,77,.6)}
+.t-igual .an-tile-ic{background:linear-gradient(160deg,#b9c3d4,var(--faint))}
+.an-tile-n{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.8px;
+  color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1}
+.an-tile-l{font-size:12px;color:var(--faint);letter-spacing:.3px}
+.t-faixa{justify-content:center;gap:4px}
+.an-tile-f{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.an-tile-f i{font-style:normal;font-family:var(--sans);font-weight:400;color:var(--faint);
+  font-size:13px;margin:0 3px}
+.an-tile-x{font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+
+.an-var-av{display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding-top:15px;
+  border-top:1px solid color-mix(in srgb,var(--amber) 32%,transparent);
+  font-size:13.5px;line-height:1.6;color:var(--sub)}
+.an-var-av-ic{width:28px;height:28px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(160deg,#fbbf24,#b45309);
+  box-shadow:0 5px 12px -4px rgba(245,158,11,.7)}
+.an-var-av-ic svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.5;
+  stroke-linecap:round;stroke-linejoin:round}
+.an-var-av b{color:var(--amber-dk)}
+
+/* ═══ A CONTA DE UMA LINHA ═════════════════════════════════
+   O preço aparecia pronto e não havia como saber de onde saiu. */
+.tr-clic{cursor:pointer}
+.tr-clic:hover > td{background:color-mix(in srgb,var(--blue) 7%,var(--sup-2))}
+.conta{display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line)}
+.conta-l{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding:12px 15px;background:var(--sup-2);font-size:14px}
+.conta-l span{color:var(--sub)}
+.conta-l b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);white-space:nowrap}
+.conta-l.neg b{color:var(--red)}
+.conta-l.tot{background:var(--sup-3);padding:15px}
+.conta-l.tot span{color:var(--ink);font-weight:600;font-size:15px}
+.conta-l.tot b{color:var(--green-dk);font-size:19px;font-weight:700}
+.conta-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:9px;margin-top:14px}
+.conta-tile{padding:11px 13px;border-radius:11px;background:var(--sup-2);
+  border:1px solid var(--line)}
+.conta-tile i{display:block;font-style:normal;font-size:11.5px;color:var(--faint);
+  letter-spacing:.4px}
+.conta-tile b{display:block;font-family:var(--display);font-size:17px;font-weight:700;
+  color:var(--ink);margin-top:3px;font-variant-numeric:tabular-nums}
+.conta-nota{font-size:13.5px;color:var(--sub);margin-top:13px;line-height:1.6}
+.conta-nota b{color:var(--ink)}
+.conta-vazio{text-align:center;padding:14px 0}
+.conta-vazio-t{font-family:var(--display);font-size:17px;font-weight:700}
+.conta-vazio-d{font-size:14px;color:var(--amber-dk);margin-top:7px}
+
+/* ═══ RESUMO ANTES DE BAIXAR ═══════════════════════════════ */
+.res-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+.res-tile2{padding:15px 16px;border-radius:13px;background:var(--sup-2);
+  border:1px solid var(--line)}
+.res-tile2-n{font-family:var(--display);font-size:23px;font-weight:800;letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums}
+.res-tile2-l{font-size:12.5px;color:var(--faint);margin-top:3px}
+.res-pends{display:flex;flex-direction:column;gap:7px}
+.res-pend{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;
+  background:var(--sup-2);border:1px solid var(--line);border-left-width:3px}
+.res-pend.erro{border-left-color:var(--red)}
+.res-pend.alerta{border-left-color:var(--amber)}
+.res-pend-n{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--ink);
+  font-variant-numeric:tabular-nums;min-width:52px}
+.res-pend-t{font-size:14px;color:var(--sub)}
+.res-limpo{display:flex;align-items:center;gap:11px;padding:14px 16px;margin-top:18px;
+  border-radius:12px;font-size:14px;color:var(--green-dk);
+  background:color-mix(in srgb,var(--green) 9%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--green) 28%,transparent)}
+.res-limpo svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.res-aviso{margin-top:16px;padding:13px 16px;border-radius:12px;font-size:13.5px;
+  line-height:1.6;color:var(--sub);background:var(--sup-3);border:1px solid var(--line)}
+.res-aviso b{color:var(--ink)}
+.res-aviso.erro{background:color-mix(in srgb,var(--red) 8%,var(--sup));
+  border-color:color-mix(in srgb,var(--red) 30%,transparent)}
+.res-aviso.erro b{color:var(--red)}
+
+/* ── buscar pela API ─────────────────────────────────────── */
+.api-linha-acao{margin-bottom:16px}
+.api-ou{display:flex;align-items:center;gap:12px;margin-top:16px;
+  font-size:12.5px;color:var(--faint);letter-spacing:.4px}
+.api-ou::before,.api-ou::after{content:'';flex:1;height:1px;background:var(--line)}
+.btn-blue{background:linear-gradient(180deg,#5f89ff,#2f5ae0);color:#fff;border-color:transparent;
+  box-shadow:0 8px 20px -8px rgba(47,90,224,.75)}
+.btn-blue:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(47,90,224,.9)}
+.api-estado{padding:14px 16px;border-radius:13px;margin-bottom:16px;font-size:13.5px;
+  line-height:1.6;border:1px solid var(--line);background:var(--sup-2);color:var(--sub)}
+.api-estado b{color:var(--ink)}
+.api-estado.erro{background:color-mix(in srgb,var(--red) 8%,var(--sup));
+  border-color:color-mix(in srgb,var(--red) 30%,transparent)}
+.api-estado.erro b{color:var(--red)}
+.api-estado.ok{background:color-mix(in srgb,var(--green) 9%,var(--sup));
+  border-color:color-mix(in srgb,var(--green) 28%,transparent)}
+.api-estado.ok b{color:var(--green-dk)}
+.api-estado a{color:var(--blue-dk);font-weight:600}
+.api-passos{margin:10px 0 0;padding-left:20px}
+.api-passos li{margin-bottom:5px}
+
+/* ═══ OS QUATRO CARDS DA HOME ══════════════════════════════
+   Um card por canal de venda, mais um de ferramentas gerais. O do Mercado
+   Livre tem mais coisa que os outros, então a grade deixa cada card com a
+   altura do próprio conteúdo em vez de esticar todos pelo maior. */
+.secoes-4{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:900px){.secoes-4{grid-template-columns:1fr}}
+
+.mkt-ferramentas{--borda:rgba(79,124,255,.34);--selo:#fff;
+  --selofundo:linear-gradient(160deg,#7ea1ff,#2f5ae0)}
+
+/* Ferramenta de verdade: linha alta, com seta que anda no hover. As consultas
+   ficam em pastilha (.chip) porque são atalho de leitura, não ferramenta —
+   dar o mesmo peso às duas coisas era parte da bagunça. */
+.mini-alto{height:auto;min-height:64px;padding:12px 14px}
+.mini-alto span{flex:1;min-width:0}
+/* o nome da ferramenta quebra em vez de virar reticências: "Planilha no
+   padrão Mercad…" não diz o que a ferramenta faz */
+.mini-alto b{white-space:normal;line-height:1.3}
+.mini-alto i{white-space:normal;line-height:1.45}
+.mini-seta{width:16px;height:16px;flex:none;fill:none;stroke:var(--faint);stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .16s,stroke .16s}
+.mini:hover .mini-seta{stroke:var(--blue);transform:translateX(3px)}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  padding:8px 14px;border-radius:100px;color:var(--sub);
+  border:1px solid var(--line);background:var(--sup-t);
+  transition:border-color .15s,color .15s,transform .15s}
+.chip:hover:not(.off){border-color:var(--blue);color:var(--blue-dk);transform:translateY(-1px)}
+.chip:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.chip.off{opacity:.5;cursor:default;border-style:dashed}
+
+/* ── qual conta do Mercado Livre está ligada ─────────────────
+   A tela de autorização do ML usa a conta logada no navegador, sem
+   perguntar. Autorizar pela conta errada é fácil, e o erro só apareceria
+   com os preços já publicados na loja errada. */
+.conta-ml{display:flex;align-items:flex-start;gap:12px;margin-top:12px;padding:12px 14px;
+  border-radius:12px;background:var(--sup-3);border:1px solid var(--line)}
+.conta-ml-ic{width:30px;height:30px;flex:none;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(160deg,#7ea1ff,#2f5ae0)}
+.conta-ml-ic svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+.conta-ml-t{font-size:14px;color:var(--sub)}
+.conta-ml-t b{color:var(--ink);font-weight:700}
+.conta-ml-d{font-size:12.5px;color:var(--faint);line-height:1.55;margin-top:3px}
+
+/* ═══ CARDS DA HOME QUE ABREM ══════════════════════════════
+   Fechados mostram só a marca do canal e quantas ferramentas tem. A lista
+   aparece quando a pessoa escolhe o canal — antes tudo ficava aberto ao
+   mesmo tempo e a home virava uma parede de opções. */
+.mkt-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%;
+  padding:0;margin:0;border:none;background:none;cursor:pointer;font-family:inherit;
+  text-align:left}
+.mkt-h:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:12px}
+.mkt-seta{width:18px;height:18px;margin-left:auto;flex:none;fill:none;stroke:var(--faint);
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.mkt.aberto .mkt-seta{transform:rotate(180deg);stroke:var(--blue)}
+.mkt-h:hover .mkt-seta{stroke:var(--blue)}
+
+/* a gaveta: fechada não ocupa espaço nem recebe foco de teclado */
+/* max-height e não o truque de grid 0fr: aquele colapsa só a primeira linha,
+   e a gaveta tem vários filhos (ferramentas, consultas, chegando) — os de
+   baixo ganhavam linha automática e o card continuava alto e vazio. */
+.mkt-corpo{max-height:0;overflow:hidden;opacity:0;visibility:hidden;margin-top:0;
+  transition:max-height .28s ease,opacity .2s ease,margin-top .28s ease}
+.mkt.aberto .mkt-corpo{max-height:1400px;opacity:1;visibility:visible;margin-top:14px}
+@media(prefers-reduced-motion:reduce){.mkt-corpo{transition:none}}
+
+/* fechado o card fica compacto; aberto ganha destaque na cor do canal */
+.mkt{transition:border-color .2s,box-shadow .2s}
+.mkt.aberto{border-color:var(--borda);
+  box-shadow:0 1px 0 var(--gloss) inset,0 16px 40px -26px rgba(20,30,60,.5)}
+
+/* ═══ BLOCO RECOLHIDO DE OPÇÕES ════════════════════════════
+   Padrão que serve à maioria fica fechado, com o resumo do que vai ser
+   usado na própria linha. Cinco selects abertos viravam uma parede. */
+.avancado{border:1px solid var(--line);border-radius:13px;background:var(--sup-2);
+  overflow:hidden}
+.avancado summary{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  cursor:pointer;list-style:none;user-select:none}
+.avancado summary::-webkit-details-marker{display:none}
+.avancado summary:hover{background:var(--sup-3)}
+.avancado summary:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.av-t{font-size:14.5px;font-weight:700;color:var(--ink);flex:none}
+.av-resumo{font-size:13px;color:var(--faint);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av-seta{width:17px;height:17px;flex:none;fill:none;stroke:var(--faint);stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.avancado[open] .av-seta{transform:rotate(180deg);stroke:var(--blue)}
+.av-corpo{padding:2px 16px 16px}
+
+/* ═══ WORKSPACE DA HOME ════════════════════════════════════
+   Quatro quadros em linha, ocupando a largura. A primeira tentativa amarrou o
+   tamanho à altura: em tela baixa os quadros encolhiam e sobrava um vão enorme
+   dos dois lados. Agora a largura manda — cada quadro pega um quarto da faixa
+   — e a altura só entra como teto, para caber sem rolagem. */
+/* Só a home cabe inteira na tela. O rodapé do site é filho do <body>, não do
+   shell — mandar o shell ocupar 100vh não bastava, sobrava a altura dele. */
+body.view-hub{height:100vh;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+body.view-hub .shell{flex:1 1 0;min-height:0;height:auto}
+/* na home os quadros são o conteúdo, então a faixa pode ser mais larga que
+   nas telas de leitura — quadrado pequeno no meio de uma tela larga sobra
+   vão dos dois lados e some o efeito de vitrine */
+body.view-hub .wrap{min-height:0;overflow:hidden;max-width:1580px}
+body.view-hub > footer{flex:none}
+
+.ws{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding-bottom:8px}
+.ws-grade{display:flex;gap:18px;width:100%;height:100%;
+  align-items:center;justify-content:center}
+
+.ws-card{position:relative;overflow:hidden;cursor:pointer;font-family:inherit;
+  flex:1 1 0;min-width:0;aspect-ratio:1/1;max-height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  padding:24px 20px;border-radius:24px;border:1px solid var(--line);
+  background:var(--sup);box-shadow:var(--sombra-card);
+  transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s,border-color .22s}
+.ws-card::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 85% at 50% 0%,var(--tinta,transparent),transparent 60%);
+  opacity:.55;transition:opacity .22s}
+.ws-card:hover{transform:translateY(-6px);border-color:var(--aro,var(--blue));
+  box-shadow:0 1px 0 var(--gloss) inset,0 30px 56px -28px var(--aro,rgba(20,30,60,.5))}
+.ws-card:hover::before{opacity:1}
+.ws-card:focus-visible{outline:3px solid var(--aro,var(--blue));outline-offset:3px}
+
+.ws-ml         {--tinta:rgba(255,230,0,.24);  --aro:rgba(255,214,0,.8)}
+.ws-ferramentas{--tinta:rgba(79,124,255,.16); --aro:rgba(79,124,255,.7)}
+.ws-shopee     {--tinta:rgba(238,77,45,.14);  --aro:rgba(238,77,45,.6)}
+.ws-amazon     {--tinta:rgba(255,153,0,.16);  --aro:rgba(255,153,0,.7)}
+
+/* a marca é o que a pessoa reconhece antes de ler qualquer rótulo */
+.ws-marca{position:relative;display:flex;align-items:center;justify-content:center;
+  flex:1 1 auto;min-height:0;width:100%}
+.ws-marca img{max-width:76%;max-height:100%;object-fit:contain;
+  transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.ws-card:hover .ws-marca img{transform:scale(1.06)}
+.ws-marca-txt{flex-direction:column;gap:10px;color:var(--blue-dk);
+  font-family:var(--display);font-weight:800;letter-spacing:-.4px;
+  font-size:clamp(15px,1.5vw,24px);text-align:center}
+.ws-marca-txt svg{width:clamp(30px,3vw,44px);height:clamp(30px,3vw,44px);flex:none;
+  fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* o pé fica embaixo, sem nada por cima: antes a seta flutuava sobre o texto */
+.ws-pe{position:relative;flex:none;text-align:center;width:100%}
+.ws-pe b{display:block;font-size:clamp(12px,1.05vw,15px);font-weight:700;color:var(--ink)}
+.ws-pe i{display:block;font-style:normal;font-size:clamp(11px,.95vw,13px);
+  color:var(--faint);margin-top:3px;line-height:1.35}
+/* a seta vai para o alto, onde não disputa espaço com o texto */
+.ws-seta{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;background:var(--sup-3);border:1px solid var(--line);
+  opacity:0;transform:translateX(-4px);transition:all .2s}
+.ws-seta svg{width:14px;height:14px;fill:none;stroke:var(--sub);stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+.ws-card:hover .ws-seta{opacity:1;transform:none;border-color:var(--aro)}
+
+/* o quadro aberto ocupa o lugar da grade */
+.ws-painel{flex:1;min-height:0;display:flex;flex-direction:column;
+  border-radius:22px;border:1px solid var(--aro,var(--line));background:var(--sup);
+  box-shadow:var(--sombra-card);overflow:hidden}
+.ws-painel-h{display:flex;align-items:center;gap:16px;padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--tinta,transparent),transparent)}
+.ws-painel-marca{display:flex;align-items:center;margin-left:auto}
+.ws-painel-marca img{height:30px;object-fit:contain}
+.ws-txt{font-family:var(--display);font-weight:800;font-size:18px;color:var(--blue-dk)}
+.ws-voltar{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;
+  font-size:14px;font-weight:600;color:var(--sub);padding:9px 15px;border-radius:11px;
+  border:1px solid var(--line);background:var(--sup-2);transition:all .15s}
+.ws-voltar:hover{color:var(--ink);border-color:var(--blue);transform:translateX(-2px)}
+.ws-voltar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+.ws-painel-b{flex:1;min-height:0;overflow-y:auto;padding:18px}
+
+/* Abaixo de 1080px quatro quadrados ficariam pequenos demais para o logo ser
+   lido: viram dois por linha, e aí a home pode rolar um pouco. */
+/* três canais agora, não quatro: cada quadro fica maior sem mudar mais nada,
+   porque a faixa divide o que existe entre os que existem */
+@media(max-width:1080px){
+  body.view-hub{height:auto;overflow:visible;display:block}
+  body.view-hub .shell{height:auto}
+  body.view-hub .wrap{overflow:visible}
+  .ws{display:block}
+  .ws-grade{display:grid;grid-template-columns:1fr 1fr;height:auto}
+  .ws-card{aspect-ratio:1/1;max-height:none}
+}
+@media(max-width:620px){
+  .ws-grade{grid-template-columns:1fr}
+  .ws-card{aspect-ratio:16/9;padding:20px}
+}
+
+/* ═══ QUADROS DENTRO DO CANAL ══════════════════════════════
+   Mesmo desenho da home — quadrados e iguais entre si — só que menores:
+   aqui a pessoa já escolheu o canal, e o que ela procura agora é a
+   ferramenta, não a marca. */
+.ws-minis{display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+/* Seis colunas fecham a conta: duas principais em cima (três colunas cada) e
+   as seis de apoio numa linha embaixo. Com a grade automática sobrava meia
+   linha vazia no fim.
+
+   As duas linhas dividem a altura que existe. Antes o quadrado tirava a
+   altura da própria largura e não cedia — em tela baixa o painel passava a
+   rolar, que era o que atrapalhava. Ficam quase quadrados quando há espaço e
+   achatam quando falta, em vez de empurrar o conteúdo para fora. */
+.ws-minis.com-destaque{grid-template-columns:repeat(6,1fr);
+  height:100%;grid-template-rows:minmax(120px,.82fr) minmax(104px,1fr)}
+.ws-minis.com-destaque .ws-mini{aspect-ratio:auto;height:100%;min-height:0}
+.ws-minis.com-destaque .ws-mini.destaque{min-height:0}
+/* seis colunas divididas pelo número de principais: a primeira linha fecha */
+.ws-minis.d2 .ws-mini.destaque{grid-column:span 3}
+.ws-minis.d3 .ws-mini.destaque{grid-column:span 2}
+.ws-minis.d1 .ws-mini.destaque{grid-column:span 6}
+/* o painel vira coluna para a grade poder tirar a altura dele */
+body.view-hub .ws-painel-b{display:flex;flex-direction:column}
+body.view-hub .ws-painel-b > .ws-minis{flex:1 1 0;min-height:0}
+@media(max-width:1100px){
+  .ws-minis.com-destaque{grid-template-columns:repeat(4,1fr)}
+  .ws-minis.com-destaque .ws-mini.destaque{grid-column:span 2}
+  .ws-minis.d3 .ws-mini.destaque{grid-column:span 4}
+}
+@media(max-width:760px){
+  .ws-minis.com-destaque{grid-template-columns:repeat(2,1fr)}
+  .ws-minis.com-destaque .ws-mini.destaque{grid-column:span 2}
+}
+.ws-mini{aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
+  font-family:inherit;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;padding:16px;border-radius:18px;
+  border:1px solid var(--line);background:var(--sup-2);
+  box-shadow:0 1px 0 var(--gloss) inset,0 6px 18px -12px rgba(20,30,60,.4);
+  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s,border-color .2s}
+.ws-mini:hover:not(:disabled){transform:translateY(-4px);border-color:var(--blue);
+  box-shadow:0 1px 0 var(--gloss) inset,0 18px 34px -18px rgba(47,90,224,.6)}
+.ws-mini:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.ws-mini-ic{width:54px;height:54px;display:grid;place-items:center;flex:none}
+.ws-mini-ic img{width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 5px 9px rgba(20,30,60,.24));
+  transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.ws-mini:hover:not(:disabled) .ws-mini-ic img{transform:translateY(-3px) scale(1.08)}
+.ws-mini-n{font-size:13.5px;font-weight:700;color:var(--ink);text-align:center;
+  line-height:1.3}
+.ws-mini-tag{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--faint);padding:3px 9px;border-radius:100px;background:var(--sup-3)}
+
+/* A principal é outra coisa, não uma versão maior: ocupa duas colunas, fica
+   deitada, e ganha profundidade de verdade — camadas de sombra, brilho por
+   dentro e um leve levantar no hover. As outras são apoio e ficam quietas. */
+.ws-mini.destaque{grid-column:span 2;aspect-ratio:auto;min-height:170px;
+  flex-direction:row;align-items:center;justify-content:flex-start;
+  gap:18px;padding:22px 24px;text-align:left;border-color:transparent;
+  background:linear-gradient(150deg,var(--sup) 0%,var(--sup-2) 55%,var(--sup-3) 100%);
+  box-shadow:0 0 0 1.5px var(--aro,rgba(79,124,255,.55)),
+             0 2px 0 rgba(255,255,255,.6) inset,
+             0 -14px 30px -20px rgba(20,30,60,.5) inset,
+             0 10px 18px -12px rgba(20,30,60,.35),
+             0 30px 50px -26px rgba(20,30,60,.55)}
+/* a luz que dá o volume: mais forte em cima, some no meio */
+.ws-mini.destaque::after{content:'';position:absolute;inset:0;pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),transparent 46%);
+  opacity:.7}
+.ws-mini.destaque .ws-mini-ic{width:74px;height:74px}
+.ws-mini.destaque .ws-mini-ic img{filter:drop-shadow(0 10px 16px rgba(20,30,60,.4))}
+.ws-mini.destaque .ws-mini-n{font-size:16px;text-align:left}
+.ws-mini.destaque:hover{transform:translateY(-7px);
+  box-shadow:0 0 0 2px var(--aro,var(--blue)),
+             0 2px 0 rgba(255,255,255,.65) inset,
+             0 -14px 30px -20px rgba(20,30,60,.5) inset,
+             0 14px 22px -14px rgba(20,30,60,.4),
+             0 44px 70px -30px rgba(20,30,60,.65)}
+.ws-mini.destaque:hover .ws-mini-ic img{transform:translateY(-4px) scale(1.1) rotate(-3deg)}
+
+.ws-mini-txt{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.ws-mini-r{font-size:13px;color:var(--sub);line-height:1.45;font-weight:400}
+
+@media(max-width:760px){
+  .ws-mini.destaque{grid-column:span 1;flex-direction:column;text-align:center;
+    justify-content:center;min-height:0;aspect-ratio:1/1}
+  .ws-mini.destaque .ws-mini-n{text-align:center}
+  .ws-mini-r{display:none}
+}
+.ws-mini.breve{opacity:.55;cursor:default;border-style:dashed;box-shadow:none}
+
+/* ═══ BALÃO DE EXPLICAÇÃO ══════════════════════════════════
+   O quadro é pequeno de propósito; a lista do que a ferramenta faz não
+   caberia dentro dele. Abre ao lado, preso à tela. */
+/* nunca passa da tela: em altura curta o balão rola por dentro em vez de
+   ficar cortado pela borda de baixo */
+.ws-pop{position:fixed;z-index:180;width:min(340px,calc(100vw - 24px));
+  max-height:calc(100vh - 24px);overflow-y:auto;
+  padding:16px 18px;border-radius:16px;pointer-events:none;
+  background:var(--sup);border:1px solid var(--line-2);
+  box-shadow:0 24px 60px -24px rgba(20,30,60,.55),0 1px 0 var(--gloss) inset;
+  animation:popEntra .16s ease}
+@keyframes popEntra{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ws-pop{animation:none}}
+.ws-pop-h{display:flex;align-items:flex-start;gap:12px}
+.ws-pop-h img{width:38px;height:38px;flex:none;object-fit:contain}
+.ws-pop-t{font-family:var(--display);font-size:15.5px;font-weight:700;color:var(--ink)}
+.ws-pop-s{font-size:13px;color:var(--sub);margin-top:2px;line-height:1.5}
+.ws-pop-l{margin:12px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.ws-pop-l li{font-size:13px;color:var(--sub);line-height:1.5}
+.ws-pop-l li::marker{color:var(--blue)}
+.ws-pop-breve{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:12.5px;color:var(--amber-dk)}
+
+/* ═══ CABEÇALHO COMPACTO NA HOME ═══════════════════════════
+   Na home o conteúdo são os quadros; o texto de abertura é apresentação e
+   estava tomando cem pixels da altura — que faltavam justamente ao painel
+   aberto, que passava a rolar. Aqui ele fica em uma linha e cede o espaço. */
+body.view-hub .hub-head{margin-bottom:10px;align-items:center;gap:20px}
+body.view-hub .hub-head h1{font-size:clamp(20px,2vw,27px);line-height:1.15}
+body.view-hub .hub-head h1 br{display:none}
+body.view-hub .hub-head h1 .grad{margin-left:.35em}
+body.view-hub .h-sub{font-size:13px;line-height:1.45;margin-top:4px;max-width:62ch}
+body.view-hub .hub-lado{gap:10px;padding-top:0}
+body.view-hub .hub-prova{gap:20px}
+body.view-hub .prv b{font-size:17px}
+
+/* sobra pouca altura: o painel aberto usa cada pixel */
+body.view-hub .ws-painel-b{padding:14px}
+.ws-minis{gap:12px}
+
+/* Em tela baixa o texto de apoio sai: entre ler a frase de abertura e ver as
+   ferramentas sem rolar, as ferramentas ganham. */
+@media(max-height:760px){
+  body.view-hub .h-sub{display:none}
+  body.view-hub .hub-head{margin-bottom:8px}
+}
 
 /* ═══ OS DOIS ARQUIVOS ═════════════════════════════════════
    A ferramenta pede dois e só: lado a lado, numerados, para ficar claro de
@@ -2110,3 +3934,52 @@ body.view-hub .ws-painel-b{padding:14px}
 .acao-topo .btn{flex:1 1 auto;min-width:220px}
 .acao-topo-t{flex:1 1 100%;font-size:13.5px;color:var(--sub);margin-bottom:2px}
 .acao-topo-t b{color:var(--ink)}
+
+/* ── chave de publicação ───────────────────────────────────────────────────
+   Aparece antes de publicar preços na loja de verdade. É um campo de senha
+   comum, mas com peso visual de alerta: quem chega aqui está a um clique de
+   mudar o preço de milhares de anúncios no ar. */
+.chave-box{margin-bottom:12px;padding:13px 15px;border-radius:12px;
+  background:var(--sup-3);border:1px solid var(--line)}
+.chave-box label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:8px}
+.chave-box label svg{width:14px;height:14px;flex:none;fill:none;stroke:var(--blue);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chave-box input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;
+  border:1px solid var(--line);background:var(--sup);color:var(--ink);
+  font:inherit;font-size:14px;letter-spacing:.02em}
+.chave-box input:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent)}
+.chave-d{font-size:12.5px;color:var(--faint);line-height:1.55;margin-top:7px}
+
+/* ── formulário de mapeamento de colunas ───────────────────────────────────
+   Usado pelas telas de Shopee/Amazon e de Anúncios, que montam os campos por
+   JavaScript. As classes existiam no HTML gerado e não tinham regra nenhuma:
+   os rótulos e os selects caíam no fluxo padrão, sem grade nem respiro. O
+   equivalente do Mercado Livre é o par .grid3 + .lbl, e a aparência aqui
+   segue a mesma linguagem. */
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:15px}
+.campo{display:flex;flex-direction:column;gap:7px;min-width:0}
+.campo > span{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--green-dk);line-height:1.4}
+/* a ajuda de cada campo vive dentro do <span> do rótulo, em caixa baixa */
+.campo > span i{display:block;margin-top:5px;font-style:normal;font-size:12.5px;font-weight:400;
+  letter-spacing:0;text-transform:none;color:var(--faint);line-height:1.55}
+/* um switch ocupa a linha toda: rótulo curto ao lado da chave, não empilhado */
+.campos > .sw{grid-column:1/-1}
+
+/* ── números em coluna ─────────────────────────────────────────────────────
+   Dígitos de larguras diferentes fazem a coluna serpentear. Vale para as três
+   tabelas do app, não só para as que declaram .c-num — assim Mercado Livre,
+   marketplaces e anúncios leem igual. */
+.tbl-wrap .c-num,
+.tbl-wrap .c-custo,.tbl-wrap .c-peso,.tbl-wrap .c-preco,
+.tbl-wrap .c-taxa,.tbl-wrap .c-lucro{font-variant-numeric:tabular-nums}
+
+/* estado da integração com o Mercado Livre: só o respiro, o miolo é .api-ok */
+.api-topo:not(:empty){margin-bottom:16px}
+
+/* rodapé da prévia: quantas mudanças estão à mostra, e o botão do resto */
+.prev-fim{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  padding:14px 4px 4px;font-size:13px;color:var(--faint)}
+.prev-fim b{color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}

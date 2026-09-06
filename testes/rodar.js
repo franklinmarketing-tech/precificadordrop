@@ -649,6 +649,243 @@ secao('12. Shopee Brasil');
   });
 }
 
+/* ── 13. Quem pode mexer na loja ───────────────────────────────────────────
+   O endpoint que muda preço de anúncio no ar nasceu sem nenhuma tranca:
+   qualquer POST com a URL certa zerava a loja. Estes testes existem para que
+   isso não volte por descuido — em especial o primeiro, que garante que
+   faltar configuração RECUSA em vez de liberar.                            */
+secao('13. Guarda dos endpoints do Mercado Livre');
+{
+  const G = require('../api/_guarda.js');
+
+  const res = () => {
+    const r = {code: 0, corpo: null};
+    r.status = c => { r.code = c; return r; };
+    r.json = o => { r.corpo = o; return r; };
+    r.setHeader = () => {};
+    return r;
+  };
+  const req = (h = {}) => ({headers: Object.assign({host: 'app.com'}, h)});
+  const guardado = process.env.APP_SECRET;
+
+  /* sem chave configurada, recusa. É o contrário do que o app fazia antes. */
+  delete process.env.APP_SECRET;
+  let r = res();
+  ok(G.exigirChave(req({'x-drop-chave': 'seja-o-que-for'}), r) === false,
+     'sem APP_SECRET, nada passa — nem com cabeçalho');
+  ok(r.code === 503 && r.corpo.precisaChave === true,
+     'e explica que falta configurar', 'respondeu ' + r.code);
+
+  /* senha curta é o mesmo que senha nenhuma */
+  process.env.APP_SECRET = 'curta';
+  ok(G.exigirChave(req({'x-drop-chave': 'curta'}), res()) === false,
+     'senha com menos de 16 caracteres é recusada');
+
+  process.env.APP_SECRET = 'senha-bem-comprida-123';
+  r = res();
+  ok(G.exigirChave(req({}), r) === false && r.code === 401, 'sem cabeçalho responde 401');
+  r = res();
+  ok(G.exigirChave(req({'x-drop-chave': 'outra-coisa-comprida'}), r) === false && r.code === 401,
+     'chave errada responde 401');
+  ok(G.exigirChave(req({'x-drop-chave': 'senha-bem-comprida-123'}), res()) === true,
+     'chave certa passa');
+
+  r = res();
+  ok(G.mesmaOrigem(req({origin: 'https://outro-site.com'}), r) === false && r.code === 403,
+     'chamada de outro site é recusada');
+  ok(G.mesmaOrigem(req({origin: 'https://app.com'}), res()) === true, 'a própria página passa');
+  ok(G.mesmaOrigem(req({}), res()) === true, 'sem Origin (curl) segue e cai na chave');
+
+  /* o freio vem antes da chave, senão dava para tentar adivinhar sem parar */
+  let travadas = 0;
+  for (let i = 0; i < 80; i++) {
+    const rr = res();
+    if (G.protegido(req({'x-forwarded-for': '9.9.9.9', 'x-drop-chave': 'chute-' + i}), rr,
+                    {max: 60, janelaMs: 60000}) === false && rr.code === 429) travadas++;
+  }
+  ok(travadas === 20, 'tentativa de adivinhar a chave é freada em 429',
+     `travou ${travadas} das 80 (esperado 20 com limite de 60)`);
+
+  if (guardado == null) delete process.env.APP_SECRET;
+  else process.env.APP_SECRET = guardado;
+}
+
+/* ── 14. Peso em gramas nos canais novos ───────────────────────────────────
+   A calculadora do Mercado Livre já detectava gramas lidas como quilo; a de
+   Shopee e Amazon não, e o preço saía dez vezes maior sem nada impedir. Estes
+   testes fixam o comportamento nos dois sentidos: converte o que é grama, e
+   não encosta no que já é quilo.                                            */
+secao('14. Peso em gramas na Shopee e na Amazon');
+{
+  /* o caso medido: custo 120 na Amazon FBA, peso "350" na planilha */
+  const cru    = AZ.precificarLinha({linha: 1, custo: 120, peso: '350'},  {});
+  const certo  = AZ.precificarLinha({linha: 1, custo: 120, peso: '0,35'}, {});
+  ok(cru.preco > certo.preco * 5,
+     'sem converter, 350 g lido como kg explode o preço (era o defeito)',
+     `${cru.preco} contra ${certo.preco}`);
+
+  const conv = ML.normalizarPesoLinha('350', true);
+  ok(conv.convertido === true, '350 é reconhecido como grama');
+  perto(conv.kg, 0.35, '350 g vira 0,35 kg');
+
+  const corrigido = AZ.precificarLinha({linha: 1, custo: 120, peso: conv.kg}, {});
+  perto(corrigido.preco, certo.preco, 'depois da conversão o preço bate com o correto');
+  perto(corrigido.frete, certo.frete, 'e o frete também');
+
+  /* o outro lado: quilo com casa decimal é peso de verdade e não pode mudar */
+  ok(ML.normalizarPesoLinha('2,575', true).convertido === false, '2,575 kg não é convertido');
+  ok(ML.normalizarPesoLinha('0,9', true).convertido === false,   '0,9 kg não é convertido');
+
+  /* a coluna inteira: é o que a tela usa para decidir se pergunta */
+  const col = ML.detectarEscalaPeso(['2000', '1091', '500', '350']);
+  ok(col.suspeita === true && col.todosGrandes === true,
+     'coluna toda em gramas é detectada como tal');
+  ok(ML.detectarEscalaPeso(['0,9', '2,575', '1,2']).suspeita === false,
+     'coluna toda em quilos não gera pergunta');
+
+  /* na Shopee o preço não depende do peso (o vendedor não paga frete), mas o
+     peso declarado a menos é cobrado depois — por isso a tela pergunta lá também */
+  const sh1 = SH.precificarLinha({linha: 1, custo: 60, peso: '350'},  {});
+  const sh2 = SH.precificarLinha({linha: 1, custo: 60, peso: '0,35'}, {});
+  perto(sh1.preco, sh2.preco, 'na Shopee o peso não muda o preço');
+  ok(sh1.preco != null, 'e o preço da Shopee é calculado nos dois casos');
+}
+
+/* ── 15. Trocar preços dentro do XML ───────────────────────────────────────
+   O .xlsx sai igual ao que entrou, com outros preços. Antes esta lógica vivia
+   na tela, montava um RegExp por produto e varria o XML inteiro para cada um:
+   com 5.000 anúncios a aba congelava. Agora é uma passada só — e, por estar no
+   motor, tem teste.                                                          */
+secao('15. Trocar preços dentro do XML da planilha');
+{
+  const letra = AE.letraDaColuna;
+  ok(letra(0) === 'A',   'coluna 0 é A');
+  ok(letra(3) === 'D',   'coluna 3 é D');
+  ok(letra(25) === 'Z',  'coluna 25 é Z');
+  ok(letra(26) === 'AA', 'coluna 26 é AA');
+  ok(letra(51) === 'AZ', 'coluna 51 é AZ');
+  ok(letra(52) === 'BA', 'coluna 52 é BA');
+
+  /* as três formas em que uma célula aparece num xlsx real */
+  const xml = '<worksheet><sheetData>'
+    + '<row r="1"><c r="D1" t="s"><v>7</v></c></row>'
+    + '<row r="2"><c r="A2" t="s"><v>1</v></c><c r="D2" s="7"><v>10.50</v></c></row>'
+    + '<row r="3"><c r="D3" s="4"/></row>'
+    + '<row r="4"><c r="D4"><v>99</v></c></row>'
+    + '<row r="5"><c r="D5" s="2"><v>1</v></c></row>'
+    + '</sheetData></worksheet>';
+
+  const novos = new Map([[1, 33.9], [2, 12], [3, 8.25]]);   // linhas físicas 1,2,3 → D2,D3,D4
+  const r = AE.trocarPrecosNoXml(xml, 'D', novos);
+
+  ok(r.trocados === 3, 'trocou as três células pedidas', 'trocou ' + r.trocados);
+  ok(r.xml.indexOf('<c r="D2" s="7"><v>33.9</v></c>') >= 0, 'célula com conteúdo troca e mantém o estilo');
+  ok(r.xml.indexOf('<c r="D3" s="4"><v>12</v></c>') >= 0,   'célula vazia (<c .../>) recebe valor e mantém o estilo');
+  ok(r.xml.indexOf('<c r="D4"><v>8.25</v></c>') >= 0,       'célula sem estilo troca sem inventar estilo');
+  ok(r.xml.indexOf('<c r="D1" t="s"><v>7</v></c>') >= 0,    'linha fora do mapa fica intacta');
+  ok(r.xml.indexOf('<c r="D5" s="2"><v>1</v></c>') >= 0,    'linha abaixo do mapa fica intacta');
+  ok(r.xml.indexOf('<c r="A2" t="s"><v>1</v></c>') >= 0,    'outras colunas ficam intactas');
+  ok(r.xml.indexOf('t="s"><v>33.9') < 0, 'o t="s" sai: o valor deixou de ser texto e virou número');
+
+  /* preço inválido não pode corromper o arquivo: a célula fica como estava */
+  const ruim = AE.trocarPrecosNoXml(xml, 'D', new Map([[1, NaN], [2, null], [3, 'abc']]));
+  ok(ruim.trocados === 0, 'preço que não é número não é gravado', 'trocou ' + ruim.trocados);
+  ok(ruim.xml === xml, 'e o XML sai byte a byte igual ao que entrou');
+
+  /* mapa vazio devolve o mesmo XML, sem custo */
+  ok(AE.trocarPrecosNoXml(xml, 'D', new Map()).trocados === 0, 'mapa vazio não mexe em nada');
+
+  ok(AE.escaparXml('a & b < c') === 'a &amp; b &lt; c', 'escapa & e < ao gravar');
+
+  /* lote grande: o que antes levava minutos tem de passar num piscar */
+  const linhas = [];
+  for (let i = 1; i <= 5000; i++)
+    linhas.push(`<row r="${i}"><c r="A${i}" t="s"><v>SKU-${i}</v></c><c r="D${i}" s="7"><v>${10 + i % 90}</v></c></row>`);
+  const grande = '<worksheet><sheetData>' + linhas.join('') + '</sheetData></worksheet>';
+  const mapa = new Map();
+  for (let i = 1; i < 5000; i++) mapa.set(i, 100 + (i % 50));
+  const t0 = Date.now();
+  const g = AE.trocarPrecosNoXml(grande, 'D', mapa);
+  const ms = Date.now() - t0;
+  ok(g.trocados === 4999, '5.000 linhas: troca todas', 'trocou ' + g.trocados);
+  /* o limite é folgado de propósito — o que se quer barrar é a volta do
+     comportamento quadrático, que levava milhares de milissegundos */
+  ok(ms < 1500, 'e faz isso numa passada só (sem o custo quadrático de antes)', ms + ' ms');
+}
+
+/* ── 16. O lint das amarras HTML/CSS/JS ────────────────────────────────────
+   Duas coisas: o lint tem de PEGAR cada defeito que já aconteceu de verdade
+   (senão passar limpo não significa nada), e o projeto de hoje tem de passar
+   limpo por ele.                                                             */
+const LINT = require('./lint.js');
+secao('16. Lint das amarras entre HTML, CSS e JS');
+{
+  /* um projeto mínimo e correto, do qual cada caso abaixo estraga uma coisa */
+  const base = () => ({
+    html: '<div class="cartao"><button onclick="abrir()">ir</button>'
+        + '<input id="campoUm"/><span id="campoDois"></span></div>',
+    css: ['.cartao{color:red}'],
+    js: [{nome: 'a.js', texto: "function abrir(){ $('campoUm').value = ''; }"}],
+  });
+
+  ok(LINT.analisar(base()).length === 0, 'projeto correto passa limpo',
+     JSON.stringify(LINT.analisar(base())));
+
+  /* 1. classe usada e nunca definida — o caso .nota-box / .mk-marca / .campo */
+  let f = base();
+  f.html = f.html.replace('class="cartao"', 'class="cartao nota-box"');
+  let p = LINT.analisar(f);
+  ok(p.some(x => x.indexOf('.nota-box') >= 0), 'pega classe sem CSS no HTML', p.join(' | '));
+
+  /* a mesma coisa dentro de um template do JS, que é onde .campo se escondia */
+  f = base();
+  f.js[0].texto += ' function pinta(){ return `<label class="campo"></label>`; }';
+  p = LINT.analisar(f);
+  ok(p.some(x => x.indexOf('.campo') >= 0), 'pega classe sem CSS num template do JS', p.join(' | '));
+
+  /* 2. onclick chamando função que não existe — o caso mktAbrir */
+  f = base();
+  f.html = f.html.replace('onclick="abrir()"', 'onclick="mktAbrir(this)"');
+  p = LINT.analisar(f);
+  ok(p.some(x => x.indexOf('mktAbrir') >= 0), 'pega onclick para função inexistente', p.join(' | '));
+
+  /* 3. id repetido — o caso apiPreco, que descartava o campo digitado */
+  f = base();
+  f.html = f.html.replace('id="campoDois"', 'id="campoUm"');
+  p = LINT.analisar(f);
+  ok(p.some(x => x.indexOf('campoUm') >= 0 && x.indexOf('2 vezes') >= 0),
+     'pega id repetido no HTML', p.join(' | '));
+
+  /* 4. $() apontando para id que não existe — o caso #anGuardado */
+  f = base();
+  f.js[0].texto = "function abrir(){ $('anGuardado').innerHTML = ''; }";
+  p = LINT.analisar(f);
+  ok(p.some(x => x.indexOf('anGuardado') >= 0), 'pega $() para id inexistente', p.join(' | '));
+
+  /* e o que NÃO pode virar alarme falso */
+  f = base();
+  f.js[0].texto += " function tag(a){ return `<i class=\"tag ${a==='erro'?'tag-erro':'tag-alerta'}\"></i>`; }";
+  f.css.push('.tag{}.tag-erro{}.tag-alerta{}');
+  p = LINT.analisar(f);
+  ok(p.length === 0, 'interpolação com chaves aninhadas não vira classe falsa', p.join(' | '));
+
+  f = base();
+  f.js[0].texto = "function monta(){ return `<select id=\"${'colCusto'}\"></select>`; }"
+                + " function le(){ return $('colCusto'); }";
+  p = LINT.analisar(f);
+  ok(!p.some(x => x.indexOf('colCusto') >= 0), 'id criado por template não é apontado como ausente',
+     p.join(' | '));
+
+  f = base();
+  f.html = f.html.replace('class="cartao"', 'class="cartao hide"');
+  ok(LINT.analisar(f).length === 0, 'classes de estado (hide, open…) não exigem CSS');
+
+  /* 5. e finalmente: o projeto de verdade, hoje */
+  const reais = LINT.rodarLint();
+  ok(reais.length === 0, 'o Precificador Drop passa limpo pelo lint',
+     reais.length ? '\n      ' + reais.join('\n      ') : '');
+}
+
 if (falhou) {
   console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
   falhas.forEach(f => console.log('   ✗ ' + f));

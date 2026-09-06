@@ -9,8 +9,11 @@
    Com isto a tela mostra o apelido da conta antes de qualquer publicação.
    ══════════════════════════════════════════════════════════════════════════ */
 import {tokenDoVendedor, responderErro} from './_ml-token.js';
+import {mesmaOrigem, limitar, exigirChave} from './_guarda.js';
 
 export default async function handler(req, res) {
+  if (!mesmaOrigem(req, res) || !limitar(req, res) || !exigirChave(req, res)) return;
+
   try {
     const token = await tokenDoVendedor();
     const r = await fetch('https://api.mercadolibre.com/users/me', {

@@ -142,11 +142,11 @@
           <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mn-drop">
-          <div class="mn-grupo">EM PREPARAÇÃO</div>
-          <button class="mn-i mn-off" disabled>
+          <button class="mn-i" onclick="mkAbrir('shopee')">
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Precificar Shopee</b><i>Comissão e taxa fixa da Shopee</i></span>
           </button>
+          <div class="mn-grupo">EM PREPARAÇÃO</div>
           <button class="mn-i mn-off" disabled>
             <img src="assets/img/ic-base-shop.webp" alt=""/>
             <span><b>Base da Shopee</b><i>Reprocessar o que já está no ar</i></span>
@@ -162,11 +162,11 @@
           <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mn-drop">
-          <div class="mn-grupo">EM PREPARAÇÃO</div>
-          <button class="mn-i mn-off" disabled>
+          <button class="mn-i" onclick="mkAbrir('amazon')">
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Amazon</b><i>Referral fee e tarifa por categoria</i></span>
           </button>
+          <div class="mn-grupo">EM PREPARAÇÃO</div>
           <button class="mn-i mn-off" disabled>
             <img src="assets/img/ic-base-shop.webp" alt=""/>
             <span><b>Base da Amazon</b><i>Reprocessar o que já está no ar</i></span>
@@ -270,9 +270,9 @@
       <div class="hub-lado">
         <div class="badge"><span class="dot"></span><span>ECOSSISTEMA DO DROPSHIPPING NO BRASIL</span></div>
         <div class="hub-prova">
-        <div class="prv"><b>3</b><span>ferramentas no ar</span></div>
+        <div class="prv"><b>5</b><span>ferramentas no ar</span></div>
         <div class="prv"><b id="liveChecks">0/8</b><span>validações por planilha</span></div>
-        <div class="prv"><b>3</b><span>chegando</span></div>
+        <div class="prv"><b>2</b><span>chegando</span></div>
         </div>
       </div>
     </div>
@@ -296,8 +296,8 @@
       <button class="ws-card ws-shopee" onclick="wsAbrir('shopee')">
         <span class="ws-marca"><img src="assets/img/logo-shopee.svg" alt="Shopee" loading="lazy"/></span>
         <span class="ws-pe">
-          <b>em preparação</b>
-          <i>2 ferramentas chegando</i>
+          <b>1 ferramenta</b>
+          <i>base de preços chegando</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </button>
@@ -305,8 +305,8 @@
       <button class="ws-card ws-amazon" onclick="wsAbrir('amazon')">
         <span class="ws-marca"><img src="assets/img/logo-amazon.svg" alt="Amazon" loading="lazy"/></span>
         <span class="ws-pe">
-          <b>em preparação</b>
-          <i>2 ferramentas chegando</i>
+          <b>1 ferramenta</b>
+          <i>base de preços chegando</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
       </button>
@@ -330,150 +330,6 @@
     <div class="ws-pop hide" id="wsPop" role="tooltip"></div>
 
 
-    <div class="secoes secoes-4 hide" id="secoesFonte">
-
-      <!-- ═══ OS QUATRO CARDS ═══
-           Um card por marketplace, mais um de ferramentas que servem a
-           qualquer um deles. Antes as ferramentas do Mercado Livre viviam
-           soltas no topo e as dos outros marketplaces apareciam bem abaixo,
-           sem que desse para ver de relance o que existe para cada canal. -->
-      <section class="mkt mkt-ml">
-        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
-          <span class="mkt-selo ml">
-            <svg viewBox="0 0 44 30" aria-hidden="true">
-              <path d="M6 19c2-1 3.5-3.4 5.5-5.2 1.6-1.5 3.3-.6 4.3.5l3.2 3.5c.8.9 2 1.1 3 .5l1.6-1c1-.6 2.3-.4 3.1.4l4.6 4.6"
-                    fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Mercado&nbsp;Livre</span>
-          </span>
-          <span class="mkt-n">2 ferramentas · 6 consultas</span>
-          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="mkt-corpo">
-
-        <div class="minis minis-g">
-          <button class="mini mini-alto" onclick="ir('ml')">
-            <img src="assets/img/ic-ml.webp" alt="" loading="lazy"/>
-            <span><b>Precificar Mercado Livre</b><i>o preço que entrega a margem que você pediu</i></span>
-            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-          <button class="mini mini-alto" onclick="ir('anuncios')">
-            <img src="assets/img/ic-base-ml.webp" alt="" loading="lazy"/>
-            <span><b>Planilha no padrão Mercado Livre</b><i>seus preços no layout que o ML lê</i></span>
-            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-
-        <div class="mkt-sub">Consultas de apoio</div>
-        <div class="chips">
-          <button class="chip" onclick="irMercado('produto')">Consultar um produto</button>
-          <button class="chip" onclick="irMercado('ficha')">Ficha do anúncio</button>
-          <button class="chip" onclick="irMercado('campeoes')">Mais vendidos</button>
-          <button class="chip" onclick="irMercado('tendencias')">Em alta agora</button>
-          <button class="chip" onclick="irMercado('categorias')">Categorias</button>
-          <button class="chip" onclick="irMercado('envios')">Envios</button>
-        </div>
-
-        <div class="mkt-sub">Chegando</div>
-        <div class="chips">
-          <button class="chip off" disabled>Base já publicada</button>
-        </div>
-        </div>
-      </section>
-
-      <section class="mkt mkt-ferramentas">
-        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
-          <span class="mkt-selo ferramentas">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M14.7 6.3a4 4 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8 0l-2.2-2.2a2 2 0 0 1 0-2.8z"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="m16 3 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>Ferramentas</span>
-          </span>
-          <span class="mkt-n">2 ferramentas</span>
-          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="mkt-corpo">
-
-        <div class="minis minis-g">
-          <button class="mini mini-alto" onclick="ir('planilha')">
-            <img src="assets/img/ic-planilha.webp" alt="" loading="lazy"/>
-            <span><b>Planilha de produtos</b><i>o catálogo do fornecedor pronto para o marketplace</i></span>
-            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-          <button class="mini mini-alto" onclick="ir('manual')">
-            <img src="assets/img/ic-base-shop.webp" alt="" loading="lazy"/>
-            <span><b>Guia do Drop</b><i>como cada conta funciona, do começo ao fim</i></span>
-            <svg class="mini-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-        </div>
-      </section>
-
-      <section class="mkt mkt-shopee">
-        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
-          <span class="mkt-selo shopee">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4.5 8h15l-1.1 11.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>Shopee</span>
-          </span>
-          <span class="mkt-n">em preparação</span>
-          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="mkt-corpo">
-        <div class="chips">
-          <button class="chip off" disabled>Precificar Shopee</button>
-          <button class="chip off" disabled>Base da Shopee</button>
-        </div>
-        <div class="mkt-nota">A Shopee cobra de um jeito diferente do Mercado Livre — comissão,
-          taxa fixa, frete grátis e cupom do vendedor entram em outra conta. Por isso pede
-          ferramenta própria, e não um botão a mais na de hoje.</div>
-        </div>
-      </section>
-
-      <section class="mkt mkt-amazon">
-        <button class="mkt-h" onclick="mktAbrir(this)" aria-expanded="false">
-          <span class="mkt-selo amazon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M2.6 14.8c4.4 3.2 10.2 4.3 15.4 2.4"
-                    fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-              <path d="M14.6 15.4 18 17.2l-1.2 3.4"
-                    fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="8" cy="7.4" r="3.4" fill="none" stroke="currentColor" stroke-width="2.2"/>
-              <path d="M11.6 10.4 14 12.4" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round"/>
-            </svg>
-            <span>Amazon</span>
-          </span>
-          <span class="mkt-n">em preparação</span>
-          <svg class="mkt-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="mkt-corpo">
-        <div class="chips">
-          <button class="chip off" disabled>Precificar Amazon</button>
-          <button class="chip off" disabled>Base da Amazon</button>
-        </div>
-        <div class="mkt-nota">Na Amazon a comissão é por categoria e existe taxa de fechamento
-          em algumas delas. Outra conta, outra ferramenta.</div>
-        </div>
-      </section>
-
-
-    </div>
-
-    <div class="hub-foot">
-      <div class="strip">
-        <span><i class="sdot" style="background:linear-gradient(135deg,#ffe600,#f5cb00)"></i><b>MERCADO LIVRE</b> · 3 FERRAMENTAS</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#ff7a55,#ee4d2d)"></i><b>SHOPEE</b> · EM BREVE</span>
-        <span><i class="sdot" style="background:linear-gradient(135deg,#ffb84d,#ff9900)"></i><b>AMAZON</b> · EM BREVE</span>
-      </div>
-      <div class="pagenum">01</div>
-    </div>
   </div>
 
   <!-- ═══════════════ VIEW: PRECIFICADOR ML ═══════════════ -->
@@ -598,8 +454,10 @@
                 <select id="mlPesoUnidade" onchange="mlValidaCol()">
                   <option value="kg">quilos (2,5 = 2,5 kg)</option>
                   <option value="g">gramas (2000 = 2 kg)</option>
-                  <!-- planilha misturada: parte em kg, parte em gramas -->
-                  <option value="auto">misturado — corrigir só os acima de 150 kg</option>
+                  <!-- planilha misturada: parte em kg, parte em gramas. A regra é a do
+                       motor: inteiro a partir de 20, ou qualquer peso acima de 150 kg.
+                       A tela de revisão mostra linha a linha o que vai mudar. -->
+                  <option value="auto">misturado — corrigir só os que parecem gramas</option>
                 </select>
               </div>
               <div class="nota" id="mlPesoNota"></div>
@@ -894,6 +752,19 @@
               <div>Muda o preço do anúncio <b>no ar, agora</b>, sem passar pela planilha —
                 e o Mercado Livre não tem desfazer. Precisa da conta autorizada.</div>
             </div>
+            <div class="chave-box">
+              <label for="anChave">
+                <svg viewBox="0 0 24 24"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                Chave de publicação
+              </label>
+              <input type="password" id="anChave" autocomplete="off" spellcheck="false"
+                     placeholder="a senha que você guardou em APP_SECRET na Vercel"
+                     oninput="anLembrarChave()"/>
+              <div class="chave-d">Fica só nesta aba e some quando você fechar — não vai para
+                lugar nenhum além do seu próprio servidor. É ela que impede outra pessoa de
+                mexer nos preços da sua loja.</div>
+            </div>
+            <div id="anContaCaixa"></div>
             <button class="btn btn-blue btn-block" id="anBtnPub" onclick="anPublicarPrecos()">
               <svg viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
               Publicar os preços no Mercado Livre
@@ -1026,9 +897,11 @@
         <a href="#m-pesquisa">4 · Pesquisa de mercado</a>
         <a href="#m-conta">5 · A conta do preço</a>
         <a href="#m-frete">6 · Frete e peso volumétrico</a>
-        <a href="#m-conferencia">7 · A conferência</a>
-        <a href="#m-bling">8 · Importar no Bling</a>
-        <a href="#m-duvidas">9 · Perguntas frequentes</a>
+        <a href="#m-shopee">7 · Precificar Shopee</a>
+        <a href="#m-amazon">8 · Precificar Amazon</a>
+        <a href="#m-conferencia">9 · A conferência</a>
+        <a href="#m-bling">10 · Importar no Bling</a>
+        <a href="#m-duvidas">11 · Perguntas frequentes</a>
       </nav>
 
       <article class="man-txt">
@@ -1176,8 +1049,80 @@
           <p>Abaixo de R$ 19 o frete é limitado a metade do preço do produto.</p>
         </section>
 
+        <section id="m-shopee">
+          <h2>7 · Precificar Shopee</h2>
+          <p>A Shopee cobra diferente de todo mundo, e isso muda a conta inteira.
+            Três diferenças pesam:</p>
+          <h3>A comissão é por faixa de preço, não por categoria</h3>
+          <p>Cada faixa soma um <b>percentual</b> e um <b>valor fixo</b> por item vendido.
+            Tabelas de comissão por categoria que circulam em blogs são do programa de
+            Afiliados — não existem na política do vendedor.</p>
+          <p class="man-form">até R$ 79,99 → 20% + R$ 4 &nbsp;·&nbsp; até R$ 99,99 → 14% + R$ 16
+            &nbsp;·&nbsp; até R$ 199,99 → 14% + R$ 20 &nbsp;·&nbsp; acima → 14% + R$ 26</p>
+          <h3>O salto dos R$ 80 é o que mais custa dinheiro</h3>
+          <p>O valor fixo pula de R$ 4 para R$ 16 assim que o preço passa de R$ 79,99.
+            Na prática:</p>
+          <p class="man-form">R$ 79,99 → comissão de R$ 20,00 &nbsp;|&nbsp;
+            R$ 80,00 → comissão de <b>R$ 27,20</b></p>
+          <p>Um centavo a mais no preço custa <b>R$ 7,20</b> a mais de comissão. Vender a
+            R$ 79,99 rende mais líquido do que vender a R$ 85. O precificador mostra em
+            qual faixa cada produto caiu — vale conferir quem ficou logo acima da linha.</p>
+          <h3>O vendedor não paga frete</h3>
+          <p>No modelo padrão o frete é do comprador, subsidiado por cupom da Shopee. Você
+            só é debitado em três casos: <b>peso declarado menor que o real</b>, pacote fora
+            das dimensões (R$ 50) e devolução por culpa sua (frete + R$ 15).</p>
+          <p>Por isso o peso não muda o preço aqui — mas continua importando. A Shopee afere
+            o pacote e cobra a diferença <b>até 90 dias depois da entrega</b>. Se a sua
+            planilha traz peso em gramas, o app pergunta antes de calcular.</p>
+          <h3>O teto de R$ 100 acabou</h3>
+          <p>Até março de 2026 a comissão tinha teto de R$ 100 por item. Não tem mais. Quem
+            calcular com teto vai achar que produto caro paga menos do que paga: um item de
+            R$ 500 paga R$ 96, e um de R$ 1.000 paga R$ 166.</p>
+          <p><b>Conta CPF:</b> quem passa de 450 pedidos em 90 dias paga R$ 3 a mais por
+            item. Abaixo de R$ 8 o valor fixo deixa de ser R$ 4 e vira metade do preço.</p>
+          <div class="nota-box">
+            <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>
+            <div>A Shopee diz "por item vendido" mas não esclarece se três unidades do mesmo
+              produto num pedido geram uma taxa fixa ou três. Com R$ 26 em jogo, a diferença
+              é grande — confira num extrato real antes de fechar sua margem.</div>
+          </div>
+        </section>
+
+        <section id="m-amazon">
+          <h2>8 · Precificar Amazon</h2>
+          <p>A Amazon é o oposto da Shopee: a comissão é <b>por categoria</b>, e o frete é
+            uma tabela por peso e faixa de preço.</p>
+          <h3>Comissão por categoria</h3>
+          <p>Vai de <b>10% a 15%</b> conforme o produto, com um mínimo por item. Comidas e
+            bebidas e Pneus pagam 10%; Eletrodomésticos de linha branca 11%; Saúde e
+            Indústria 12%; a maioria das categorias cai em <b>15%</b>. São 37 categorias na
+            lista — escolha a certa, porque a diferença entre 10% e 15% num catálogo inteiro
+            é grande.</p>
+          <p>Aqui a categoria vale para a planilha toda. Se o seu catálogo mistura
+            categorias com percentuais diferentes, separe em planilhas ou use a mais
+            conservadora e confira depois.</p>
+          <h3>Quem entrega muda o preço</h3>
+          <p>No <b>FBA</b> (estoque no centro da Amazon) o frete sai da tabela oficial, que
+            cruza peso e faixa de preço:</p>
+          <p class="man-form">0,3 kg a R$ 50 → R$ 6,05 &nbsp;·&nbsp; 1 kg a R$ 150 → R$ 19,45
+            &nbsp;·&nbsp; 5 kg a R$ 300 → R$ 30,35</p>
+          <p>No <b>DBA</b> (você entrega) acima de R$ 79 a tabela não é pública — nesse caso
+            informe o frete à mão nos parâmetros.</p>
+          <p>O peso volumétrico vale igual ao Mercado Livre: altura × largura × comprimento
+            ÷ 6.000, e a Amazon cobra pelo maior entre ele e o peso da balança. A embalagem
+            entra com 20 g por item, que é o suficiente para empurrar um produto de 2,99 kg
+            para a faixa seguinte.</p>
+          <h3>Plano de venda</h3>
+          <p>No plano <b>Individual</b> a Amazon cobra R$ 2 por item vendido. No
+            <b>Profissional</b> não há essa taxa, mas há mensalidade de R$ 19 — que o
+            precificador <b>não</b> rateia no preço, porque ela não depende de quantos itens
+            você vende. Some-a à parte, no seu resultado do mês.</p>
+          <p>O <b>parcelamento sem juros</b> soma 1,5% nas vendas a partir de R$ 40. É
+            automático na conta e pode ser desligado no Seller Central.</p>
+        </section>
+
         <section id="m-conferencia">
-          <h2>7 · A conferência</h2>
+          <h2>9 · A conferência</h2>
           <p>Antes de baixar o arquivo, o precificador mostra o que pode fazer você perder
             dinheiro. Cada aviso tem um botão que filtra a tabela nas linhas afetadas —
             inclusive além das cem primeiras.</p>
@@ -1193,7 +1138,7 @@
         </section>
 
         <section id="m-bling">
-          <h2>8 · Importar no Bling</h2>
+          <h2>10 · Importar no Bling</h2>
           <p>O arquivo sai no formato de produtos do Bling, com todas as colunas na ordem
             certa e o preço como número.</p>
           <p>No Bling: <b>Cadastros → Produtos → Mais ações → Importar produtos</b>.
@@ -1202,7 +1147,7 @@
         </section>
 
         <section id="m-duvidas">
-          <h2>9 · Perguntas frequentes</h2>
+          <h2>11 · Perguntas frequentes</h2>
           <h3>Por que o preço mudou depois que troquei a reputação?</h3>
           <p>Porque o frete muda. A tabela vermelha chega a custar o dobro da verde no
             mesmo peso, e isso entra inteiro no preço.</p>
@@ -1922,7 +1867,7 @@
         <div class="api-t">Buscar direto do Mercado Livre</div>
         <div class="api-d">Preenche as tarifas acima com os valores reais da API, já com o desconto por faixa. Precisa da aplicação conectada.</div>
         <div class="grid2">
-          <div class="f"><label>Preço de referência (R$)</label><input type="number" id="apiPreco" value="188.19" min="1" step="0.01"/></div>
+          <div class="f"><label>Preço de referência (R$)</label><input type="number" id="apiPrecoRef" value="188.19" min="1" step="0.01"/></div>
           <div class="f"><label>Categoria (opcional)</label><input type="text" id="apiCategoria" placeholder="Ex.: MLB1132"/>
             <div class="hint">sem categoria, vem a tarifa padrão</div></div>
         </div>

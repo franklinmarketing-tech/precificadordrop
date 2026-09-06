@@ -141,6 +141,21 @@ const FORM = [
            {v:'indicado', t:'Vendedor Indicado — 2,5%'}, {v:'comum', t:'Demais — 3,5%'}]},
   {id:'campanhaDestaque', tipo:'switch', rot:'Campanhas de Destaque',
    ajuda:'soma 3,5% sobre a venda, para quem entra no programa'},
+
+  /* Campos que o motor já consumia e a tela não deixava preencher: existiam no
+     PADRAO, entravam na conta, e não havia como mudá-los. */
+  {id:'aliquotaImposto', tipo:'percentual', rot:'Imposto sobre a venda (%)',
+   ajuda:'Simples Nacional, ICMS — o que sai da receita a cada venda'},
+  {id:'taxaDevolucao', tipo:'percentual', rot:'Devoluções esperadas (%)',
+   ajuda:'proporção de pedidos que voltam; entra como perda no preço'},
+  {id:'embalagem', tipo:'numero', rot:'Embalagem por item (R$)',
+   ajuda:'caixa, plástico bolha, fita — o que você gasta para despachar'},
+  {id:'rebate', tipo:'numero', rot:'Desconto que você banca (R$)',
+   ajuda:'cupom ou campanha paga por você, descontado do que sobra'},
+  {id:'pesoPadrao', tipo:'numero', rot:'Peso quando a planilha não traz (kg)',
+   ajuda:'usado só nas linhas sem peso, para o frete não sair zerado'},
+  {id:'usarPesoVolumetrico', tipo:'switch', rot:'Cobrar pelo peso volumétrico',
+   ajuda:'altura × largura × comprimento ÷ 6.000, quando for maior que o peso da balança'},
 ];
 
 /* O que a documentação da Shopee não responde. Aparece na tela: quem
