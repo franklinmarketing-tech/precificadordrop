@@ -960,6 +960,60 @@ secao('17. Caçador de degrau de taxa');
   ok(AZ.acharDegraus([], {}).n === 0, 'lote vazio não inventa caso');
 }
 
+/* ── 18. Prejuízo não é oportunidade de degrau ─────────────────────────────
+   Um produto que perde dinheiro nos DOIS preços aparecia junto com as
+   oportunidades, sob o título "estes rendem mais se você baixar o preço" e uma
+   coluna "RENDE" com valor negativo. Dizer isso para quem vende no vermelho é
+   enganoso: baixar diminui o prejuízo, mas o problema é outro. Agora os dois
+   grupos são separados e só o primeiro entra na soma do ganho.              */
+secao('18. Prejuízo separado da oportunidade de degrau');
+{
+  const p = {reputacao: 'verde', tipoAnuncio: 'classico'};
+  const motor = {analisar: ML.analisar, limites: () => ML.limitesDePreco(p)};
+  const linhaEm = (preco, custo, peso, i) => {
+    const a = ML.analisar(preco, custo, peso, p);
+    return Object.assign({linha: i || 1, custo, peso, pesoReal: peso}, a);
+  };
+
+  /* o caso real: caixa de papel crepom, custo R$ 588, vendida a R$ 209 */
+  const perde = linhaEm(209, 588, 25, 1);
+  ok(perde.lucroLiquido < 0, 'o produto de fato perde dinheiro a R$ 209',
+     'R$ ' + perde.lucroLiquido.toFixed(2));
+
+  /* e baixar para o degrau diminui o prejuízo, sem resolver nada */
+  const noDegrau = ML.analisar(199.99, 588, 25, p);
+  ok(noDegrau.lucroLiquido > perde.lucroLiquido, 'baixar diminui o prejuízo');
+  ok(noDegrau.lucroLiquido < 0, 'mas continua no vermelho');
+
+  const d = ML.acharDegraus([perde], p, motor);
+  ok(d.n === 0, 'não conta como oportunidade', 'contou ' + d.n);
+  perto(d.ganhoTotal, 0, 'e não infla o ganho total com dinheiro que ninguém recebe');
+  ok(d.noPrejuizo.length === 1, 'aparece na lista de prejuízo',
+     'lista tem ' + d.noPrejuizo.length);
+  ok(d.noPrejuizo[0].prejuizo === true, 'e vem marcado como prejuízo');
+
+  /* a tela precisa das parcelas para mostrar para onde o dinheiro foi */
+  const c = d.noPrejuizo[0];
+  perto(c.custo, 588, 'o caso carrega o custo');
+  ok(c.frete > 0, 'e o frete', 'R$ ' + c.frete);
+  ok(c.comissao > 0, 'e a comissão', 'R$ ' + c.comissao);
+
+  /* oportunidade de verdade continua contando normalmente */
+  const bom = linhaEm(205, 60, 22, 2);
+  ok(bom.lucroLiquido > 0, 'o produto saudável tem lucro positivo');
+  const d2 = ML.acharDegraus([bom], p, motor);
+  ok(d2.n === 1, 'e é contado como oportunidade', 'contou ' + d2.n);
+  ok(d2.noPrejuizo.length === 0, 'sem cair na lista de prejuízo');
+
+  /* os dois no mesmo lote: cada um no seu lugar, e a soma só dos bons */
+  const lote = ML.acharDegraus([perde, bom], p, motor);
+  ok(lote.n === 1 && lote.noPrejuizo.length === 1, 'lote misto separa os dois grupos',
+     `${lote.n} oportunidade(s), ${lote.noPrejuizo.length} no prejuízo`);
+  perto(lote.ganhoTotal, d2.casos[0].ganhoPorVenda,
+        'o ganho total soma só a oportunidade real', 0.02);
+  ok(lote.todos.length === 2, 'e "todos" continua com os dois, para quem quiser');
+}
+
 if (falhou) {
   console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
   falhas.forEach(f => console.log('   ✗ ' + f));

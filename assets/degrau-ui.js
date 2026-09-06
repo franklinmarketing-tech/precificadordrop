@@ -16,6 +16,10 @@
 
 let dgAoa = null, dgCab = [], dgLinhaCab = 0, dgNome = '';
 let dgMotor = null, dgResult = null, dgLinhas = [];
+/* Peso em gramas numa coluna que diz "kg" — mesma armadilha das calculadoras.
+   Aqui ela é ainda pior: o frete inflado vira "prejuízo" na tela, e o vendedor
+   sai atrás de um problema de custo que não existe. */
+let dgPesoSuspeito = false, dgPesoConfirmadoKg = false, dgPesoInfo = null;
 
 /* Os três canais, com o motor de cada um. O Mercado Livre não é um motor do
    mkt-engine, então entra com as funções soltas do ml-engine. */
@@ -128,7 +132,16 @@ function dgMontarForm(){
       ${dgSel('dgColPreco', iPreco == null ? -1 : iPreco)}</label>
     <label class="campo"><span>Peso
       <i>opcional — sem ele o frete entra pelo padrão do canal</i></span>
-      ${dgSel('dgColPeso', iPeso == null ? -1 : iPeso, true)}</label>`;
+      ${dgSel('dgColPeso', iPeso == null ? -1 : iPeso, true, 'dgChecarPeso()')}
+      <div class="uni-peso" id="dgUniBox">
+        <span>Os números estão em</span>
+        <select id="dgPesoUnidade" onchange="dgChecarPeso()">
+          <option value="kg">quilos (2,5 = 2,5 kg)</option>
+          <option value="g">gramas (2000 = 2 kg)</option>
+          <option value="auto">misturado — corrigir só os que parecem gramas</option>
+        </select>
+      </div>
+      <div class="uni-alerta hide" id="dgUniAlerta"></div></label>`;
 
   $('dgCanal').innerHTML = `
     <label class="campo"><span>Canal</span>
@@ -138,6 +151,47 @@ function dgMontarForm(){
       </select></label>`;
 
   dgTrocarCanal();
+  dgChecarPeso();
+}
+
+/* ── peso em gramas ────────────────────────────────────────────────────────
+   Mesma detecção das calculadoras (ML.detectarEscalaPeso). Sem ela, uma
+   planilha em gramas faz o frete estourar e a ferramenta acusa "prejuízo" em
+   produtos que estão bem. */
+function dgChecarPeso(){
+  const caixa = $('dgUniAlerta'), selCol = $('dgColPeso'), selUni = $('dgPesoUnidade');
+  if(!caixa || !selCol) return;
+
+  const ip = parseInt(selCol.value);
+  mostrar('dgUniBox', ip >= 0);
+  if(isNaN(ip) || ip < 0 || !dgAoa){ dgPesoSuspeito = false; mostrar('dgUniAlerta', false); return; }
+
+  const r = ML.detectarEscalaPeso(dgAoa.slice(dgLinhaCab + 1).map(l => l && l[ip]));
+  const jaResolvido = selUni && selUni.value !== 'kg';
+  dgPesoSuspeito = r.suspeita && !jaResolvido && !dgPesoConfirmadoKg;
+  if(!dgPesoSuspeito){ mostrar('dgUniAlerta', false); return; }
+
+  dgPesoInfo = r;
+  const n = r.suspeitos;
+  caixa.innerHTML = `<b>${n} peso${n === 1 ? '' : 's'} ${n === 1 ? 'parece' : 'parecem'} estar em gramas.</b>
+    Lido como quilo, o frete estoura e produto bom aparece como prejuízo.
+    <div class="uni-btns"><button type="button" class="sim" onclick="dgRevisarPeso()">Conferir agora</button></div>`;
+  mostrar('dgUniAlerta', true);
+}
+
+function dgRevisarPeso(){
+  revisarAbrir({
+    canal: 'o ' + (dgMotor ? dgMotor.nome : 'canal'),
+    peso: dgPesoSuspeito ? dgPesoInfo : null,
+    dim: null,
+    aplicar(){
+      const sel = $('dgPesoUnidade');
+      if(sel) sel.value = dgPesoInfo && dgPesoInfo.todosGrandes ? 'g' : 'auto';
+      dgChecarPeso();
+      dgProcurar();
+    },
+    ignorar(){ dgPesoConfirmadoKg = true; dgChecarPeso(); },
+  });
 }
 
 function dgTrocarCanal(){
@@ -194,7 +248,16 @@ async function dgProcurar(){
     return alert('O custo e o preço praticado não podem ser a mesma coluna.\n\n'
       + 'O app compara os dois — apontando a mesma, toda linha pareceria uma oportunidade.');
 
+  if(dgPesoSuspeito){ dgRevisarPeso(); return; }
+
   const p = dgLerParams();
+  const unidade = ($('dgPesoUnidade') || {}).value || 'kg';
+  const pesoDe = v => {
+    if(v === '' || v == null) return 0;
+    if(unidade === 'g') return /[a-z]/i.test(String(v)) ? ML.parsePeso(v) : ML.parsePeso(String(v) + ' g');
+    if(unidade === 'auto') return ML.normalizarPesoLinha(v, true).kg;
+    return ML.parsePeso(v);
+  };
 
   progAbrir(['Lendo a planilha', 'Conferindo os preços', 'Montando o relatório']);
   progEtapa(0);
@@ -212,7 +275,7 @@ async function dgProcurar(){
       const custo = ML.parseNumero(L[iCusto]);
       const preco = ML.parseNumero(L[iPreco]);
       if(!isFinite(custo) || custo <= 0 || !isFinite(preco) || preco <= 0){ semDado++; continue; }
-      const peso = iPeso >= 0 ? ML.parsePeso(L[iPeso]) : 0;
+      const peso = iPeso >= 0 ? pesoDe(L[iPeso]) : 0;
       const a = dgMotor.analisar(preco, custo, isFinite(peso) ? peso : 0, p, null);
       if(a) dgLinhas.push(Object.assign({linha: r, custo, pesoReal: peso, dimensoes: null}, a));
 
@@ -271,8 +334,25 @@ function dgRenderResultado(){
   $('dgResultado').innerHTML = degrausHTML(d, {
     canal: dgMotor.artigo || ('da ' + dgMotor.nome),
     brl: dgMotor.brl, cabecalho: dgCab, aoa: dgAoa,
+    aoClicar: 'dgVerConta',
   });
   mostrar('dgBtnDl', true);
+}
+
+/* A conta da linha, para explicar de onde vem o prejuízo. */
+function dgVerConta(linha){
+  const r = dgLinhas.find(x => x.linha === linha);
+  if(!r) return;
+  const L = dgAoa[linha] || [];
+  $('linhaTitulo').textContent = contaTitulo(dgCab, L, linha + 1);
+  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaCorpo').innerHTML = contaHTML({
+    AVISOS: ML.AVISOS, brl: dgMotor.brl,
+    canal: dgMotor.artigo || ('da ' + dgMotor.nome),
+    margem: r.margemLiquida,
+    rodape: 'Esta é a conta do preço que está no ar hoje.',
+  }, r);
+  abrirPop('popLinha', 'scrimLinha');
 }
 
 /* ── baixar a lista ──────────────────────────────────────────────────────── */
@@ -315,6 +395,7 @@ async function dgBaixar(){
 
 function dgRecomecar(){
   dgAoa = null; dgResult = null; dgLinhas = [];
+  dgPesoSuspeito = false; dgPesoConfirmadoKg = false; dgPesoInfo = null;
   ['dgStep2','dgStep3'].forEach(x => mostrar(x, false));
   $('dgFi').value = '';
   const z = $('dgStep1');

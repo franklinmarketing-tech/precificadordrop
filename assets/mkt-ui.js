@@ -25,7 +25,7 @@ let mkPesosConvertidos = new Set();
    achar o próprio registro sem varrer o vetor */
 let mkIndicePorLinha = new Map();
 /* produtos cujo preço atual está logo acima de um degrau de taxa */
-let mkDegraus = null;
+let mkDegraus = null, mkDegrausLinhas = [];
 
 const MK_CANAIS = {
   shopee: {motor: () => window.MktShopee, nome: 'Shopee',
@@ -471,8 +471,9 @@ function mkAcharDegraus(iPrecoHoje, params){
                                      pesoReal: r.pesoReal, dimensoes: r.dimensoes}, a));
   }
   if(!linhas.length) return;
+  mkDegrausLinhas = linhas;
   const d = mkCanal.acharDegraus(linhas, params);
-  if(d.n) mkDegraus = d;
+  if(d.n || (d.noPrejuizo && d.noPrejuizo.length)) mkDegraus = d;
 }
 
 function mkRenderDegraus(){
@@ -481,8 +482,24 @@ function mkRenderDegraus(){
   if(!mkDegraus){ mostrar('mkDegraus', false); return; }
   caixa.innerHTML = degrausHTML(mkDegraus, {
     canal: 'da ' + mkCanal.nome, brl: mkCanal.brl, cabecalho: mkCab, aoa: mkAoa,
+    aoClicar: 'mkVerContaDegrau',
   });
   mostrar('mkDegraus', true);
+}
+
+/* A conta no preço praticado hoje, para explicar o prejuízo. */
+function mkVerContaDegrau(linha){
+  const r = mkDegrausLinhas.find(x => x.linha === linha);
+  if(!r) return;
+  const L = mkAoa[linha] || [];
+  $('linhaTitulo').textContent = contaTitulo(mkCab, L, linha + 1);
+  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaCorpo').innerHTML = contaHTML({
+    AVISOS: mkCanal.AVISOS, brl: mkCanal.brl, canal: 'da ' + mkCanal.nome,
+    margem: r.margemLiquida,
+    rodape: 'Esta é a conta do preço que está no ar, não do preço calculado.',
+  }, r);
+  abrirPop('popLinha', 'scrimLinha');
 }
 
 /* ── a conta de uma linha ──────────────────────────────────────────────────

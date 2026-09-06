@@ -798,7 +798,7 @@ function acharDegraus(linhas, params, motor) {
   const limites = (motor.limites(params) || [])
     .filter(v => isFinite(v) && v > 0)
     .sort((a, b) => a - b);
-  if (!limites.length) return {n: 0, ganhoTotal: 0, casos: []};
+  if (!limites.length) return {n: 0, ganhoTotal: 0, casos: [], noPrejuizo: [], todos: []};
 
   const casos = [];
 
@@ -833,6 +833,15 @@ function acharDegraus(linhas, params, motor) {
       ganhoPorVenda: Math.round(ganho * 100) / 100,
       margemAtual: r.margemLiquida,
       margemSugerida: noDegrau.margemLiquida,
+      /* Produto que perde dinheiro nos DOIS preços não é oportunidade de
+         degrau: baixar diminui o prejuízo, mas o problema é outro — custo
+         acima do que o preço sustenta, peso irreal, ou coluna trocada. Tratar
+         os dois casos como a mesma coisa faria a tela dizer "ganhe mais
+         baixando" para quem está vendendo no vermelho. */
+      prejuizo: r.lucroLiquido < 0 && noDegrau.lucroLiquido < 0,
+      /* as parcelas do preço atual, para a tela mostrar para onde o dinheiro
+         está indo sem ter de recalcular nada */
+      custo: r.custo, frete: r.frete, comissao: r.comissao, taxaFixa: r.taxaFixa,
       /* acima deste preço volta a compensar cobrar mais; entre o degrau e ele
          é terra de ninguém — mais caro e menos lucro */
       voltaACompensar: empate,
@@ -840,10 +849,16 @@ function acharDegraus(linhas, params, motor) {
   }
 
   casos.sort((a, b) => b.ganhoPorVenda - a.ganhoPorVenda);
+  const bons = casos.filter(c => !c.prejuizo);
+  const ruins = casos.filter(c => c.prejuizo);
   return {
-    n: casos.length,
-    ganhoTotal: Math.round(casos.reduce((s, c) => s + c.ganhoPorVenda, 0) * 100) / 100,
-    casos,
+    /* n e ganhoTotal contam só os que de fato viram lucro maior — somar os
+       que estão no vermelho inflaria um número que ninguém vai receber */
+    n: bons.length,
+    ganhoTotal: Math.round(bons.reduce((s, c) => s + c.ganhoPorVenda, 0) * 100) / 100,
+    casos: bons,
+    noPrejuizo: ruins,
+    todos: casos,
   };
 }
 

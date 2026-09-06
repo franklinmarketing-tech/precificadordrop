@@ -1797,17 +1797,27 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
 
 /* O painel do caçador de degrau, em HTML. Serve os três canais: o que muda é
    o nome do canal e a fonte da planilha.
-   ctx = {canal, brl, cabecalho, aoa} */
+
+   Duas listas, de propósito. A primeira é a oportunidade de verdade: baixar o
+   preço aumenta o lucro. A segunda é produto que perde dinheiro NOS DOIS
+   preços — ali o degrau é o menor dos problemas, e dizer "ganhe mais baixando"
+   seria enganoso. Cada linha abre o extrato, onde dá para ver exatamente para
+   onde o dinheiro está indo.
+
+   ctx = {canal, brl, cabecalho, aoa, aoClicar} */
 function degrausHTML(d, ctx){
   const brl = ctx.brl;
   const iDesc = (ctx.cabecalho || []).findIndex(h => /descri|nome|produto|t[ií]tulo/i.test(String(h)));
+  const desc = linha => {
+    const L = (ctx.aoa || [])[linha] || [];
+    return iDesc >= 0 ? String(L[iDesc] || '') : '';
+  };
+  const clic = c => ctx.aoClicar
+    ? ` class="tr-clic" onclick="${ctx.aoClicar}(${c.linha})" title="Ver a conta desta linha"` : '';
 
-  const linhas = d.casos.slice(0, 40).map(c => {
-    const L = (ctx.aoa || [])[c.linha] || [];
-    const desc = iDesc >= 0 ? String(L[iDesc] || '') : '';
-    return `<tr>
+  const linhaOportunidade = c => `<tr${clic(c)}>
       <td class="c-linha">${c.linha + 1}</td>
-      <td class="c-desc" title="${esc(desc)}">${esc(desc.slice(0, 52)) || '—'}</td>
+      <td class="c-desc" title="${esc(desc(c.linha))}">${esc(desc(c.linha).slice(0, 52)) || '—'}</td>
       <td class="c-num">${brl(c.precoAtual)}</td>
       <td class="c-num c-taxa">${brl(c.lucroAtual)}</td>
       <td class="c-num c-preco">${brl(c.precoSugerido)}</td>
@@ -1815,9 +1825,8 @@ function degrausHTML(d, ctx){
       <td class="c-num c-lucro pos">+${brl(c.ganhoPorVenda)}</td>
       <td class="c-num">${c.voltaACompensar ? brl(c.voltaACompensar) : '—'}</td>
     </tr>`;
-  }).join('');
 
-  return `
+  const oportunidades = !d.n ? '' : `
     <div class="panel-h">
       <div class="panel-t verde">Dinheiro parado num degrau de taxa</div>
       <span class="pill pill-bad">${d.n.toLocaleString('pt-BR')} ${d.n === 1 ? 'produto' : 'produtos'}</span>
@@ -1833,19 +1842,60 @@ function degrausHTML(d, ctx){
     <div class="tbl-wrap"><table>
       <thead><tr>
         <th>Linha</th><th>Descrição</th>
-        <th class="c-num">Preço hoje</th><th class="c-num">Rende</th>
-        <th class="c-num">Baixando para</th><th class="c-num">Renderia</th>
+        <th class="c-num">Preço hoje</th><th class="c-num">Sobra hoje</th>
+        <th class="c-num">Baixando para</th><th class="c-num">Sobraria</th>
         <th class="c-num">Ganho</th><th class="c-num">Volta a compensar acima de</th>
-      </tr></thead><tbody>${linhas}</tbody>
+      </tr></thead><tbody>${d.casos.slice(0, 40).map(linhaOportunidade).join('')}</tbody>
     </table></div>
     ${d.n > 40 ? `<div class="prev-fim">mostrando os 40 de maior ganho, de ${d.n.toLocaleString('pt-BR')}</div>` : ''}`;
+
+  const ruins = d.noPrejuizo || [];
+  const prejuizo = !ruins.length ? '' : `
+    ${d.n ? '<div style="height:26px"></div>' : ''}
+    <div class="panel-h">
+      <div class="panel-t verde">Produtos vendendo no prejuízo</div>
+      <span class="pill pill-bad">${ruins.length.toLocaleString('pt-BR')} ${ruins.length === 1 ? 'produto' : 'produtos'}</span>
+    </div>
+    <div class="nota-box" style="margin-bottom:16px">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>
+      <div><b>Aqui a conta não fecha em preço nenhum — o degrau é o menor dos problemas.</b>
+        A cada venda sai mais dinheiro do que entra. <b>Clique numa linha</b> para ver o
+        extrato e descobrir para onde ele está indo. As três causas comuns:
+        <ul style="margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px">
+          <li><b>Coluna de custo errada.</b> Se a coluna apontada não é o custo, o app
+            compara o preço com outra coisa. Confira no passo 2.</li>
+          <li><b>Peso em gramas lido como quilo.</b> 8000 na coluna "Peso (kg)" vira 8
+            toneladas e o frete estoura. O app pergunta antes de calcular quando detecta isso.</li>
+          <li><b>O produto custa mais do que o preço sustenta.</b> Aí é decisão de negócio:
+            subir o preço, trocar de fornecedor ou parar de vender.</li>
+        </ul></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Linha</th><th>Descrição</th>
+        <th class="c-num">Custo</th><th class="c-num">Preço hoje</th>
+        <th class="c-num">Envio</th><th class="c-num">Comissão</th>
+        <th class="c-num">Perde por venda</th>
+      </tr></thead><tbody>${ruins.slice(0, 40).map(c => `<tr${clic(c)}>
+        <td class="c-linha">${c.linha + 1}</td>
+        <td class="c-desc" title="${esc(desc(c.linha))}">${esc(desc(c.linha).slice(0, 52)) || '—'}</td>
+        <td class="c-num c-custo">${c.custo != null ? brl(c.custo) : '—'}</td>
+        <td class="c-num">${brl(c.precoAtual)}</td>
+        <td class="c-num c-taxa">${c.frete != null ? brl(c.frete) : '—'}</td>
+        <td class="c-num c-taxa">${c.comissao != null ? brl(c.comissao) : '—'}</td>
+        <td class="c-num c-lucro neg">${brl(c.lucroAtual)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    ${ruins.length > 40 ? `<div class="prev-fim">mostrando 40 de ${ruins.length.toLocaleString('pt-BR')}</div>` : ''}`;
+
+  return oportunidades + prejuizo;
 }
 
 /* ── dinheiro parado num degrau de taxa ────────────────────────────────────
    Roda sobre o preço que o vendedor JÁ pratica, não sobre o que o app calcula:
    o preço calculado percorre faixa a faixa e nunca cai na zona morta. Quem
    precificou por markup, sim. */
-let mlDegraus = null;
+let mlDegraus = null, mlDegrausLinhas = [];
 
 function mlAcharDegraus(iPrecoHoje, params){
   mlDegraus = null;
@@ -1862,10 +1912,13 @@ function mlAcharDegraus(iPrecoHoje, params){
                                      pesoReal: r.pesoReal, dimensoes: r.dimensoes}, a));
   }
   if(!linhas.length) return;
+  mlDegrausLinhas = linhas;
   const d = ML.acharDegraus(linhas, params, {
     analisar: ML.analisar, limites: () => ML.limitesDePreco(params),
   });
-  if(d.n) mlDegraus = d;
+  /* também abre quando só há prejuízo: um produto vendendo no vermelho é a
+     notícia mais importante da tela, não algo para esconder */
+  if(d.n || (d.noPrejuizo && d.noPrejuizo.length)) mlDegraus = d;
 }
 
 function mlRenderDegraus(){
@@ -1874,8 +1927,24 @@ function mlRenderDegraus(){
   if(!mlDegraus){ mostrar('mlDegraus', false); return; }
   caixa.innerHTML = degrausHTML(mlDegraus, {
     canal: 'do Mercado Livre', brl: ML.brl, cabecalho: mlCabecalho, aoa: mlAoa,
+    aoClicar: 'mlVerContaDegrau',
   });
   mostrar('mlDegraus', true);
+}
+
+/* A conta da linha no preço que o vendedor pratica hoje — não no calculado.
+   É o que responde "por que este produto dá prejuízo". */
+function mlVerContaDegrau(linha){
+  const r = mlDegrausLinhas.find(x => x.linha === linha);
+  if(!r) return;
+  const L = mlAoa[linha] || [];
+  $('linhaTitulo').textContent = contaTitulo(mlCabecalho, L, linha + 1);
+  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaCorpo').innerHTML = contaHTML({
+    AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: r.margemLiquida,
+    rodape: 'Esta é a conta do preço que está no ar, não do preço calculado.',
+  }, r);
+  abrirPop('popLinha', 'scrimLinha');
 }
 
 /* ── estatísticas do lote ── */
