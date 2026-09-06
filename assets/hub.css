@@ -506,14 +506,33 @@ tbody tr:hover td{background:var(--sup-3)}
   color:var(--sub);cursor:pointer;padding:6px 11px;border-radius:9px;
   transition:background .2s ease,color .2s ease}
 .pe-links button:hover{background:var(--sup-t2);color:var(--ink)}
-.pe-fim{display:flex;flex-direction:column;gap:2px;text-align:right}
-.pe-fim a{font-size:13px;color:var(--sub);text-decoration:none;font-weight:600;
-  transition:color .2s ease}
-.pe-fim a:hover{color:var(--blue-dk)}
+.pe-fim{display:flex;flex-direction:column;align-items:flex-end;gap:9px;text-align:right}
 .pe-fim span{font-size:11.5px;color:var(--faint)}
+
+/* SELO CASTRIANI — o crédito de quem desenvolveu, no mesmo formato em todos
+   os produtos (o original está no Painel Rep): pílula branca, "</>" mono,
+   "Desenvolvido por" apagado e a marca em duas cores.
+
+   A pílula fica BRANCA tambem no tema escuro, de propósito: é um selo, e
+   um selo que muda de cor conforme a página deixa de ser reconhecido como
+   o mesmo selo. Só a sombra e a borda mudam. */
+.selo-cd{display:inline-flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:999px;
+  background:#fff;border:1px solid #E4E8F0;
+  box-shadow:0 1px 2px rgba(20,30,60,.06);
+  text-decoration:none;font-size:13px;line-height:1;white-space:nowrap;
+  transition:box-shadow .22s ease,transform .22s ease}
+.selo-cd:hover{box-shadow:0 9px 22px -10px rgba(20,30,60,.45);transform:translateY(-1px)}
+[data-tema="escuro"] .selo-cd{border-color:rgba(20,30,60,.2);
+  box-shadow:0 2px 10px rgba(0,0,0,.4)}
+[data-tema="escuro"] .selo-cd:hover{box-shadow:0 10px 26px -8px rgba(0,0,0,.7)}
+.selo-cd i{font-family:var(--mono);font-weight:700;font-style:normal;color:#64748B}
+.selo-cd span{color:#64748B;font-weight:500}
+.selo-cd b{font-weight:800;letter-spacing:-.02em;color:#3B4A6B}
+.selo-cd b em{font-style:normal;color:#A94E2F}
 @media(max-width:760px){
   .pe-in{flex-direction:column;align-items:flex-start;gap:14px}
-  .pe-fim{text-align:left}
+  .pe-fim{text-align:left;align-items:flex-start}
 }
 
 /* botão de voltar, no canto esquerdo do cabeçalho */
