@@ -107,6 +107,10 @@
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
           </button>
+          <button class="mn-i" onclick="dgAbrir('ml')">
+            <img src="assets/img/ic-base-ml.webp" alt=""/>
+            <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
+          </button>
           <div class="mn-grupo">CATÁLOGO</div>
           <button class="mn-i" onclick="ir('planilha')">
             <img src="assets/img/ic-planilha.webp" alt=""/>
@@ -146,6 +150,10 @@
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Precificar Shopee</b><i>Comissão e taxa fixa da Shopee</i></span>
           </button>
+          <button class="mn-i" onclick="dgAbrir('shopee')">
+            <img src="assets/img/ic-shopee.webp" alt=""/>
+            <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
+          </button>
           <div class="mn-grupo">EM PREPARAÇÃO</div>
           <button class="mn-i mn-off" disabled>
             <img src="assets/img/ic-base-shop.webp" alt=""/>
@@ -165,6 +173,10 @@
           <button class="mn-i" onclick="mkAbrir('amazon')">
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Amazon</b><i>Referral fee e tarifa por categoria</i></span>
+          </button>
+          <button class="mn-i" onclick="dgAbrir('amazon')">
+            <img src="assets/img/ic-ml.webp" alt=""/>
+            <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
           <div class="mn-grupo">EM PREPARAÇÃO</div>
           <button class="mn-i mn-off" disabled>
@@ -270,7 +282,7 @@
       <div class="hub-lado">
         <div class="badge"><span class="dot"></span><span>ECOSSISTEMA DO DROPSHIPPING NO BRASIL</span></div>
         <div class="hub-prova">
-        <div class="prv"><b>5</b><span>ferramentas no ar</span></div>
+        <div class="prv"><b>6</b><span>ferramentas no ar</span></div>
         <div class="prv"><b id="liveChecks">0/8</b><span>validações por planilha</span></div>
         <div class="prv"><b>3</b><span>chegando</span></div>
         </div>
@@ -287,7 +299,7 @@
       <button class="ws-card ws-ml" onclick="wsAbrir('ml')">
         <span class="ws-marca"><img src="assets/img/logo-ml.svg" alt="Mercado Livre" loading="lazy"/></span>
         <span class="ws-pe">
-          <b>3 ferramentas</b>
+          <b>4 ferramentas</b>
           <i>6 consultas de apoio</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
@@ -296,7 +308,7 @@
       <button class="ws-card ws-shopee" onclick="wsAbrir('shopee')">
         <span class="ws-marca"><img src="assets/img/logo-shopee.svg" alt="Shopee" loading="lazy"/></span>
         <span class="ws-pe">
-          <b>1 ferramenta</b>
+          <b>2 ferramentas</b>
           <i>base de preços chegando</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
@@ -305,7 +317,7 @@
       <button class="ws-card ws-amazon" onclick="wsAbrir('amazon')">
         <span class="ws-marca"><img src="assets/img/logo-amazon.svg" alt="Amazon" loading="lazy"/></span>
         <span class="ws-pe">
-          <b>1 ferramenta</b>
+          <b>2 ferramentas</b>
           <i>base de preços chegando</i>
         </span>
         <span class="ws-seta"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
@@ -902,6 +914,76 @@
   </div>
 
   <!-- ═══════════════ VIEW: MANUAL ═══════════════ -->
+  <!-- ═══════════════ VIEW: CAÇADOR DE DEGRAU ═══════════════
+       Auditoria dos preços que o vendedor JÁ pratica. Não calcula preço novo:
+       procura quem está parado logo acima de um degrau de taxa, onde baixar
+       o preço aumenta o lucro. O preço que as calculadoras geram nunca cai
+       nessa faixa — o dinheiro parado está sempre no preço antigo. -->
+  <div id="view-degrau" class="view hide">
+    <div class="ml-head">
+      <div class="ml-selo">
+        <svg viewBox="0 0 44 30" aria-hidden="true">
+          <path d="M4 22h6v-8H4zM17 22h6V9h-6zM30 22h6V4h-6z" fill="none" stroke="currentColor"
+                stroke-width="2.4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Dinheiro parado <span class="grad">num degrau.</span></h1>
+        <div class="h-sub">As taxas sobem em degrau, não em rampa. Passar de um limite por um
+          centavo cobra a faixa inteira — e há preços em que cobrar mais caro rende menos.
+          Suba a planilha com os preços que você pratica hoje.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="dgStep1">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar a planilha</div></div>
+      <div class="zone" onclick="document.getElementById('dgFi').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')" ondrop="dgDrop(event)">
+        <input id="dgFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="dgCarregar(event.target.files[0])"/>
+        <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+        <div class="zone-t">Arraste a planilha aqui</div>
+        <div class="zone-s">precisa ter o custo e o preço que você pratica hoje · .xlsx · .xls · .csv</div>
+      </div>
+      <div class="nota-box" style="margin-top:16px">
+        <svg viewBox="0 0 24 24"><path d="M12 16v-4m0-4h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        <div><b>Serve a planilha que você já usa.</b> Pode ser a exportação do Bling, a do
+          Mercado Livre ou a sua própria — o que importa é ter uma coluna de custo e outra
+          com o preço que está no ar. Nada é enviado para lugar nenhum: a conta roda aqui
+          no seu navegador.</div>
+      </div>
+    </div>
+
+    <div class="panel hide" id="dgStep2">
+      <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Colunas e canal</div></div>
+      <div class="campos" id="dgColunas"></div>
+
+      <div class="grp-t" style="margin-top:22px">ONDE ESSES PRODUTOS ESTÃO ANUNCIADOS</div>
+      <div class="campos" id="dgCanal"></div>
+      <div id="dgParams" class="campos" style="margin-top:15px"></div>
+
+      <button class="btn btn-green btn-block" style="margin-top:18px" onclick="dgProcurar()">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        Procurar dinheiro parado
+      </button>
+    </div>
+
+    <div class="hide" id="dgStep3">
+      <div class="stats stats-4" id="dgStats"></div>
+      <div class="panel" id="dgResultado"></div>
+      <div class="panel" id="dgAcoes">
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="dgRecomecar()">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
+          <button class="btn btn-green" style="flex:1" id="dgBtnDl" onclick="dgBaixar()">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            Baixar a lista com os preços sugeridos
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="view-manual" class="view hide">
     <div class="man-head">
       <div>
@@ -2054,6 +2136,7 @@
   <script src="assets/app.js"></script>
   <script src="assets/anuncios-ui.js"></script>
   <script src="assets/mkt-ui.js"></script>
+  <script src="assets/degrau-ui.js"></script>
 <script src="assets/pwa.js"></script>
 </body>
 </html>

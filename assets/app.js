@@ -92,6 +92,7 @@ const VIEWS = {
   planilha: {sub:'EDIÇÃO COMPLETA DE PLANILHA DE PRODUTOS',titulo:'Edição Completa de Planilha de Produtos — Precificador Drop'},
   anuncios: {sub:'AJUSTAR PREÇOS NO MERCADO LIVRE',titulo:'Ajustar preços no Mercado Livre — Precificador Drop'},
   mkt:      {sub:'PRECIFICAR OUTRO CANAL',      titulo:'Precificar — Precificador Drop'},
+  degrau:   {sub:'DINHEIRO PARADO NUM DEGRAU',    titulo:'Caçador de degrau — Precificador Drop'},
   manual:   {sub:'GUIA DO DROP',                   titulo:'Guia do Drop — Precificador Drop'},
   mercado:  {sub:'PESQUISA DE MERCADO',            titulo:'Pesquisa de Mercado — Precificador Drop'},
   termos:      {sub:'TERMOS DE USO',                titulo:'Termos de uso — Precificador Drop'},
@@ -116,7 +117,9 @@ function ir(v, semHash){
   /* marca no menu o marketplace da tela atual. A view 'mkt' serve Shopee e
      Amazon, então quem diz qual é o canal aberto é o próprio motor. */
   const MKT = {hub:'hub', ml:'ml', planilha:'ml', mercado:'ml', anuncios:'ml', manual:'guia'};
-  const atual = v === 'mkt' ? (typeof mkCanal !== 'undefined' && mkCanal ? mkCanal.id : null) : MKT[v];
+  const atual = v === 'mkt' ? (typeof mkCanal !== 'undefined' && mkCanal ? mkCanal.id : null)
+             : v === 'degrau' ? (typeof dgCanalId !== 'undefined' ? dgCanalId : null)
+             : MKT[v];
   document.querySelectorAll('.mn-t[data-mkt]').forEach(bt =>
     bt.classList.toggle('aqui', !!atual && bt.dataset.mkt === atual));
 
@@ -3342,6 +3345,14 @@ document.addEventListener('keydown', e => {
    fora, o que a ferramenta fazia sem abrir. */
 const WS_FERRAMENTAS = {
   ml: [
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('ml')", destaque:true,
+     fluxo:['Preços que você pratica','Onde perde dinheiro'],
+     resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
+     itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
+            'A R$ 100 o frete pula de R$ 13,85 para R$ 16,15 — R$ 99,99 rende R$ 2,29 a mais',
+            'Diz quanto cada produto rende a mais se você baixar',
+            'E a partir de que preço volta a compensar cobrar mais',
+            'Roda sobre o preço que já está no ar, não sobre o custo']},
     {nome:'Precificar Mercado Livre', img:'assets/img/ic-ml.webp', acao:"ir('ml')", destaque:true,
      fluxo:['Planilha do Bling','Preços calculados'],
      resumo:'O preço que entrega a margem que você pediu.',
@@ -3388,6 +3399,14 @@ const WS_FERRAMENTAS = {
      itens:['Formas de entrega', 'Regra de cada uma']},
   ],
   shopee: [
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('shopee')", destaque:true,
+     fluxo:['Preços que você pratica','Onde perde dinheiro'],
+     resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
+     itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
+            'R$ 79,99 paga R$ 20 de comissão; R$ 80,00 paga R$ 27,20',
+            'Diz quanto cada produto rende a mais se você baixar',
+            'E a partir de que preço volta a compensar cobrar mais',
+            'Roda sobre o preço que já está no ar, não sobre o custo']},
     {nome:'Precificar Shopee', img:'assets/img/ic-shopee.webp', acao:"mkAbrir('shopee')", destaque:true,
      fluxo:['Planilha de custos','Preços da Shopee'],
      resumo:'O preço que entrega a margem, com a tabela de 2026.',
@@ -3401,6 +3420,14 @@ const WS_FERRAMENTAS = {
      itens:['Revisar preço do que já está publicado']},
   ],
   amazon: [
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('amazon')", destaque:true,
+     fluxo:['Preços que você pratica','Onde perde dinheiro'],
+     resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
+     itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
+            'As faixas de frete do FBA mudam a cada degrau de peso e preço',
+            'Diz quanto cada produto rende a mais se você baixar',
+            'E a partir de que preço volta a compensar cobrar mais',
+            'Roda sobre o preço que já está no ar, não sobre o custo']},
     {nome:'Precificar Amazon', img:'assets/img/ic-ml.webp', acao:"mkAbrir('amazon')", destaque:true,
      fluxo:['Planilha de custos','Preços da Amazon'],
      resumo:'O preço que entrega a margem, por categoria.',
@@ -3480,6 +3507,7 @@ const WS_ICONES = {
   upload:   '<path d="M12 19V5m0 0-6 6m6-6 6 6"/><path d="M4 21h16"/>',
   ajuda:    '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4M12 17.5h.01"/>',
   baixar:   '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  lupa:     '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M11 8v6M8 11h6"/>',
 };
 
 function wsIcone(nome){

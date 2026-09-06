@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v2';   // v2: a lista abaixo passou a ter os 12 scripts
+const VERSAO = 'v3';   // v3: a lista abaixo tem os 13 scripts
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
@@ -43,6 +43,7 @@ const SHELL = [
   '/assets/app.js',
   '/assets/anuncios-ui.js',
   '/assets/mkt-ui.js',
+  '/assets/degrau-ui.js',
   '/assets/pwa.js',
 ];
 
