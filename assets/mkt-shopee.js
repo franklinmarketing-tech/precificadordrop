@@ -143,8 +143,16 @@ const FORM = [
    ajuda:'soma 3,5% sobre a venda, para quem entra no programa'},
 ];
 
+/* O que a documentação da Shopee não responde. Aparece na tela: quem
+   precifica milhares de itens tem de saber onde a conta pode variar, e
+   descobrir isso no extrato é tarde. */
+const RESSALVAS = [
+  'A Shopee diz "por item vendido" mas não esclarece se 3 unidades do mesmo produto num pedido geram uma taxa fixa ou três. Com R$ 26 de taxa, a diferença é grande — confira num extrato real antes de fechar sua margem.',
+  'Também não está claro se a faixa de preço olha o valor unitário ou o total da linha do pedido.',
+];
+
 return Object.assign({}, motor, {
-  FORM, FAIXAS, PISO_METADE, ADICIONAL_CPF,
+  FORM, RESSALVAS, FAIXAS, PISO_METADE, ADICIONAL_CPF,
   TAXA_DEVOLUCAO_CULPA: 15, TAXA_VOLUMOSO: 50,
 });
 });

@@ -124,6 +124,22 @@ function mkMontarForm(){
       <input type="checkbox" id="mkP_${f.id}"${P[f.id] ? ' checked' : ''}/>
       ${esc(f.rot)}${f.ajuda ? ` — ${esc(f.ajuda)}` : ''}</label>`;
   }).join('');
+
+  /* o que a documentação do canal não responde fica visível, não escondido:
+     quem precifica milhares de itens precisa saber onde a conta pode variar */
+  const alvo = $('mkRessalvas');
+  const rs = mkCanal.RESSALVAS || [];
+  if(alvo){
+    alvo.innerHTML = !rs.length ? '' : `
+      <div class="nota-box" style="margin-top:16px;margin-bottom:0">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>
+        <div><b>O que a ${esc(mkCanal.nome)} não deixa claro</b>
+          <ul style="margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px">
+            ${rs.map(x => `<li>${esc(x)}</li>`).join('')}
+          </ul></div>
+      </div>`;
+    mostrar('mkRessalvas', !!rs.length);
+  }
   mkAtualizarForm();
 }
 

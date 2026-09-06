@@ -2054,3 +2054,20 @@ body.view-hub .ws-painel-b{padding:14px}
 .ws-fluxo svg{width:13px;height:13px;flex:none;fill:none;stroke:var(--blue);
   stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ws-pop .ws-fluxo{margin-top:12px}
+
+/* ═══ CAIXA DE EXPLICAÇÃO ══════════════════════════════════
+   Um aviso dentro de um passo. Não confundir com .dica, que é o balãozinho
+   redondo e ABSOLUTO do canto dos cards do hub — reusar aquele nome espremia
+   o texto dentro de um círculo de 30px.
+
+   Esta regra já existiu e sumiu numa substituição de bloco minha; sem ela o
+   SVG cresce até ocupar a caixa inteira, porque nada limita o tamanho dele. */
+.nota-box{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin-bottom:16px;
+  border-radius:13px;background:color-mix(in srgb,var(--blue) 7%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--blue) 22%,transparent);
+  font-size:13.5px;line-height:1.6;color:var(--sub)}
+.nota-box svg{width:19px;height:19px;flex:none;margin-top:1px;fill:none;
+  stroke:var(--blue-dk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nota-box b{color:var(--ink);font-weight:700}
+.nota-box ul{margin:6px 0 0;padding-left:18px}
+.nota-box li{margin-bottom:5px}
