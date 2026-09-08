@@ -740,6 +740,16 @@ function copiar(txt, btn){
   setTimeout(() => btn.textContent = 'COPIAR', 1500);
 }
 
+/* Copiar o SKU da tabela: o texto do botão É o código, então o aviso de
+   copiado vira uma marca no próprio botão em vez de trocar o conteúdo. */
+function copiarSku(txt, btn){
+  if(!txt || txt === '—') return;
+  navigator.clipboard.writeText(txt).then(() => {
+    btn.classList.add('copiado');
+    setTimeout(() => btn.classList.remove('copiado'), 1200);
+  }).catch(() => {});
+}
+
 /* Os "campos amarelos" da planilha: quando preenchidos, valem só para este
    cálculo e sobrepõem os parâmetros salvos. Vazio = usa o parâmetro.     */
 function paramsDoProduto(){
@@ -1946,7 +1956,7 @@ function mlVerContaDegrau(linha){
   if(!r) return;
   const L = mlAoa[linha] || [];
   $('linhaTitulo').textContent = contaTitulo(mlCabecalho, L, linha + 1);
-  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaSub').textContent = contaSub(mlCabecalho, L, linha + 1, 'A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: r.margemLiquida,
     rodape: 'Esta é a conta do preço que está no ar, não do preço calculado.',
@@ -2159,11 +2169,27 @@ function contaHTML(ctx, r){
       ${ctx.rodape || ''}</p>`;
 }
 
-/* Descrição da linha, para o título do pop-up. */
+/* O SKU da linha — "Código" no Bling, o mesmo que se busca no Wedrop. */
+function skuDaLinha(cabecalho, valores){
+  const i = (cabecalho || []).findIndex(h => /^(c[óo]digo|sku|refer[êe]ncia)$/i.test(String(h)));
+  return i >= 0 ? String((valores || [])[i] || '').trim() : '';
+}
+
+/* Descrição da linha, para o título do pop-up. Planilha de dropshipping
+   costuma vir sem descrição nenhuma; aí o SKU identifica melhor o produto
+   do que o número da linha. */
 function contaTitulo(cabecalho, valores, numeroLinha){
   const iDesc = (cabecalho || []).findIndex(h => /descri|nome|produto|t[ií]tulo/i.test(String(h)));
-  const desc = iDesc >= 0 ? String((valores || [])[iDesc] || '') : '';
-  return desc || ('Linha ' + numeroLinha);
+  const desc = iDesc >= 0 ? String((valores || [])[iDesc] || '').trim() : '';
+  return desc || skuDaLinha(cabecalho, valores) || ('Linha ' + numeroLinha);
+}
+
+/* "LINHA 983 · SKU WD-1002 · A CONTA DESTE PREÇO" — o SKU só entra quando
+   existe e quando não é ele mesmo o título ali em cima. */
+function contaSub(cabecalho, valores, numeroLinha, sufixo){
+  const sku = skuDaLinha(cabecalho, valores);
+  const repetido = sku && contaTitulo(cabecalho, valores, numeroLinha) === sku;
+  return 'LINHA ' + numeroLinha + (sku && !repetido ? ' · SKU ' + sku : '') + ' · ' + sufixo;
 }
 
 function abrirLinha(indice){
@@ -2172,7 +2198,7 @@ function abrirLinha(indice){
   const l = mlAoa[r.linha] || [];
 
   $('linhaTitulo').textContent = contaTitulo(mlCabecalho, l, r.linha + 1);
-  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+  $('linhaSub').textContent = contaSub(mlCabecalho, l, r.linha + 1, 'A CONTA DESTE PREÇO');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: mlMargem,
     rodape: `Tipo de anúncio: <b>${pml.tipoAnuncio === 'premium' ? 'Premium' : 'Clássico'}</b>.`,
@@ -2384,7 +2410,9 @@ function mlEditarPronto(linha){
 function mlRenderTabela(){
   const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
   const iVar  = mlCabecalho.findIndex(h => /varia[çc][ãa]o/i.test(String(h)));
-  const iCod  = mlCabecalho.findIndex(h => /^c[óo]digo$/i.test(String(h)));
+  /* "Código" no Bling é o SKU — o mesmo que se digita na busca do Wedrop para
+     achar o produto. Outras planilhas chamam a coluna de SKU ou Referência. */
+  const iCod  = mlCabecalho.findIndex(h => /^(c[óo]digo|sku|refer[êe]ncia)$/i.test(String(h)));
   const grupo = mlFiltro && mlConferencia
     ? mlConferencia.grupos.find(g => g.id === mlFiltro) : null;
   let alvo = grupo ? grupo.linhas.map(i => mlLinhas[i]) : mlLinhas;
@@ -2423,10 +2451,20 @@ function mlRenderTabela(){
         title="${mexido ? 'Corrigido aqui — vai assim para o Excel' : 'Clique para corrigir'}"/></div>`;
   };
 
-  const tdsVazios = mlUsandoCategoria ? 7 : 6;
+  /* Uma coluna inteira de "—" ocupa o lugar do que interessa. A descrição só
+     aparece quando a planilha realmente traz alguma — e some quando não traz,
+     a não ser que nem SKU exista, aí ela é a única pista do produto. */
+  const temDesc = iDesc >= 0 &&
+    mlLinhas.some(r => String((mlAoa[r.linha] || [])[iDesc] || '').trim() !== '');
+  const mostrarDesc = temDesc || iCod < 0;
+
+  /* o vão da linha sem preço cobre exatamente Preço, Comissão, Envio e Lucro —
+     antes era contado à mão e, com a coluna de categoria ligada, engolia
+     também a Situação */
+  const tdsVazios = 4;
 
   $('mlTabela').innerHTML =
-    `<thead><tr><th>Linha</th><th>Descrição</th>${iVar >= 0 ? '<th>Variação</th>' : ''}${mlUsandoCategoria ? '<th>Categoria no ML</th>' : ''}
+    `<thead><tr><th>Linha</th>${iCod >= 0 ? '<th>SKU</th>' : ''}${mostrarDesc ? '<th>Descrição</th>' : ''}${iVar >= 0 ? '<th>Variação</th>' : ''}${mlUsandoCategoria ? '<th>Categoria no ML</th>' : ''}
       <th>Custo</th><th>Peso (kg)</th><th>Preço de venda</th>
       <th>Comissão</th><th>Envio</th><th>Lucro</th><th>Situação</th></tr></thead><tbody>` +
     pagina.map(r => {
@@ -2441,6 +2479,14 @@ function mlRenderTabela(){
         ? `<td class="td-cat" title="${esc(cat.categoria)}">${esc(cat.nome || cat.categoria)}
              <b>${String(cat[tipoAn]).replace('.', ',')}%</b></td>`
         : '<td class="td-cat vazia">não encontrada</td>');
+      /* o SKU é o que a pessoa leva para o Wedrop: clicar copia, e o clique
+         não abre o extrato da linha para não atrapalhar quem só quer o código */
+      const sku = iCod >= 0 ? String(l[iCod] || '') : '';
+      const tdSku = iCod < 0 ? '' :
+        `<td class="c-sku"><button type="button" class="sku-copia" title="Clique para copiar"
+             onclick="event.stopPropagation();copiarSku('${esc(sku)}',this)">${esc(sku) || '—'}</button></td>`;
+      const tdDesc = !mostrarDesc ? '' :
+        `<td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>`;
       const tdVar = iVar < 0 ? '' :
         `<td style="color:var(--faint)">${esc(String(l[iVar] || '')) || '—'}</td>`;
 
@@ -2467,15 +2513,13 @@ function mlRenderTabela(){
           : '');
 
       if(r.preco == null) return `<tr class="${grav.trim()}">
-        <td style="color:var(--faint)">${r.linha + 1}</td>
-        <td title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
+        <td style="color:var(--faint)">${r.linha + 1}</td>${tdSku}${tdDesc}${tdVar}${tdCat}
         <td>${tdCusto}</td><td>${tdPeso}</td>
         <td colspan="${tdsVazios - 2}" style="color:var(--faint)">sem preço calculado</td>
         <td>${situacao(r)}</td></tr>`;
       const iReal = mlIndicePorLinha.get(r.linha);
       return `<tr class="tr-clic${grav}" onclick="if(!event.target.closest('input,button,select,a'))abrirLinha(${iReal})" title="Ver a conta desta linha">
-        <td class="c-linha">${r.linha + 1}</td>
-        <td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>${tdVar}${tdCat}
+        <td class="c-linha">${r.linha + 1}</td>${tdSku}${tdDesc}${tdVar}${tdCat}
         <td class="c-custo">${tdCusto}</td>
         <td class="c-peso">${tdPeso}</td>
         <td class="c-preco">${ML.brl(r.preco)}</td>
@@ -2501,7 +2545,7 @@ function mlRenderTabela(){
   // barra de busca, filtro ativo e correções pendentes
   const nEd = mlEdicoes.size;
   $('mlFiltroBar').innerHTML = `<div class="filtro-bar">
-      <input type="search" class="busca" placeholder="Buscar por descrição ou código…"
+      <input type="search" class="busca" placeholder="Buscar por SKU ou descrição…"
         value="${esc(mlBusca)}" oninput="mlBuscar(this.value)"/>
       <div class="f-atalhos"><span class="f-titulo">Clique para ver só os produtos com problema</span>${atalhos}</div>
       ${grupo ? `<div class="f-ativo ${grupo.gravidade === 'erro' ? 'grave' : ''}">

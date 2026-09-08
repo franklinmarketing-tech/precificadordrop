@@ -493,7 +493,7 @@ function mkVerContaDegrau(linha){
   if(!r) return;
   const L = mkAoa[linha] || [];
   $('linhaTitulo').textContent = contaTitulo(mkCab, L, linha + 1);
-  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaSub').textContent = contaSub(mkCab, L, linha + 1, 'A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: mkCanal.AVISOS, brl: mkCanal.brl, canal: 'da ' + mkCanal.nome,
     margem: r.margemLiquida,
@@ -511,7 +511,7 @@ function mkAbrirLinha(indice){
   const L = mkAoa[r.linha] || [];
 
   $('linhaTitulo').textContent = contaTitulo(mkCab, L, r.linha + 1);
-  $('linhaSub').textContent = 'LINHA ' + (r.linha + 1) + ' · A CONTA DESTE PREÇO';
+  $('linhaSub').textContent = contaSub(mkCab, L, r.linha + 1, 'A CONTA DESTE PREÇO');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: mkCanal.AVISOS,
     brl: mkCanal.brl,

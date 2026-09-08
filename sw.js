@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v3';   // v3: a lista abaixo tem os 13 scripts
+const VERSAO = 'v4';   // v4: explicacao e dicas na tela de ajustar precos do ML
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
@@ -55,8 +55,12 @@ self.addEventListener('install', event => {
          nenhum. Assim o que baixou fica guardado, e o que faltou volta a ser
          tentado na próxima visita. */
       .then(c => Promise.allSettled(SHELL.map(u => c.add(u))))
-      .then(() => self.skipWaiting())          // ativa sem esperar as abas antigas fecharem
   );
+  /* Sem skipWaiting aqui de proposito: ele fazia a versao nova assumir no meio
+     do uso e a aba recarregava sozinha — quem estava com uma planilha carregada
+     perdia o arquivo. Agora quem manda assumir e a pagina (pwa.js): aplica na
+     hora se a tela esta limpa, e pergunta se ha trabalho aberto. Na primeira
+     visita nao existe SW antigo, entao nada fica esperando. */
 });
 
 self.addEventListener('activate', event => {

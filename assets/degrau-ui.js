@@ -345,7 +345,7 @@ function dgVerConta(linha){
   if(!r) return;
   const L = dgAoa[linha] || [];
   $('linhaTitulo').textContent = contaTitulo(dgCab, L, linha + 1);
-  $('linhaSub').textContent = 'LINHA ' + (linha + 1) + ' · A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE';
+  $('linhaSub').textContent = contaSub(dgCab, L, linha + 1, 'A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: ML.AVISOS, brl: dgMotor.brl,
     canal: dgMotor.artigo || ('da ' + dgMotor.nome),

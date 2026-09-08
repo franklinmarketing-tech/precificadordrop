@@ -22,9 +22,26 @@ if ('serviceWorker' in navigator) {
         if (!novo) return;
         novo.addEventListener('statechange', () => {
           if (novo.state === 'installed' && navigator.serviceWorker.controller)
-            pwaAvisarAtualizacao(reg);
+            pwaAplicarOuAvisar(reg);
         });
       });
+
+      /* já havia uma versão nova esperando de uma visita anterior: quem
+         instalou o app e nunca clicou no aviso ficava preso na antiga */
+      if (reg.waiting && navigator.serviceWorker.controller) pwaAplicarOuAvisar(reg);
+
+      /* ── forçar a busca por versão nova ───────────────────────────────
+         O navegador só checa o sw.js sozinho numa navegação. Quem instalou
+         o PWA passa dias com o app aberto e nunca navega, então nunca via a
+         atualização. Aqui a checagem acontece ao abrir, toda vez que o app
+         volta para a frente, e de meia em meia hora enquanto fica aberto. */
+      const checar = () => { try{ reg.update(); }catch(e){} };
+      checar();
+      addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checar();
+      });
+      addEventListener('online', checar);
+      setInterval(checar, 30 * 60 * 1000);
     }).catch(() => { /* offline na primeira visita: sem SW, só sem cache */ });
   });
 
@@ -36,6 +53,33 @@ if ('serviceWorker' in navigator) {
     jaRecarregou = true;
     location.reload();
   });
+}
+
+/* Uma planilha carregada só existe na memória da aba: recarregar no meio
+   do trabalho jogaria fora o arquivo que a pessoa acabou de subir. Então a
+   atualização entra sozinha quando a tela está limpa, e vira convite quando
+   há trabalho em andamento. */
+function pwaTemTrabalho(){
+  /* declaradas com `let` nos outros scripts, essas variáveis NÃO existem em
+     window — só o typeof enxerga, e sem ele um nome ausente vira ReferenceError */
+  const cheio = v => Array.isArray(v) ? v.length > 0 : !!v;
+  try{
+    if (typeof mlAoa       !== 'undefined' && cheio(mlAoa))       return true;  // ML calcular preços
+    if (typeof mkAoa       !== 'undefined' && cheio(mkAoa))       return true;  // Shopee / Amazon
+    if (typeof plAoa       !== 'undefined' && cheio(plAoa))       return true;  // planilha do Bling
+    if (typeof dgAoa       !== 'undefined' && cheio(dgAoa))       return true;  // caçador de degrau
+    if (typeof anAoaML     !== 'undefined' && cheio(anAoaML))     return true;  // ajustar preços do ML
+    if (typeof anAoaPrecos !== 'undefined' && cheio(anAoaPrecos)) return true;
+  }catch(e){ return true; }   // na dúvida, não recarrega por conta própria
+  return false;
+}
+
+function pwaAplicarOuAvisar(reg){
+  if (pwaTemTrabalho()) { pwaAvisarAtualizacao(reg); return; }
+  /* sem nada aberto: aplica na hora. O controllerchange lá em cima recarrega
+     a aba, e a pessoa cai na versão nova sem precisar de clique nenhum. */
+  if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+  else pwaAvisarAtualizacao(reg);
 }
 
 function pwaAvisarAtualizacao(reg){

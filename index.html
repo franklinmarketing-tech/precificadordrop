@@ -706,6 +706,51 @@
       </div>
     </div>
 
+    <!-- ═══ O QUE ESTA TELA FAZ ═══
+         Quem chega aqui pela primeira vez não sabe por que o app pede DUAS
+         planilhas. Este bloco responde isso antes das caixas de upload, em
+         letra grande, e o rodapé de dicas responde o "e se der errado". -->
+    <div class="panel explica">
+      <div class="explica-t">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5m0-3h.01"/></svg>
+        O que esta tela faz
+      </div>
+      <p class="explica-p">
+        Ela <b>não monta uma planilha nova</b>. Ela pega a planilha de anúncios que o próprio
+        Mercado Livre te deu, acha cada anúncio pelo <b>SKU</b> dentro da sua planilha de preços
+        e <b>troca só o número do preço</b>. Título, código, estoque, as outras abas e até as
+        cores do cabeçalho voltam idênticos — por isso o Mercado Livre aceita o arquivo de volta
+        sem reclamar.
+      </p>
+
+      <div class="explica-fluxo">
+        <div class="ef-passo">
+          <span class="ef-n">1</span>
+          <b>Baixe a planilha no Mercado Livre</b>
+          <span>No painel do ML: <b>Anúncios → Editar em massa → Baixar planilha</b>.
+            Esse arquivo entra na caixa 1 aqui embaixo.</span>
+        </div>
+        <div class="ef-seta" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </div>
+        <div class="ef-passo">
+          <span class="ef-n">2</span>
+          <b>Solte as duas aqui</b>
+          <span>A do ML e a sua planilha de preços (a que você gerou na aba
+            <b>Mercado Livre → Calcular preços</b>). O app cruza as duas pelo SKU.</span>
+        </div>
+        <div class="ef-seta" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </div>
+        <div class="ef-passo">
+          <span class="ef-n">3</span>
+          <b>Baixe e suba de volta</b>
+          <span>Você confere linha por linha na tela, baixa o arquivo pronto e
+            sobe no mesmo lugar de onde baixou. Os preços mudam de uma vez só.</span>
+        </div>
+      </div>
+    </div>
+
     <!-- os dois arquivos, lado a lado: é o que a ferramenta pede, e só -->
     <div class="panel">
       <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Os dois arquivos</div></div>
@@ -739,6 +784,23 @@
         </div>
       </div>
 
+
+      <!-- as dúvidas que aparecem na hora de soltar os arquivos -->
+      <div class="dicas dicas-g">
+        <div class="dica-l"><span class="dica-e">🔑</span>
+          <span><b>O SKU é o que liga as duas planilhas.</b> O app só troca o preço do anúncio
+            cujo SKU também existe na sua planilha de preços. Anúncio sem SKU, ou com SKU
+            escrito diferente, fica com o preço antigo — e ele te mostra quais foram.</span></div>
+        <div class="dica-l"><span class="dica-e">📥</span>
+          <span><b>Baixe a planilha do ML na hora.</b> Uma planilha velha pode não ter os anúncios
+            novos, e sobe faltando gente. Baixe, ajuste aqui e suba de volta no mesmo dia.</span></div>
+        <div class="dica-l"><span class="dica-e">👀</span>
+          <span><b>Nada é publicado ainda.</b> Depois de soltar os dois arquivos aparece uma tabela
+            com o preço de antes e o de agora, lado a lado, para você conferir antes de baixar.</span></div>
+        <div class="dica-l aviso"><span class="dica-e">⬆️</span>
+          <span><b>Quem publica é você.</b> O app entrega o arquivo pronto — os preços só mudam
+            de verdade quando você sobe a planilha de volta no Mercado Livre.</span></div>
+      </div>
       <div id="anMapa" class="hide"></div>
     </div>
 
