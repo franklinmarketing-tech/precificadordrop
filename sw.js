@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v4';   // v4: explicacao e dicas na tela de ajustar precos do ML
+const VERSAO = 'v5';   // v5: da para subir outra planilha sem limpar antes
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
