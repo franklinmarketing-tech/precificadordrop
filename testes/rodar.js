@@ -1014,9 +1014,71 @@ secao('18. Prejuízo separado da oportunidade de degrau');
   ok(lote.todos.length === 2, 'e "todos" continua com os dois, para quem quiser');
 }
 
-if (falhou) {
-  console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
-  falhas.forEach(f => console.log('   ✗ ' + f));
-  process.exit(1);
+/* ── 19. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────
+   O ML guarda a embalagem em formatos que variam conforme o anúncio foi
+   criado. Ler 500 g como 500 kg estoura o frete e o preço sai errado — cada
+   formato tem de virar quilo certo, e o que não dá para reconhecer tem de
+   voltar nulo em vez de virar chute.                                        */
+(async () => {
+  secao('19. Peso e medidas vindos do anúncio (API do Mercado Livre)');
+  const {envioDe} = await import('../api/ml-meus-anuncios.js');
+
+  const attr = (id, valor) => typeof valor === 'string'
+    ? {id, value_name: valor}
+    : {id, value_struct: valor};
+
+  const e1 = envioDe({attributes: [attr('PACKAGE_WEIGHT', {number: 500, unit: 'g'})]});
+  perto(e1.pesoKg, 0.5, '500 g viram 0,5 kg', 0.0001);
+
+  const e2 = envioDe({attributes: [attr('PACKAGE_WEIGHT', {number: 1.5, unit: 'kg'})]});
+  perto(e2.pesoKg, 1.5, '1,5 kg continua 1,5 kg', 0.0001);
+
+  const e3 = envioDe({attributes: [attr('PACKAGE_WEIGHT', '750 g')]});
+  perto(e3.pesoKg, 0.75, 'peso escrito como texto também vale', 0.0001);
+
+  const e4 = envioDe({attributes: [attr('PACKAGE_WEIGHT', '2,4 kg')]});
+  perto(e4.pesoKg, 2.4, 'vírgula decimal do texto é lida', 0.0001);
+
+  const e5 = envioDe({attributes: [attr('PACKAGE_WEIGHT', {number: 800, unit: 'xis'})]});
+  ok(e5.pesoKg === null, 'unidade desconhecida não vira peso nenhum', 'veio ' + e5.pesoKg);
+
+  const e6 = envioDe({attributes: []});
+  ok(e6.pesoKg === null && e6.alturaCm === null, 'anúncio sem embalagem devolve vazio');
+
+  const e7 = envioDe({attributes: [
+    attr('PACKAGE_HEIGHT', {number: 30, unit: 'cm'}),
+    attr('PACKAGE_WIDTH',  {number: 200, unit: 'mm'}),
+    attr('PACKAGE_LENGTH', '0,4 m'),
+  ]});
+  perto(e7.alturaCm, 30, 'altura em cm', 0.001);
+  perto(e7.larguraCm, 20, '200 mm viram 20 cm', 0.001);
+  perto(e7.comprimentoCm, 40, '0,4 m viram 40 cm', 0.001);
+
+  /* o formato compacto: "altura x largura x comprimento, peso em gramas" */
+  const e8 = envioDe({shipping: {dimensions: '30x20x10,500'}});
+  perto(e8.pesoKg, 0.5, 'shipping.dimensions dá o peso em gramas', 0.0001);
+  perto(e8.alturaCm, 30, 'shipping.dimensions dá a altura', 0.001);
+  perto(e8.comprimentoCm, 10, 'shipping.dimensions dá o comprimento', 0.001);
+
+  /* o atributo tem preferência: é o que o vendedor declarou de propósito */
+  const e9 = envioDe({
+    attributes: [attr('PACKAGE_WEIGHT', {number: 2, unit: 'kg'})],
+    shipping: {dimensions: '30x20x10,500'},
+  });
+  perto(e9.pesoKg, 2, 'o atributo de peso ganha do shipping.dimensions', 0.0001);
+
+  /* variação com embalagem própria e item sem nada declarado */
+  const e10 = envioDe({attributes: [], variations: [{attributes: [attr('PACKAGE_WEIGHT', '1 kg')]}]});
+  perto(e10.pesoKg, 1, 'peso declarado na variação também é achado', 0.0001);
+
+  fim();
+})();
+
+function fim() {
+  if (falhou) {
+    console.log(`FALHOU — ${passou} passaram, ${falhou} falharam:\n`);
+    falhas.forEach(f => console.log('   ✗ ' + f));
+    process.exit(1);
+  }
+  console.log(`Tudo certo — ${passou} verificações passaram.`);
 }
-console.log(`Tudo certo — ${passou} verificações passaram.`);

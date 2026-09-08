@@ -900,6 +900,8 @@ async function mlCarregar(f){
   mlPesoSuspeito = false; mlPesoConfirmadoKg = false;
   mlDimSuspeita = false; mlDimConfirmada = false; mlDimInfo = null; mlDimFator = 1;
   mlIndicePorLinha = new Map();
+  mlTitulosML = new Map();
+  mostrar('mlPuxarRes', false); mostrar('mlPuxarProg', false);
   $('mlPesoUnidade').value = 'kg';
   mlNome = f.name;
   const rd = new FileReader();
@@ -1955,7 +1957,8 @@ function mlVerContaDegrau(linha){
   const r = mlDegrausLinhas.find(x => x.linha === linha);
   if(!r) return;
   const L = mlAoa[linha] || [];
-  $('linhaTitulo').textContent = contaTitulo(mlCabecalho, L, linha + 1);
+  $('linhaTitulo').textContent = mlTitulosML.get(linha)
+    || contaTitulo(mlCabecalho, L, linha + 1);
   $('linhaSub').textContent = contaSub(mlCabecalho, L, linha + 1, 'A CONTA DO PREÇO QUE VOCÊ PRATICA HOJE');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: r.margemLiquida,
@@ -2197,7 +2200,8 @@ function abrirLinha(indice){
   if(!r) return;
   const l = mlAoa[r.linha] || [];
 
-  $('linhaTitulo').textContent = contaTitulo(mlCabecalho, l, r.linha + 1);
+  $('linhaTitulo').textContent = mlTitulosML.get(r.linha)
+    || contaTitulo(mlCabecalho, l, r.linha + 1);
   $('linhaSub').textContent = contaSub(mlCabecalho, l, r.linha + 1, 'A CONTA DESTE PREÇO');
   $('linhaCorpo').innerHTML = contaHTML({
     AVISOS: ML.AVISOS, brl: ML.brl, canal: 'do Mercado Livre', margem: mlMargem,
@@ -2427,6 +2431,10 @@ function mlRenderTabela(){
     });
   }
 
+  /* o lote age no que está à vista — filtro e busca aplicados —, não na
+     planilha inteira: é a diferença entre corrigir 5 linhas e estragar 5.196 */
+  mlAlvoAtual = alvo.map(r => r.linha);
+
   const total = alvo.length;
   const paginas = Math.max(1, Math.ceil(total / ML_POR_PAGINA));
   if(mlPagina >= paginas) mlPagina = 0;
@@ -2454,8 +2462,9 @@ function mlRenderTabela(){
   /* Uma coluna inteira de "—" ocupa o lugar do que interessa. A descrição só
      aparece quando a planilha realmente traz alguma — e some quando não traz,
      a não ser que nem SKU exista, aí ela é a única pista do produto. */
-  const temDesc = iDesc >= 0 &&
-    mlLinhas.some(r => String((mlAoa[r.linha] || [])[iDesc] || '').trim() !== '');
+  const temDesc = (iDesc >= 0 &&
+    mlLinhas.some(r => String((mlAoa[r.linha] || [])[iDesc] || '').trim() !== ''))
+    || mlTitulosML.size > 0;
   const mostrarDesc = temDesc || iCod < 0;
 
   /* o vão da linha sem preço cobre exatamente Preço, Comissão, Envio e Lucro —
@@ -2469,7 +2478,11 @@ function mlRenderTabela(){
       <th>Comissão</th><th>Envio</th><th>Lucro</th><th>Situação</th></tr></thead><tbody>` +
     pagina.map(r => {
       const l = mlAoa[r.linha] || [];
-      const descCheia = iDesc >= 0 ? String(l[iDesc] || '') : '';
+      /* o nome puxado da conta entra só onde a planilha não trouxe nada — o
+         que o usuário escreveu manda sobre o que veio do Mercado Livre */
+      const daPlanilha = iDesc >= 0 ? String(l[iDesc] || '').trim() : '';
+      const doAnuncio = daPlanilha ? '' : (mlTitulosML.get(r.linha) || '');
+      const descCheia = daPlanilha || doAnuncio;
       const desc = descCheia.slice(0, 60);
       const ed = mlEdicoes.get(r.linha) || {};
       /* a categoria vem do Mercado Livre; sem ela a linha usou a tarifa dos parâmetros */
@@ -2486,7 +2499,8 @@ function mlRenderTabela(){
         `<td class="c-sku"><button type="button" class="sku-copia" title="Clique para copiar"
              onclick="event.stopPropagation();copiarSku('${esc(sku)}',this)">${esc(sku) || '—'}</button></td>`;
       const tdDesc = !mostrarDesc ? '' :
-        `<td class="c-desc" title="${esc(descCheia)}">${esc(desc) || '—'}</td>`;
+        `<td class="c-desc${doAnuncio ? ' do-ml' : ''}"
+             title="${esc(descCheia)}${doAnuncio ? ' · nome vindo do seu anúncio no Mercado Livre' : ''}">${esc(desc) || '—'}</td>`;
       const tdVar = iVar < 0 ? '' :
         `<td style="color:var(--faint)">${esc(String(l[iVar] || '')) || '—'}</td>`;
 
@@ -2556,6 +2570,13 @@ function mlRenderTabela(){
             <div class="f-ativo-t">Mostrando ${grupo.n} produto${grupo.n === 1 ? '' : 's'}: <b>${esc(grupo.titulo)}</b></div>
             ${grupo.comoResolver ? `<div class="f-ajuda"><b>O que fazer agora</b>${esc(grupo.comoResolver)}</div>` : ''}</div>
           <button onclick="mlVerLinhas('${grupo.id}')">ver todas as ${mlLinhas.length.toLocaleString('pt-BR')} linhas</button>
+        </div>` : ''}
+      ${(grupo || mlBusca) && total > 1 ? `<div class="f-lote">
+          <span class="f-lote-t">Mesmo peso para ${total.toLocaleString('pt-BR')} linhas</span>
+          <input type="text" inputmode="decimal" id="mlPesoLote" placeholder="0,5"
+            onkeydown="if(event.key === 'Enter') mlAplicarPesoLote()"/>
+          <span class="f-lote-u">kg</span>
+          <button onclick="mlAplicarPesoLote()">Aplicar a todas</button>
         </div>` : ''}
       ${mlBusca ? `<span><b>${total}</b> encontrado${total === 1 ? '' : 's'}</span>` : ''}
       ${nEd ? `<span class="ed-aviso"><b>${nEd}</b> linha${nEd === 1 ? '' : 's'} corrigida${nEd === 1 ? '' : 's'} aqui</span>
@@ -2714,6 +2735,194 @@ function mlTrocarArquivo(){
   if(mlEdicoes.size && !confirm(`Começar do zero descarta ${mlEdicoes.size} ${mlEdicoes.size === 1 ? 'correção feita' : 'correções feitas'} nesta planilha. Continuar?`)) return;
   mlReset();
   $('mlFi').click();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PUXAR NOME E PESO DOS ANÚNCIOS DA CONTA
+
+   A planilha do fornecedor chega com código e custo, e mais nada: a coluna de
+   descrição vem vazia e o peso, quando existe, é o do fornecedor. Esses dois
+   dados já estão nos anúncios da própria conta — o app lê de lá e casa pelo
+   SKU, que é a única coisa que as duas pontas têm em comum.
+
+   O nome fica só na tela: identifica o produto na hora de conferir sem mexer
+   na planilha que vai subir no Bling. O peso, esse sim, entra como correção —
+   é o que muda o frete e, por consequência, o preço.
+   ══════════════════════════════════════════════════════════════════════════ */
+let mlTitulosML = new Map();     // linha da planilha → título do anúncio
+
+/* Casamento de SKU tolerante à caixa e a espaço sobrando: "wd-1001" e
+   "WD-1001 " são o mesmo produto para quem cadastrou, e errar isso faria o
+   app dizer que não achou nada. */
+const mlChaveSku = v => String(v == null ? '' : v).trim().toUpperCase();
+
+function mlPuxarProgresso(txt){
+  const el = $('mlPuxarProg');
+  el.textContent = txt;
+  mostrar('mlPuxarProg', !!txt);
+}
+
+function mlPuxarResultado(html, classe){
+  const el = $('mlPuxarRes');
+  el.className = 'puxar-res ' + (classe || '');
+  el.innerHTML = html;
+  mostrar('mlPuxarRes', !!html);
+}
+
+async function mlPuxarDoML(){
+  if(!mlAoa.length){ mlPuxarResultado('Carregue uma planilha primeiro.', 'ruim'); return; }
+
+  const iCod = mlCabecalho.findIndex(h => /^(c[óo]digo|sku|refer[êe]ncia)$/i.test(String(h)));
+  if(iCod < 0){
+    mlPuxarResultado('<b>Esta planilha não tem coluna de código.</b> Sem SKU não dá para '
+      + 'saber qual anúncio é qual — o app procura uma coluna chamada Código, SKU ou Referência.', 'ruim');
+    return;
+  }
+
+  /* a mesma chave da publicação: quem já digitou nesta aba não digita de novo */
+  let chave = '';
+  try{ chave = sessionStorage.getItem('drop-chave-publicacao') || ''; }catch(e){}
+  if(!chave){
+    chave = (prompt('Chave de publicação — a mesma senha guardada em APP_SECRET na Vercel.\n\nEla fica só nesta aba e some quando você fechar.') || '').trim();
+    if(!chave) return;
+    try{ sessionStorage.setItem('drop-chave-publicacao', chave); }catch(e){}
+  }
+
+  const btn = $('mlPuxarBtn');
+  btn.disabled = true;
+  mlPuxarResultado('');
+  mlPuxarProgresso('Conversando com o Mercado Livre…');
+
+  const doML = new Map();        // SKU → {titulo, pesoKg}
+  let scroll = '', paginas = 0, lidos = 0, erro = null;
+
+  try{
+    /* páginas de 100 até acabar; um teto de segurança para uma conta gigante
+       não deixar a tela girando para sempre */
+    while(paginas < 200){
+      const r = await fetch('/api/ml-meus-anuncios' + (scroll ? '?scroll=' + encodeURIComponent(scroll) : ''),
+                            {headers: {'x-drop-chave': chave}});
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok || d.erro){
+        if(d && d.precisaAutorizar)
+          erro = 'A conta do Mercado Livre não está autorizada neste app. Autorize na aba "Ajustar preços" e tente de novo.';
+        else if(d && d.precisaChave)
+          erro = d.comoResolver || 'Falta configurar a chave de publicação.';
+        else if(r.status === 401 || r.status === 403){
+          try{ sessionStorage.removeItem('drop-chave-publicacao'); }catch(e){}
+          erro = 'Chave de publicação recusada. Clique de novo para digitar outra.';
+        }
+        else erro = (d && d.erro) || 'O Mercado Livre não respondeu agora. Tente de novo em alguns instantes.';
+        break;
+      }
+
+      (d.itens || []).forEach(it => {
+        const k = mlChaveSku(it.sku);
+        if(!k) return;
+        lidos++;
+        /* primeiro anúncio de cada SKU manda: quando o mesmo código aparece em
+           dois anúncios, ficar trocando o nome a cada página confundiria mais
+           do que ajudaria */
+        if(!doML.has(k)) doML.set(k, {titulo: it.titulo || '', pesoKg: it.pesoKg});
+      });
+
+      paginas++;
+      mlPuxarProgresso(`Lendo seus anúncios… ${lidos.toLocaleString('pt-BR')} até agora`);
+      scroll = d.scroll || '';
+      if(d.acabou || !scroll) break;
+    }
+  }catch(e){
+    erro = 'Não deu para falar com o servidor: ' + (e.message || e);
+  }
+
+  mlPuxarProgresso('');
+  btn.disabled = false;
+
+  if(erro){ mlPuxarResultado('<b>Não deu certo.</b> ' + esc(erro), 'ruim'); return; }
+  if(!doML.size){
+    mlPuxarResultado('<b>Nenhum anúncio com SKU foi encontrado na conta.</b> O app casa os '
+      + 'dois lados pelo código do produto — se os anúncios não têm SKU preenchido no '
+      + 'Mercado Livre, não há por onde ligar.', 'ruim');
+    return;
+  }
+
+  /* ── casar com a planilha ── */
+  const iPeso = parseInt($('mlPeso').value);
+  let nomes = 0, pesos = 0, semNome = 0;
+  mlTitulosML = new Map();
+
+  for(let r = mlLinhaCab + 1; r < mlAoa.length; r++){
+    const L = mlAoa[r] || [];
+    const achado = doML.get(mlChaveSku(L[iCod]));
+    if(!achado){ semNome++; continue; }
+
+    if(achado.titulo){ mlTitulosML.set(r, achado.titulo); nomes++; }
+
+    /* peso só onde falta: o que a planilha já traz é a informação de quem
+       vende, e sobrescrever isso por trás seria trocar o dado do usuário */
+    /* iPeso < 0 acontece justamente na planilha que mais precisa disto: a
+       coluna de peso existe mas está vazia da primeira à última linha, então
+       o app não a escolhe. A correção vale do mesmo jeito — ela entra no
+       cálculo do frete; só não tem onde ser gravada no Excel. */
+    if(achado.pesoKg > 0){
+      const atual = iPeso >= 0 ? String(L[iPeso] == null ? '' : L[iPeso]).trim() : '';
+      const jaCorrigido = (mlEdicoes.get(r) || {}).peso != null;
+      if(!atual && !jaCorrigido){
+        mlEditar(r, 'peso', String(+achado.pesoKg.toFixed(4)).replace('.', ','));
+        pesos++;
+      }
+    }
+  }
+
+  const linhasPlanilha = Math.max(0, mlAoa.length - mlLinhaCab - 1);
+  mlPuxarResultado(
+    `<b>${doML.size.toLocaleString('pt-BR')} anúncios lidos da sua conta.</b>
+     <ul>
+       <li><b>${nomes.toLocaleString('pt-BR')}</b> de ${linhasPlanilha.toLocaleString('pt-BR')} linhas ganharam o nome do produto.</li>
+       <li><b>${pesos.toLocaleString('pt-BR')}</b> ${pesos === 1 ? 'linha estava' : 'linhas estavam'} sem peso e ${pesos === 1 ? 'recebeu' : 'receberam'} o peso declarado no anúncio.</li>
+       ${semNome ? `<li>${semNome.toLocaleString('pt-BR')} ${semNome === 1 ? 'linha não tem' : 'linhas não têm'} anúncio com esse SKU — segue como estava.</li>` : ''}
+     </ul>
+     ${pesos ? '<i>Os pesos entraram como correção: aparecem marcados na tabela e podem ser desfeitos em "limpar correções".</i>' : ''}`,
+    'bom');
+
+  /* já calculado? refaz com os pesos novos */
+  if(mlLinhas.length) mlProcessar();
+}
+
+/* ── peso em lote ─────────────────────────────────────────────────────────
+   Corrigir peso linha a linha é o que trava o uso: filtrar "sem peso" e digitar
+   cinco vezes ainda dá, cinquenta não. Aqui um peso vai para todas as linhas
+   que o filtro deixou na tela, como se tivessem sido digitadas uma a uma — vira
+   correção amarela, entra no recálculo e sai no Excel do mesmo jeito. */
+let mlAlvoAtual = [];
+
+function mlAplicarPesoLote(){
+  const campo = $('mlPesoLote');
+  if(!campo) return;
+  const txt = String(campo.value || '').trim();
+  const kg = ML.parseNumero(txt);
+  if(!(kg > 0)){
+    campo.focus();
+    campo.classList.add('erro');
+    setTimeout(() => campo.classList.remove('erro'), 1200);
+    return;
+  }
+
+  const linhas = mlAlvoAtual.slice();
+  if(!linhas.length) return;
+  if(!confirm(`Escrever ${txt} kg nas ${linhas.length.toLocaleString('pt-BR')} linhas que estão na tela?
+Isto substitui o peso que elas tiverem. Dá para desfazer em "limpar correções".`)) return;
+
+  linhas.forEach(l => mlEditar(l, 'peso', txt));
+  mlProcessar();
+
+  /* o filtro que trouxe essas linhas até aqui costuma esvaziar junto com a
+     correção — "sem peso" não tem mais ninguém. Sem isto a tela ficaria numa
+     lista vazia, parecendo que o app perdeu os produtos. */
+  if(mlFiltro && mlConferencia){
+    const g = mlConferencia.grupos.find(x => x.id === mlFiltro);
+    if(!g || !g.n){ mlFiltro = null; mlPagina = 0; mlRenderTabela(); }
+  }
 }
 
 /* Descarta só as correções feitas na tela, mantendo a planilha carregada. */

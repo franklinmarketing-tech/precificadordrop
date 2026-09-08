@@ -531,6 +531,30 @@
             </div>
           </div>
 
+          <!-- ═══ PUXAR DA CONTA DO MERCADO LIVRE ═══
+               Planilha de dropshipping chega sem nome de produto e, muitas vezes,
+               sem peso. Os dois já existem nos anúncios da própria conta: o app
+               lê de lá e casa pelo SKU, em vez de pedir digitação. -->
+          <div class="puxar-box">
+            <div class="puxar-h">
+              <div class="puxar-ic">
+                <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+              </div>
+              <div class="puxar-t">
+                <b>Puxar nome e peso da minha conta</b>
+                <i>O app lê os anúncios da sua conta no Mercado Livre e casa cada um pelo
+                  <b>SKU</b>. O nome do produto passa a aparecer na tabela, no lugar do "—",
+                  e o peso declarado no anúncio preenche as linhas que estão sem peso.</i>
+              </div>
+              <button class="btn btn-ghost" id="mlPuxarBtn" onclick="mlPuxarDoML()">
+                <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+                Puxar da minha conta
+              </button>
+            </div>
+            <div class="puxar-prog hide" id="mlPuxarProg"></div>
+            <div class="puxar-res hide" id="mlPuxarRes"></div>
+          </div>
+
           <!-- Tarifa real por categoria, consultada no Mercado Livre -->
           <div class="cat-box" id="mlCatBox">
             <label class="cat-liga">

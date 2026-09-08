@@ -4171,3 +4171,60 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
 .sku-copia.copiado{background:color-mix(in srgb,var(--green) 18%,transparent);
   color:var(--green-dk)}
 .sku-copia.copiado::after{content:' ✓';font-weight:800}
+
+/* ═══ PESO EM LOTE ═════════════════════════════════════════
+   Nasce dentro da barra de filtro e só quando há filtro ou busca: fora daí
+   "aplicar a todas" seria a planilha inteira. A faixa amarela é a mesma das
+   correções feitas à mão — o que sai daqui é exatamente isso, uma correção. */
+.f-lote{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;
+  padding:11px 14px;border-radius:12px;
+  background:color-mix(in srgb,var(--amber) 9%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--amber) 30%,transparent)}
+.f-lote-t{font-size:13.5px;font-weight:700;color:var(--ink)}
+.f-lote input{width:96px;padding:8px 11px;border-radius:9px;font-family:inherit;
+  font-size:14px;font-weight:700;color:var(--ink);text-align:right;
+  background:var(--sup);border:1.5px solid var(--line)}
+.f-lote input:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 18%,transparent)}
+.f-lote input.erro{border-color:var(--red,#e5484d);
+  box-shadow:0 0 0 3px color-mix(in srgb,#e5484d 20%,transparent)}
+.f-lote-u{font-size:13px;font-weight:700;color:var(--sub);margin-left:-4px}
+.f-lote button{margin-left:auto;padding:9px 16px;border-radius:100px;border:none;
+  cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:#fff;
+  background:linear-gradient(180deg,#f0a418,#d07d05)}
+.f-lote button:hover{filter:brightness(1.07)}
+@media(max-width:620px){
+  .f-lote button{margin-left:0;width:100%}
+}
+
+/* ═══ PUXAR DA CONTA DO MERCADO LIVRE ══════════════════════
+   Mora no passo 2, ao lado das colunas: é ali que a pessoa descobre que a
+   planilha não tem nome nem peso, e é ali que a conta pode preencher os dois.
+   O quadro fica em azul — informação que ENTRA —, diferente do amarelo das
+   correções que saem daqui para o Excel. */
+.puxar-box{padding:15px 16px;border-radius:14px;margin-bottom:18px;
+  background:color-mix(in srgb,var(--blue) 7%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--blue) 24%,transparent)}
+.puxar-h{display:flex;align-items:flex-start;gap:13px;flex-wrap:wrap}
+.puxar-ic{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(160deg,#2FA0FF,#0B6FD8)}
+.puxar-ic svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.puxar-t{flex:1;min-width:240px}
+.puxar-t b{display:block;font-size:14.5px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.puxar-t i{display:block;font-style:normal;font-size:13px;line-height:1.6;color:var(--sub)}
+.puxar-t i b{display:inline;font-size:inherit}
+.puxar-prog{margin-top:12px;font-size:13px;font-weight:700;color:var(--blue-dk)}
+.puxar-res{margin-top:12px;padding:12px 14px;border-radius:11px;font-size:13.5px;
+  line-height:1.6;color:var(--sub);background:var(--sup);border:1px solid var(--line)}
+.puxar-res b{color:var(--ink);font-weight:700}
+.puxar-res ul{margin:7px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.puxar-res i{display:block;margin-top:8px;font-style:normal;font-size:12.5px;color:var(--faint)}
+.puxar-res.bom{border-color:color-mix(in srgb,var(--green) 40%,transparent)}
+.puxar-res.ruim{border-color:color-mix(in srgb,#e5484d 40%,transparent)}
+
+/* nome que veio do anúncio, não da planilha: a linha pontilhada avisa a
+   origem sem precisar de mais uma coluna */
+.tbl-wrap .c-desc.do-ml{color:var(--sub);
+  text-decoration:underline dotted color-mix(in srgb,var(--blue) 45%,transparent);
+  text-underline-offset:3px}
