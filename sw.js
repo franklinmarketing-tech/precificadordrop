@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v5';   // v5: da para subir outra planilha sem limpar antes
+const VERSAO = 'v6';   // v6: puxar nome e peso da conta, e peso em lote
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
