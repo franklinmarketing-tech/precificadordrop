@@ -942,8 +942,12 @@
       <div id="mkRessalvas" class="hide"></div>
 
       <div class="grp-t" style="margin-top:22px">QUANTO VOCÊ QUER GANHAR</div>
-      <label class="campo"><span>Margem líquida sobre a venda (%)</span>
-        <input type="number" id="mkMargem" min="1" max="90" step="1" value="20"/></label>
+      <div class="lbl verde">Margem líquida sobre a venda</div>
+      <div class="margens" id="mkMargens"></div>
+      <div class="margem-custom">
+        <input type="number" id="mkMargem" min="1" max="90" step="1" value="20" oninput="mkMargemDigitada()"/>
+        <span>%</span>
+      </div>
       <div class="dicas">
         <div class="dica-l"><span class="dica-e">🎯</span>
           <span>É o que sobra <b>depois de tudo</b> — comissão, taxa fixa, envio e o custo do
@@ -1700,12 +1704,18 @@
         </div>
 
         <div id="formA">
-          <div class="grid3">
+          <div class="grid2">
             <div><div class="lbl verde">Custo do produto (R$)</div><input type="number" id="cA" min="0" step="0.01" placeholder="Ex: 89,99" oninput="calcA()"/></div>
             <div><div class="lbl verde">Peso da embalagem (kg)</div><input type="number" id="pesoA" min="0" step="0.01" placeholder="Ex: 1,2" oninput="calcA()"/></div>
-            <div><div class="lbl verde">Margem líquida desejada (%)</div><input type="number" id="mgA" value="20" min="1" max="90" oninput="calcA()"/></div>
           </div>
-          <div class="nota">O peso define o custo de envio pela tabela oficial. Sem peso, é usado o frete manual dos parâmetros.</div>
+          <div class="nota" style="margin-bottom:14px">O peso define o custo de envio pela tabela oficial. Sem peso, é usado o frete manual dos parâmetros.</div>
+
+          <div class="lbl verde">Margem líquida desejada</div>
+          <div class="margens" id="calcMargens"></div>
+          <div class="margem-custom">
+            <input type="number" id="mgA" value="20" min="1" max="90" oninput="calcMargemDigitada()"/>
+            <span>%</span>
+          </div>
         </div>
 
         <div id="formB" class="hide">

@@ -34,6 +34,26 @@ const MK_CANAIS = {
            logo: 'assets/img/logo-amazon.svg', classe: 'ws-amazon'},
 };
 
+/* Os mesmos botões de margem do Mercado Livre (MARGENS, em app.js) — sem
+   eles, a margem era só um número em branco, sem nenhuma pista de valor
+   comum. #mkMargem continua sendo o número que os outros lugares leem;
+   o botão só escreve nele, e digitar por conta própria continua valendo. */
+$('mkMargens').innerHTML = MARGENS.map(m =>
+  `<button type="button" class="margem${m === 20 ? ' active' : ''}" onclick="mkSetMargem(${m},this)">${m}%</button>`).join('');
+
+function mkSetMargem(v, btn){
+  $('mkMargem').value = v;
+  document.querySelectorAll('#mkMargens .margem').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  /* o clique só prepara o número; recalcular é o botão "Calcular preços",
+     igual ao Mercado Livre — nada muda na tela até a pessoa mandar calcular */
+}
+/* Digitar por conta própria também é margem válida — só que nenhum botão
+   representa mais esse número, então nenhum fica marcado como ativo. */
+function mkMargemDigitada(){
+  document.querySelectorAll('#mkMargens .margem').forEach(b => b.classList.remove('active'));
+}
+
 function mkAbrir(id){
   const def = MK_CANAIS[id];
   const motor = def && def.motor();

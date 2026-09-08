@@ -4289,3 +4289,9 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
 @media(max-width:620px){
   .res-card-lote button{margin-left:0;width:100%}
 }
+
+/* variante da barra de lote com três campos (altura/largura/comprimento) em
+   vez de um só — os rótulos A/L/C ficam colados no campo, como um prefixo */
+.res-card-lote-3 label{display:flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:800;color:var(--sub)}
+.res-card-lote-3 input{width:56px}

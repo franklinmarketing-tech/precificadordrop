@@ -809,6 +809,23 @@ function avisoFrete(peso, p){
     : 'sem peso: ' + ML.brl(pml.freteManual);
 }
 
+/* Os mesmos botões de atalho da margem da planilha em massa (MARGENS, mais
+   abaixo), aqui na calculadora avulsa — clicar já recalcula, porque esta
+   calculadora sempre reagiu na hora, sem esperar um botão de "calcular".
+   O preenchimento de #calcMargens fica lá embaixo, junto de MARGENS: como
+   MARGENS é const, usá-la aqui em cima — antes da linha que a declara —
+   dispararia "Cannot access before initialization". */
+function calcSetMargem(v, btn){
+  $('mgA').value = v;
+  document.querySelectorAll('#calcMargens .margem').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calcA();
+}
+function calcMargemDigitada(){
+  document.querySelectorAll('#calcMargens .margem').forEach(b => b.classList.remove('active'));
+  calcA();
+}
+
 function calcA(){
   const el = $('resCalc');
   const custo  = ML.parseNumero($('cA').value);
@@ -854,6 +871,9 @@ function calcB(){
 const MARGENS = [10,15,20,25,30,35,40,50,60];
 $('mlMargens').innerHTML = MARGENS.map((m,i) =>
   `<button class="margem${m === 20 ? ' active' : ''}" onclick="mlSetMargem(${m},this)">${m}%</button>`).join('');
+/* mesmos atalhos na calculadora avulsa — ver calcSetMargem, ali em cima */
+$('calcMargens').innerHTML = MARGENS.map(m =>
+  `<button type="button" class="margem${m === 20 ? ' active' : ''}" onclick="calcSetMargem(${m},this)">${m}%</button>`).join('');
 
 function mlSetMargem(v, btn){
   mlMargem = v / 100;
@@ -1725,13 +1745,20 @@ async function mlProcessarEtapas(ic, ip, im, iAlt, iLarg, iComp){
 
   // monta as entradas e deixa o motor precificar e conferir tudo de uma vez
   const entradas = mlAoa.slice(1).map((linha, i) => {
-    /* mlDimFator converte a coluna inteira quando as medidas vêm em mm ou m;
-       vale 1 no caso normal, em que nada muda */
-    const dims = (iAlt >= 0 && iLarg >= 0 && iComp >= 0)
-      ? ML.normalizarDimensaoLinha(linha[iAlt], linha[iLarg], linha[iComp], mlDimFator).dimensoes
-      : null;
     /* correção feita na tela vence o valor da planilha */
     const ed = mlEdicoes.get(i + 1) || {};
+
+    /* mlDimFator converte a coluna inteira quando as medidas vêm em mm ou m;
+       vale 1 no caso normal, em que nada muda. A correção vale mesmo quando a
+       planilha não tem coluna nenhuma de medida (iAlt/iLarg/iComp < 0) — é o
+       caso de "sem as três medidas" corrigido no editor do resumo, onde a
+       única fonte da medida é o que foi digitado ali. */
+    const valAlt  = ed.altura      != null ? ed.altura      : (iAlt  >= 0 ? linha[iAlt]  : '');
+    const valLarg = ed.largura     != null ? ed.largura     : (iLarg >= 0 ? linha[iLarg] : '');
+    const valComp = ed.comprimento != null ? ed.comprimento : (iComp >= 0 ? linha[iComp] : '');
+    const dims = (valAlt !== '' && valLarg !== '' && valComp !== '')
+      ? ML.normalizarDimensaoLinha(valAlt, valLarg, valComp, mlDimFator).dimensoes
+      : null;
     return {
       linha: i + 1,
       custo: ed.custo != null ? ed.custo : linha[ic],
@@ -2230,6 +2257,7 @@ const RES_GRUPO_CUSTO = ['sem_custo', 'custo_invalido'];
 function resumoCampoDoGrupo(id){
   if(RES_GRUPO_PESO.includes(id)) return 'peso';
   if(RES_GRUPO_CUSTO.includes(id)) return 'custo';
+  if(id === 'sem_dimensoes') return 'dimensoes';   // três campos, não um só
   return null;
 }
 
@@ -2336,6 +2364,8 @@ function resumoEditorHTML(ctx, g, campo){
     </div>`;
   }
 
+  if(campo === 'dimensoes') return resumoEditorDimensoesHTML(ctx, g);
+
   const rotulo = campo === 'peso' ? 'peso' : 'custo';
   const unidade = campo === 'peso' ? 'kg' : 'R$';
   const linhas = g.linhas.map(i => ctx.linhas[i]).filter(Boolean);
@@ -2370,6 +2400,54 @@ function resumoEditorHTML(ctx, g, campo){
     <div class="tbl-wrap res-card-tbl">
       <table>
         <thead><tr><th>Linha</th><th>Produto</th><th>${rotulo === 'peso' ? 'Peso (kg)' : 'Custo'}</th><th>Situação</th></tr></thead>
+        <tbody>${mostrar.map(linhaHTML).join('')}</tbody>
+      </table>
+    </div>
+    ${linhas.length > mostrar.length
+      ? `<div class="res-card-mais">e mais ${(linhas.length - mostrar.length).toLocaleString('pt-BR')} — corrija estas ou aplique a todas acima</div>`
+      : ''}
+  </div>`;
+}
+
+/* "Sem as três medidas" pede altura, largura E comprimento juntos — não dá
+   para resolver com um campo só, como peso ou custo. Mesma ideia do editor
+   de peso/custo (linha a linha ou nas três de uma vez), com três colunas em
+   vez de uma. Sem elas o frete usa o peso real como se a caixa não ocupasse
+   espaço — no volumétrico, uma caixa grande e leve sai mais barata do que é. */
+function resumoEditorDimensoesHTML(ctx, g){
+  const linhas = g.linhas.map(i => ctx.linhas[i]).filter(Boolean);
+  const mostrar = linhas.slice(0, 12);
+
+  const linhaHTML = r => {
+    const l = mlAoa[r.linha] || [];
+    const iCod = mlCabecalho.findIndex(h => /^(c[óo]digo|sku|refer[êe]ncia)$/i.test(String(h)));
+    const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
+    const sku = iCod >= 0 ? String(l[iCod] || '') : '';
+    const nome = (iDesc >= 0 ? String(l[iDesc] || '') : '') || sku || ('Linha ' + (r.linha + 1));
+    const ed = mlEdicoes.get(r.linha) || {};
+    const val = campo => ed[campo] != null ? ed[campo] : '';
+    return `<tr>
+      <td class="c-linha">${r.linha + 1}</td>
+      <td class="c-desc" title="${esc(nome)}">${esc(nome.slice(0, 30))}</td>
+      <td>${mlCampoEditavel(r, 'altura', val('altura'))}</td>
+      <td>${mlCampoEditavel(r, 'largura', val('largura'))}</td>
+      <td>${mlCampoEditavel(r, 'comprimento', val('comprimento'))}</td>
+      <td>${mlSituacaoTags(r)}</td>
+    </tr>`;
+  };
+
+  return `<div class="res-card-corpo">
+    <div class="res-card-lote res-card-lote-3">
+      <span>Mesmas medidas para ${linhas.length.toLocaleString('pt-BR')} ${linhas.length === 1 ? 'linha' : 'linhas'}</span>
+      <label>A<input type="text" inputmode="decimal" id="resLoteAlt_${g.id}" placeholder="30"/></label>
+      <label>L<input type="text" inputmode="decimal" id="resLoteLarg_${g.id}" placeholder="20"/></label>
+      <label>C<input type="text" inputmode="decimal" id="resLoteComp_${g.id}" placeholder="15"/></label>
+      <span class="res-card-lote-u">cm</span>
+      <button type="button" onclick="resumoAplicarLoteDimensoes('${g.id}')">Aplicar a todas</button>
+    </div>
+    <div class="tbl-wrap res-card-tbl">
+      <table>
+        <thead><tr><th>Linha</th><th>Produto</th><th>Altura</th><th>Largura</th><th>Compr.</th><th>Situação</th></tr></thead>
         <tbody>${mostrar.map(linhaHTML).join('')}</tbody>
       </table>
     </div>
@@ -2424,6 +2502,47 @@ Isto substitui o valor que elas tiverem. Dá para desfazer em "limpar correçõe
   const btn = el.parentElement && el.parentElement.querySelector('button');
   if(btn){ btn.disabled = true; btn.textContent = 'Aplicando…'; }
   await mlAplicarCampoLote(campo, linhas, txt);
+  resumoAtualizar();
+}
+
+/* A mesma ideia do lote acima, só que escrevendo três campos de uma vez —
+   sem as três medidas juntas não dá para calcular o peso volumétrico. */
+async function resumoAplicarLoteDimensoes(id){
+  const elAlt = $('resLoteAlt_' + id), elLarg = $('resLoteLarg_' + id), elComp = $('resLoteComp_' + id);
+  if(!elAlt || !elLarg || !elComp) return;
+
+  const campos = [['altura', elAlt], ['largura', elLarg], ['comprimento', elComp]];
+  let temErro = false;
+  for(const [, el] of campos){
+    const v = ML.parseNumero(String(el.value || '').trim());
+    if(!(v > 0)){ el.classList.add('erro'); setTimeout(() => el.classList.remove('erro'), 1200); temErro = true; }
+  }
+  if(temErro){ elAlt.focus(); return; }
+
+  const g = mlConferencia && mlConferencia.grupos.find(x => x.id === id);
+  const linhas = g ? g.linhas.map(i => mlLinhas[i].linha) : [];
+  if(!linhas.length) return;
+
+  const txtAlt = String(elAlt.value).trim(), txtLarg = String(elLarg.value).trim(), txtComp = String(elComp.value).trim();
+  if(!confirm(`Escrever ${txtAlt} × ${txtLarg} × ${txtComp} cm nas ${linhas.length.toLocaleString('pt-BR')} linhas de "${g.titulo}"?
+Isto substitui as medidas que elas tiverem. Dá para desfazer em "limpar correções".`)) return;
+
+  const btn = elComp.closest('.res-card-lote').querySelector('button');
+  if(btn){ btn.disabled = true; btn.textContent = 'Aplicando…'; }
+
+  linhas.forEach(l => {
+    mlEditar(l, 'altura', txtAlt);
+    mlEditar(l, 'largura', txtLarg);
+    mlEditar(l, 'comprimento', txtComp);
+  });
+  await mlProcessar();
+
+  /* mesma limpeza do mlAplicarCampoLote: se o filtro que trouxe estas linhas
+     até aqui esvaziou com a correção, ele não fica preso numa lista vazia */
+  if(mlFiltro && mlConferencia){
+    const gAtual = mlConferencia.grupos.find(x => x.id === mlFiltro);
+    if(!gAtual || !gAtual.n){ mlFiltro = null; mlPagina = 0; mlRenderTabela(); }
+  }
   resumoAtualizar();
 }
 
@@ -2546,8 +2665,15 @@ function mlEditarPronto(linha){
   const original = mlAoa[linha] || [];
   const ed = mlEdicoes.get(linha) || {};
 
-  const dims = (iAlt >= 0 && iLarg >= 0 && iComp >= 0)
-    ? ML.normalizarDimensaoLinha(original[iAlt], original[iLarg], original[iComp], mlDimFator).dimensoes
+  /* a correção de medida ganha da planilha — e vale mesmo quando a planilha
+     não tem coluna nenhuma de altura/largura/comprimento (iAlt/iLarg/iComp
+     < 0): é o caso do aviso "sem as três medidas" digitado no editor do
+     resumo, onde a única fonte da medida é o que o usuário acabou de escrever */
+  const valAlt  = ed.altura      != null ? ed.altura      : (iAlt  >= 0 ? original[iAlt]  : '');
+  const valLarg = ed.largura     != null ? ed.largura     : (iLarg >= 0 ? original[iLarg] : '');
+  const valComp = ed.comprimento != null ? ed.comprimento : (iComp >= 0 ? original[iComp] : '');
+  const dims = (valAlt !== '' && valLarg !== '' && valComp !== '')
+    ? ML.normalizarDimensaoLinha(valAlt, valLarg, valComp, mlDimFator).dimensoes
     : null;
 
   /* o que o usuário digita é sempre kg; a conversão de gramas vale só para o
@@ -2842,6 +2968,9 @@ function mlBaixarAgora(){
        que o Bling lê; as colunas de análise abaixo são só para conferência */
     const icPeso  = parseInt($('mlPeso').value);
     const icCusto = parseInt($('mlCusto').value);
+    const icAlt   = parseInt($('mlAltura').value);
+    const icLarg  = parseInt($('mlLargura').value);
+    const icComp  = parseInt($('mlComprimento').value);
 
     mlLinhas.forEach((r, i) => {
       const linha = mlLinhaCab + 1 + i;   // posição real na aba, não no recorte lido
@@ -2851,6 +2980,12 @@ function mlBaixarAgora(){
            o peso da balança, que foi o valor digitado */
         if(ed.peso != null && icPeso >= 0 && r.pesoReal != null) XU.escrever(ws, linha, icPeso, r.pesoReal);
         if(ed.custo != null && icCusto >= 0 && r.custo != null) XU.escrever(ws, linha, icCusto, r.custo);
+        /* só grava a medida de volta quando a planilha já tinha essa coluna —
+           sem coluna, a correção continua valendo para calcular o frete, só
+           não tem para onde ser escrita no arquivo */
+        if(ed.altura != null && icAlt >= 0) XU.escrever(ws, linha, icAlt, ed.altura);
+        if(ed.largura != null && icLarg >= 0) XU.escrever(ws, linha, icLarg, ed.largura);
+        if(ed.comprimento != null && icComp >= 0) XU.escrever(ws, linha, icComp, ed.comprimento);
       }
       if(id >= 0 && r.preco != null) XU.escrever(ws, linha, id, r.preco);
       if(comAnalise){
