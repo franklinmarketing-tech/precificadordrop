@@ -2704,6 +2704,18 @@ function mlReset(){
   mlPasso(1);
 }
 
+/* Trocar de planilha em um clique: limpa o que está na memória e já abre o
+   seletor de arquivo. Antes eram dois passos — limpar, voltar ao passo 1 e
+   procurar a área de arrastar — e no meio disso dava para achar que o app
+   tinha travado com a planilha antiga. */
+function mlTrocarArquivo(){
+  /* correção digitada na tela não está em arquivo nenhum: só se perde aqui,
+     então esta é a única pergunta que o botão faz */
+  if(mlEdicoes.size && !confirm(`Começar do zero descarta ${mlEdicoes.size} ${mlEdicoes.size === 1 ? 'correção feita' : 'correções feitas'} nesta planilha. Continuar?`)) return;
+  mlReset();
+  $('mlFi').click();
+}
+
 /* Descarta só as correções feitas na tela, mantendo a planilha carregada. */
 function mlLimparCorrecoes(){
   if(!mlEdicoes.size) return;

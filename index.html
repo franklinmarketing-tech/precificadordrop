@@ -446,7 +446,7 @@
         <div class="zone" id="mlZone" onclick="document.getElementById('mlFi').click()"
              ondragover="event.preventDefault();this.classList.add('drag')"
              ondragleave="this.classList.remove('drag')" ondrop="mlDrop(event)">
-          <input id="mlFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mlCarregar(event.target.files[0])"/>
+          <input id="mlFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mlCarregar(event.target.files[0]); this.value=''"/>
           <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
           <div class="zone-t">Arraste a planilha do Bling aqui</div>
           <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
@@ -459,7 +459,7 @@
           <div class="file-row" style="margin-bottom:20px">
             <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
             <div><div class="file-n" id="mlFName">—</div><div class="file-i" id="mlFInfo">—</div></div>
-            <button class="btn btn-ghost" style="margin-left:auto" onclick="mlReset()">Limpar e trocar arquivo</button>
+            <button class="btn btn-ghost" style="margin-left:auto" onclick="mlTrocarArquivo()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6m-3-3h6"/></svg>Nova planilha</button>
           </div>
 
           <div class="grid3" style="margin-bottom:18px">
@@ -588,6 +588,7 @@
           <div id="mlPaginacao"></div>
           <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="mlPasso(2)"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
+            <button class="btn btn-ghost" onclick="mlTrocarArquivo()" title="Descarta esta planilha e abre o seletor para começar do zero"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6m-3-3h6"/></svg>Nova planilha</button>
             <button class="btn btn-green" style="flex:1" id="mlBtnDl" onclick="mlBaixar()">
               <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
               Baixar planilha pronta para o Bling
@@ -629,7 +630,7 @@
         <div class="zone" id="plZone" onclick="document.getElementById('plFi').click()"
              ondragover="event.preventDefault();this.classList.add('drag')"
              ondragleave="this.classList.remove('drag')" ondrop="plDrop(event)">
-          <input id="plFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="plCarregar(event.target.files[0])"/>
+          <input id="plFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="plCarregar(event.target.files[0]); this.value=''"/>
           <div class="zone-ic"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
           <div class="zone-t">Arraste sua planilha aqui</div>
           <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
@@ -761,7 +762,7 @@
           <div class="zone zone-sm" onclick="document.getElementById('anFi2').click()"
                ondragover="event.preventDefault();this.classList.add('drag')"
                ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'ml')">
-            <input id="anFi2" type="file" accept=".xlsx,.xls" class="hide" onchange="anCarregarML(event.target.files[0])"/>
+            <input id="anFi2" type="file" accept=".xlsx,.xls" class="hide" onchange="anCarregarML(event.target.files[0]); this.value=''"/>
             <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
             <div class="zone-t">Arraste aqui</div>
             <div class="zone-s">ou clique · .xlsx</div>
@@ -775,7 +776,7 @@
           <div class="zone zone-sm" onclick="document.getElementById('anFi').click()"
                ondragover="event.preventDefault();this.classList.add('drag')"
                ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'precos')">
-            <input id="anFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="anCarregarPrecos(event.target.files[0])"/>
+            <input id="anFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="anCarregarPrecos(event.target.files[0]); this.value=''"/>
             <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
             <div class="zone-t">Arraste aqui</div>
             <div class="zone-s">ou clique · .xlsx · .csv</div>
@@ -890,7 +891,7 @@
       <div class="zone" onclick="document.getElementById('mkFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="mkDrop(event)">
-        <input id="mkFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mkCarregar(event.target.files[0])"/>
+        <input id="mkFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mkCarregar(event.target.files[0]); this.value=''"/>
         <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
         <div class="zone-t">Arraste a planilha aqui</div>
         <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
@@ -998,7 +999,7 @@
       <div class="zone" onclick="document.getElementById('dgFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="dgDrop(event)">
-        <input id="dgFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="dgCarregar(event.target.files[0])"/>
+        <input id="dgFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="dgCarregar(event.target.files[0]); this.value=''"/>
         <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
         <div class="zone-t">Arraste a planilha aqui</div>
         <div class="zone-s">precisa ter o custo e o preço que você pratica hoje · .xlsx · .xls · .csv</div>
