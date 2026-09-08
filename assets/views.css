@@ -4228,3 +4228,64 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
 .tbl-wrap .c-desc.do-ml{color:var(--sub);
   text-decoration:underline dotted color-mix(in srgb,var(--blue) 45%,transparent);
   text-underline-offset:3px}
+
+/* ═══ CARTÕES DE ERRO NO RESUMO ════════════════════════════
+   O resumo "antes de baixar" deixa de listar os problemas como texto e passa
+   a oferecer corrigir ali mesmo: cada cartão é um grupo de aviso (a mesma cor
+   de gravidade da lista antiga), que abre para mostrar as linhas e, quando dá
+   para resolver com um valor só, um campo para aplicar em todas de uma vez —
+   sem fechar o resumo, achar a linha na tabela de milhares e voltar. */
+.res-cards{display:flex;flex-direction:column;gap:10px}
+.res-card{border-radius:14px;border:1px solid var(--line);background:var(--sup-2);
+  overflow:hidden;transition:border-color .15s}
+.res-card.erro{border-left:3px solid var(--red)}
+.res-card.alerta{border-left:3px solid var(--amber)}
+/* box-shadow em vez de border-color: a borda esquerda colorida (erro/alerta)
+   é um longhand que um border-color de mesma especificidade sobrescreveria */
+.res-card.aberto{box-shadow:0 0 0 1px color-mix(in srgb,var(--blue) 35%,var(--line))}
+
+.res-card-h{display:flex;align-items:center;gap:13px;width:100%;padding:13px 15px;
+  border:none;background:none;cursor:pointer;text-align:left;font-family:inherit}
+.res-card-ic{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center}
+.res-card-ic svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.res-card-ic.erro{background:linear-gradient(160deg,#ff6b6b,#e5484d)}
+.res-card-ic.alerta{background:linear-gradient(160deg,#f0a418,#d07d05)}
+.res-card-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.res-card-txt b{font-size:14px;font-weight:800;color:var(--ink)}
+.res-card-txt i{font-style:normal;font-size:12.5px;color:var(--faint);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res-card-seta{width:18px;height:18px;flex:none;fill:none;stroke:var(--faint);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.res-card.aberto .res-card-seta{transform:rotate(180deg)}
+
+.res-card-corpo{padding:0 15px 16px;border-top:1px solid var(--line)}
+.res-card-explica{font-size:13.5px;line-height:1.6;color:var(--sub);margin:14px 0}
+
+/* a mesma barra amarela do "peso em lote" da tabela grande — é a mesma ação,
+   só que já dentro do cartão do erro específico */
+.res-card-lote{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:14px 0 12px;
+  padding:11px 14px;border-radius:12px;
+  background:color-mix(in srgb,var(--amber) 9%,var(--sup));
+  border:1px solid color-mix(in srgb,var(--amber) 30%,transparent)}
+.res-card-lote span:first-child{font-size:13px;font-weight:700;color:var(--ink)}
+.res-card-lote input{width:90px;padding:7px 10px;border-radius:9px;font-family:inherit;
+  font-size:13.5px;font-weight:700;color:var(--ink);text-align:right;
+  background:var(--sup);border:1.5px solid var(--line)}
+.res-card-lote input:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 18%,transparent)}
+.res-card-lote input.erro{border-color:var(--red,#e5484d);
+  box-shadow:0 0 0 3px color-mix(in srgb,#e5484d 20%,transparent)}
+.res-card-lote-u{font-size:12.5px;font-weight:700;color:var(--sub);margin-left:-4px}
+.res-card-lote button{margin-left:auto;padding:8px 15px;border-radius:100px;border:none;
+  cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:#fff;
+  background:linear-gradient(180deg,#f0a418,#d07d05)}
+.res-card-lote button:hover{filter:brightness(1.07)}
+
+.res-card-tbl{max-height:280px;overflow-y:auto;border-radius:11px}
+.res-card-tbl table{width:100%}
+.res-card-mais{margin-top:9px;font-size:12px;color:var(--faint);text-align:center}
+
+@media(max-width:620px){
+  .res-card-lote button{margin-left:0;width:100%}
+}

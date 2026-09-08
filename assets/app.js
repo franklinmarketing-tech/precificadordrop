@@ -2221,6 +2221,21 @@ let resumoAcao = null;
 /* O balanço do lote, em HTML. Igual para os três canais: muda só o texto do
    rodapé, que descreve o arquivo que cada tela gera.
    ctx = {linhas, conferencia, brl, avisoFinal} */
+/* Grupos cujo problema se resolve escrevendo UM valor nas linhas afetadas —
+   candidatos a edição em massa dentro do próprio resumo. Os demais (prejuízo,
+   margem impossível, tarifa suspeita…) pedem decisão produto a produto, então
+   levam para a tabela em vez de um campo aqui. */
+const RES_GRUPO_PESO  = ['sem_peso', 'peso_invalido', 'peso_suspeito', 'peso_alto'];
+const RES_GRUPO_CUSTO = ['sem_custo', 'custo_invalido'];
+function resumoCampoDoGrupo(id){
+  if(RES_GRUPO_PESO.includes(id)) return 'peso';
+  if(RES_GRUPO_CUSTO.includes(id)) return 'custo';
+  return null;
+}
+
+let resumoCtxAtual = null;   // o ctx do abrirResumo(), guardado para re-render
+let resumoGrupoAberto = null;
+
 function resumoHTML(ctx){
   const c = ctx.conferencia;
   const brl = ctx.brl;
@@ -2232,11 +2247,13 @@ function resumoHTML(ctx){
     <div class="res-tile2-n" style="color:${cor}">${n}</div>
     <div class="res-tile2-l">${rot}</div></div>`;
 
-  const pend = !c ? '' : c.grupos.filter(g => g.gravidade !== 'info').map(g => `
+  const grupos = c ? c.grupos.filter(g => g.gravidade !== 'info') : [];
+
+  const pend = !ctx.editavel ? grupos.map(g => `
     <div class="res-pend ${g.gravidade}">
       <span class="res-pend-n">${g.n.toLocaleString('pt-BR')}</span>
       <span class="res-pend-t">${esc(g.titulo)}</span>
-    </div>`).join('');
+    </div>`).join('') : '';
 
   return `
     <div class="res-tiles">
@@ -2246,11 +2263,13 @@ function resumoHTML(ctx){
       ${tile(brl(soma / (ok.length || 1)), 'lucro médio por venda', 'var(--violet-dk)')}
     </div>
 
-    ${pend ? `<div class="grp-t" style="margin-top:22px">O QUE FICA PENDENTE</div>
-      <div class="res-pends">${pend}</div>` : `
-      <div class="res-limpo">
-        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
-        Nada pendente — todos os produtos têm custo, peso e medidas.</div>`}
+    ${!ctx.editavel
+      ? (grupos.length ? `<div class="grp-t" style="margin-top:22px">O QUE FICA PENDENTE</div>
+          <div class="res-pends">${pend}</div>` : `
+          <div class="res-limpo">
+            <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+            Nada pendente — todos os produtos têm custo, peso e medidas.</div>`)
+      : resumoCardsHTML(ctx, grupos)}
 
     ${erros ? `<div class="res-aviso erro">
       <b>${erros.toLocaleString('pt-BR')} ${erros === 1 ? 'produto precisa' : 'produtos precisam'} de correção.</b>
@@ -2262,18 +2281,181 @@ function resumoHTML(ctx){
     </div>`;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   EDITOR DE ERROS — cartões clicáveis no resumo, cada um com a lista das
+   linhas daquele problema e, quando dá para corrigir com um valor só, um
+   campo para escrever nas linhas todas de uma vez.
+
+   Corrigir aqui em vez de fechar o resumo, achar a linha na tabela de 5.000 e
+   voltar: o problema mais comum (peso ou custo faltando) se resolve sem sair
+   da tela de conferência final.
+   ══════════════════════════════════════════════════════════════════════════ */
+function resumoCardsHTML(ctx, grupos){
+  if(!grupos.length) return `
+    <div class="res-limpo" style="margin-top:0">
+      <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      Nada pendente — todos os produtos têm custo, peso e medidas.</div>`;
+
+  const icone = grav => grav === 'erro'
+    ? '<svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M12 8v5m0 3h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+
+  return `<div class="grp-t" style="margin-top:22px">CORRIGIR ANTES DE BAIXAR</div>
+    <div class="res-cards">
+      ${grupos.map(g => resumoCardHTML(ctx, g, icone)).join('')}
+    </div>`;
+}
+
+function resumoCardHTML(ctx, g, icone){
+  const campo = resumoCampoDoGrupo(g.id);
+  const aberto = resumoGrupoAberto === g.id;
+
+  return `<div class="res-card ${g.gravidade}${aberto ? ' aberto' : ''}">
+      <button type="button" class="res-card-h" onclick="resumoToggleGrupo('${g.id}')">
+        <span class="res-card-ic ${g.gravidade}">${icone(g.gravidade)}</span>
+        <span class="res-card-txt">
+          <b>${g.n.toLocaleString('pt-BR')} ${esc(g.titulo)}</b>
+          <i>${esc(g.descricao || '')}</i>
+        </span>
+        <svg class="res-card-seta" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      ${aberto ? resumoEditorHTML(ctx, g, campo) : ''}
+    </div>`;
+}
+
+function resumoEditorHTML(ctx, g, campo){
+  if(!campo){
+    /* prejuízo, margem impossível, tarifa suspeita… — não dá para escrever
+       um valor e resolver; a decisão é produto a produto, na tabela grande */
+    return `<div class="res-card-corpo">
+      <p class="res-card-explica">${esc(g.comoResolver || '')}</p>
+      <button type="button" class="btn btn-ghost" onclick="resumoIrTabela('${g.id}')">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+        Ver ${g.n === 1 ? 'a linha' : 'as linhas'} na tabela
+      </button>
+    </div>`;
+  }
+
+  const rotulo = campo === 'peso' ? 'peso' : 'custo';
+  const unidade = campo === 'peso' ? 'kg' : 'R$';
+  const linhas = g.linhas.map(i => ctx.linhas[i]).filter(Boolean);
+  const mostrar = linhas.slice(0, 12);
+
+  const linhaHTML = r => {
+    const l = mlAoa[r.linha] || [];
+    const iCod = mlCabecalho.findIndex(h => /^(c[óo]digo|sku|refer[êe]ncia)$/i.test(String(h)));
+    const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
+    const sku = iCod >= 0 ? String(l[iCod] || '') : '';
+    const nome = (iDesc >= 0 ? String(l[iDesc] || '') : '') || sku || ('Linha ' + (r.linha + 1));
+    const ed = mlEdicoes.get(r.linha) || {};
+    const valorAtual = ed[campo] != null ? ed[campo]
+      : (campo === 'peso' ? (r.pesoReal ? String(+r.pesoReal.toFixed(4)).replace('.', ',') : '')
+                            : (r.custo != null ? r.custo.toFixed(2).replace('.', ',') : ''));
+    return `<tr>
+      <td class="c-linha">${r.linha + 1}</td>
+      <td class="c-desc" title="${esc(nome)}">${esc(nome.slice(0, 42))}</td>
+      <td>${mlCampoEditavel(r, campo, valorAtual, campo === 'custo' ? 'R$' : '')}</td>
+      <td>${mlSituacaoTags(r)}</td>
+    </tr>`;
+  };
+
+  return `<div class="res-card-corpo">
+    <div class="res-card-lote">
+      <span>Mesmo ${rotulo} para ${linhas.length.toLocaleString('pt-BR')} ${linhas.length === 1 ? 'linha' : 'linhas'}</span>
+      <input type="text" inputmode="decimal" id="resLote_${g.id}" placeholder="${campo === 'peso' ? '0,5' : '19,90'}"
+        onkeydown="if(event.key === 'Enter') resumoAplicarLote('${g.id}','${campo}')"/>
+      <span class="res-card-lote-u">${unidade}</span>
+      <button type="button" onclick="resumoAplicarLote('${g.id}','${campo}')">Aplicar a todas</button>
+    </div>
+    <div class="tbl-wrap res-card-tbl">
+      <table>
+        <thead><tr><th>Linha</th><th>Produto</th><th>${rotulo === 'peso' ? 'Peso (kg)' : 'Custo'}</th><th>Situação</th></tr></thead>
+        <tbody>${mostrar.map(linhaHTML).join('')}</tbody>
+      </table>
+    </div>
+    ${linhas.length > mostrar.length
+      ? `<div class="res-card-mais">e mais ${(linhas.length - mostrar.length).toLocaleString('pt-BR')} — corrija estas ou aplique a todas acima</div>`
+      : ''}
+  </div>`;
+}
+
+/* Reabre o resumo com os dados frescos, mantendo o cartão que estava aberto —
+   é o que faz o cartão sumir sozinho quando o último produto dele é corrigido. */
+function resumoAtualizar(){
+  if(!resumoCtxAtual || !$('popResumo').classList.contains('open')) return;
+  const ctx = resumoCtxAtual;
+  ctx.linhas = mlLinhas;
+  ctx.conferencia = mlConferencia;
+  /* o grupo aberto pode ter zerado com a correção — sem ninguém dentro dele,
+     não há o que mostrar, então fecha sozinho em vez de aparecer vazio */
+  if(resumoGrupoAberto && !(ctx.conferencia && ctx.conferencia.grupos.some(g => g.id === resumoGrupoAberto)))
+    resumoGrupoAberto = null;
+  $('resumoCorpo').innerHTML = resumoHTML(ctx);
+}
+
+function resumoToggleGrupo(id){
+  resumoGrupoAberto = resumoGrupoAberto === id ? null : id;
+  resumoAtualizar();
+}
+
+async function resumoAplicarLote(id, campo){
+  const el = $('resLote_' + id);
+  if(!el) return;
+  const txt = String(el.value || '').trim();
+  const numero = ML.parseNumero(txt);
+  if(!(numero > 0)){
+    el.focus();
+    el.classList.add('erro');
+    setTimeout(() => el.classList.remove('erro'), 1200);
+    return;
+  }
+
+  const g = mlConferencia && mlConferencia.grupos.find(x => x.id === id);
+  const linhas = g ? g.linhas.map(i => mlLinhas[i].linha) : [];
+  if(!linhas.length) return;
+
+  const rotulo = campo === 'peso' ? `${txt} kg` : `R$ ${txt}`;
+  if(!confirm(`Escrever ${rotulo} nas ${linhas.length.toLocaleString('pt-BR')} linhas de "${g.titulo}"?
+Isto substitui o valor que elas tiverem. Dá para desfazer em "limpar correções".`)) return;
+
+  /* o botão fica preso em "aplicando…" enquanto mlProcessar reconsulta a
+     categoria — sem isto, um segundo clique no meio do caminho duplicava
+     a escrita nas mesmas linhas */
+  const btn = el.parentElement && el.parentElement.querySelector('button');
+  if(btn){ btn.disabled = true; btn.textContent = 'Aplicando…'; }
+  await mlAplicarCampoLote(campo, linhas, txt);
+  resumoAtualizar();
+}
+
+/* Fecha o resumo e leva para a linha na tabela grande — usado pelos grupos
+   que não têm um campo único para corrigir (prejuízo, margem impossível…). */
+function resumoIrTabela(id){
+  fecharResumo();
+  setTimeout(() => mlVerLinhas(id), 180);
+}
+
+/* Chamada pela edição direta na tabela grande (por trás do resumo, se ele
+   ficar aberto numa segunda tela) — mantém os cartões em dia sem duplicar a
+   lógica de recálculo, que já roda em mlEditarPronto. */
+function resumoAoEditarNaTabela(){ resumoAtualizar(); }
 /* Sem contexto, é o resumo do Mercado Livre — os chamadores antigos não mudam. */
 function abrirResumo(aoConfirmar, ctx){
   resumoAcao = aoConfirmar;
   const comAnalise = $('mlColunasAnalise').checked;
-  $('resumoCorpo').innerHTML = resumoHTML(ctx || {
+  /* sem ctx explícito é sempre o Mercado Livre — o único canal com correção
+     de linha (mlEditar/mlEditarPronto), por isso só ele ganha os cartões de
+     erro; quem passa ctx próprio (hoje, Shopee/Amazon) mantém a lista simples */
+  resumoCtxAtual = ctx || {
     linhas: mlLinhas,
     conferencia: mlConferencia,
     brl: ML.brl,
+    editavel: true,
     avisoFinal: comAnalise
       ? 'A planilha original com o preço novo, mais as colunas de análise (custo, frete, lucro, margem) para você conferir. <b>Desligue as colunas de análise antes de subir no Bling.</b>'
       : 'A planilha original com o preço novo gravado na coluna escolhida — pronta para o Bling.',
-  });
+  };
+  resumoGrupoAberto = null;
+  $('resumoCorpo').innerHTML = resumoHTML(resumoCtxAtual);
   abrirPop('popResumo', 'scrimResumo');
 }
 function fecharResumo(){ fecharPop('popResumo', 'scrimResumo'); }
@@ -2410,6 +2592,25 @@ function mlEditarPronto(linha){
 }
 
 
+/* Selo de situação de uma linha: "ok" em verde, ou uma etiqueta por aviso.
+   Extraído de mlRenderTabela porque o editor de erros do resumo (mais abaixo)
+   também precisa mostrar a situação de uma linha, fora da tabela grande. */
+function mlSituacaoTags(r){
+  if(!r.avisos || !r.avisos.length) return '<span style="color:var(--green-dk)">ok</span>';
+  return r.avisos.map(a => `<span class="tag ${ (ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
+}
+
+/* Célula editável de peso ou custo — o mesmo balão amarelo de "corrigido
+   aqui" tanto na tabela grande quanto no editor de erros do resumo. */
+function mlCampoEditavel(r, nome, valor, prefixo){
+  const ed = mlEdicoes.get(r.linha) || {};
+  const mexido = ed[nome] != null;
+  return `<div class="cel-ed${mexido ? ' mexido' : ''}">${prefixo ? `<span>${prefixo}</span>` : ''}
+    <input type="text" inputmode="decimal" value="${esc(valor)}"
+      onchange="mlEditar(${r.linha},'${nome}',this.value); mlEditarPronto(${r.linha}); resumoAoEditarNaTabela()"
+      title="${mexido ? 'Corrigido aqui — vai assim para o Excel' : 'Clique para corrigir'}"/></div>`;
+}
+
 /* ── tabela de conferência, com filtro, busca e paginação ── */
 function mlRenderTabela(){
   const iDesc = mlCabecalho.findIndex(h => /descri/i.test(String(h)));
@@ -2441,23 +2642,13 @@ function mlRenderTabela(){
   const inicio = mlPagina * ML_POR_PAGINA;
   const pagina = alvo.slice(inicio, inicio + ML_POR_PAGINA);
 
-  const situacao = r => {
-    if(!r.avisos || !r.avisos.length) return '<span style="color:var(--green-dk)">ok</span>';
-    return r.avisos.map(a => `<span class="tag ${ (ML.AVISOS[a]||{}).gravidade === 'erro' ? 'tag-erro' : 'tag-alerta'}">${esc((ML.AVISOS[a]||{}).titulo || a)}</span>`).join(' ');
-  };
+  const situacao = mlSituacaoTags;
 
   /* peso na tela: até 4 casas, sem zeros à toa (0,0008 kg / 2,2 kg) */
   const pesoTxt = kg => kg == null || !isFinite(kg) ? '' :
     String(+Number(kg).toFixed(4)).replace('.', ',');
 
-  const campo = (r, nome, valor, prefixo) => {
-    const ed = mlEdicoes.get(r.linha) || {};
-    const mexido = ed[nome] != null;
-    return `<div class="cel-ed${mexido ? ' mexido' : ''}">${prefixo ? `<span>${prefixo}</span>` : ''}
-      <input type="text" inputmode="decimal" value="${esc(valor)}"
-        onchange="mlEditar(${r.linha},'${nome}',this.value); mlEditarPronto(${r.linha})"
-        title="${mexido ? 'Corrigido aqui — vai assim para o Excel' : 'Clique para corrigir'}"/></div>`;
-  };
+  const campo = mlCampoEditavel;
 
   /* Uma coluna inteira de "—" ocupa o lugar do que interessa. A descrição só
      aparece quando a planilha realmente traz alguma — e some quando não traz,
@@ -2896,7 +3087,28 @@ async function mlPuxarDoML(){
    correção amarela, entra no recálculo e sai no Excel do mesmo jeito. */
 let mlAlvoAtual = [];
 
-function mlAplicarPesoLote(){
+/* Escreve o mesmo valor numa lista de linhas — peso ou custo, de uma vez.
+   Usada pela barra "aplicar a todas" do filtro (embaixo da tabela grande) e
+   pelos cartões de erro do resumo (mais abaixo). Devolve quantas linhas
+   ganharam o valor, para quem chamou decidir o que dizer na tela. */
+async function mlAplicarCampoLote(nomeCampo, linhas, txt){
+  linhas.forEach(l => mlEditar(l, nomeCampo, txt));
+  /* mlProcessar é assíncrono (reconsulta categoria, mostra a cena de espera) —
+     sem esperar, quem chamou re-lê mlConferencia antes dela ser atualizada e
+     mostra o número de antes da correção. */
+  await mlProcessar();
+
+  /* o filtro que trouxe essas linhas até aqui costuma esvaziar junto com a
+     correção — "sem peso" não tem mais ninguém. Sem isto a tela ficaria numa
+     lista vazia, parecendo que o app perdeu os produtos. */
+  if(mlFiltro && mlConferencia){
+    const g = mlConferencia.grupos.find(x => x.id === mlFiltro);
+    if(!g || !g.n){ mlFiltro = null; mlPagina = 0; mlRenderTabela(); }
+  }
+  return linhas.length;
+}
+
+async function mlAplicarPesoLote(){
   const campo = $('mlPesoLote');
   if(!campo) return;
   const txt = String(campo.value || '').trim();
@@ -2913,16 +3125,7 @@ function mlAplicarPesoLote(){
   if(!confirm(`Escrever ${txt} kg nas ${linhas.length.toLocaleString('pt-BR')} linhas que estão na tela?
 Isto substitui o peso que elas tiverem. Dá para desfazer em "limpar correções".`)) return;
 
-  linhas.forEach(l => mlEditar(l, 'peso', txt));
-  mlProcessar();
-
-  /* o filtro que trouxe essas linhas até aqui costuma esvaziar junto com a
-     correção — "sem peso" não tem mais ninguém. Sem isto a tela ficaria numa
-     lista vazia, parecendo que o app perdeu os produtos. */
-  if(mlFiltro && mlConferencia){
-    const g = mlConferencia.grupos.find(x => x.id === mlFiltro);
-    if(!g || !g.n){ mlFiltro = null; mlPagina = 0; mlRenderTabela(); }
-  }
+  await mlAplicarCampoLote('peso', linhas, txt);
 }
 
 /* Descarta só as correções feitas na tela, mantendo a planilha carregada. */
