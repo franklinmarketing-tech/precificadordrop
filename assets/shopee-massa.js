@@ -473,12 +473,42 @@ function lerCategorias(aoaEncomenda) {
   return out;
 }
 
+/* Nem todo nome de categoria de catálogo de dropshipping aparece escrito em
+   nenhum caminho da árvore da Shopee — "Utilidades Domésticas" não tem essa
+   palavra em lugar nenhum, mas é claramente "Casa e Decoração" pra quem lê.
+   Essa tabela cobre os nomes de categoria mais comuns nos catálogos de
+   fornecedor (Wedrop e afins) que não batem palavra por palavra, apontando
+   para a categoria-raiz certa da Shopee — só entra quando a busca por texto
+   não achou nada, nunca troca uma correspondência de verdade. */
+const APELIDOS_RAIZ = [
+  {termos: ['utilidades domesticas', 'utilidades para casa', 'organizadores', 'cozinha', 'utensilios'], raiz: 'Casa e Decoracao'},
+  {termos: ['eletronicos', 'eletronica', 'gadgets', 'tecnologia'], raiz: 'Celulares e Dispositivos'},
+  {termos: ['informatica', 'computador', 'computadores'], raiz: 'Computadores e Acessorios'},
+  {termos: ['pet', 'pets', 'animais'], raiz: 'Animais Domesticos'},
+  {termos: ['automotivo', 'automotivos', 'carro', 'carros', 'moto', 'motos'], raiz: 'Pecas e Acessorios para Veiculos'},
+  {termos: ['bebe', 'bebes', 'maternidade'], raiz: 'Mae e Bebe'},
+  {termos: ['infantil', 'criancas', 'crianca'], raiz: 'Moda Infantil'},
+  {termos: ['beleza', 'cosmeticos', 'maquiagem'], raiz: 'Beleza'},
+  {termos: ['saude', 'bem estar', 'fitness'], raiz: 'Saude'},
+  {termos: ['papelaria', 'escritorio', 'escolar'], raiz: 'Papelaria'},
+  {termos: ['esporte', 'esportes', 'fitness academia'], raiz: 'Esportes e Atividades ao Ar Livre'},
+  {termos: ['viagem', 'viagens', 'bagagem', 'malas'], raiz: 'Viagens e Bagagens'},
+  {termos: ['alimentos', 'bebidas', 'suplementos'], raiz: 'Alimentos e Bebidas'},
+  {termos: ['brinquedos', 'brinquedo', 'hobbies'], raiz: 'Hobbies e Colecoes'},
+  {termos: ['ferramentas'], raiz: 'Casa e Decoracao'},
+  {termos: ['volta as aulas', 'material escolar'], raiz: 'Papelaria'},
+  {termos: ['natal', 'natalino', 'natalinos', 'festa', 'festas', 'ano novo'], raiz: 'Casa e Decoracao'},
+  {termos: ['verao', 'inverno', 'outono', 'primavera', 'estacao'], raiz: 'Casa e Decoracao'},
+];
+
 /* Do texto de categoria do catálogo ("Utilidades Domésticas") para o ID da
    Shopee. Não existe correspondência exata — o catálogo usa nomes livres, a
    Shopee usa uma árvore própria —, então é uma sugestão para conferir, nunca
    uma escolha automática que a pessoa não veja. Pontua por quanto do texto
    do catálogo aparece no caminho da categoria, dando peso maior para bater
-   com a folha (o nó final, o que de fato recebe o produto). */
+   com a folha (o nó final, o que de fato recebe o produto). Quando nenhuma
+   palavra bate em canto nenhum, tenta os apelidos de categoria-raiz antes de
+   desistir — melhor cair na raiz certa do que ficar sem nada. */
 function sugerirCategoria(categorias, textoCatalogo) {
   const alvo = normalizarTexto(textoCatalogo);
   if (!alvo) return null;
@@ -497,6 +527,17 @@ function sugerirCategoria(categorias, textoCatalogo) {
     });
     if (pontos > melhorPontos) { melhorPontos = pontos; melhor = cat; }
   });
+
+  if (!melhor) {
+    const apelido = APELIDOS_RAIZ.find(a => a.termos.some(t => alvo.indexOf(normalizarTexto(t)) >= 0));
+    if (apelido) {
+      const raizAlvo = normalizarTexto(apelido.raiz);
+      const daRaiz = (categorias || []).filter(c => normalizarTexto(c.raiz) === raizAlvo);
+      /* prefere um nó "Outros" quando existe — é o mais genérico da raiz */
+      melhor = daRaiz.find(c => /^outros$/i.test(c.folha)) || daRaiz[0] || null;
+      return melhor;
+    }
+  }
   return melhorPontos > 0 ? melhor : null;
 }
 
