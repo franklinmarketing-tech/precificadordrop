@@ -59,6 +59,8 @@ function mkMargemDigitada(){
    no fim —, então a tela muda o subtítulo e destaca o botão certo em vez de
    existir duas vezes. */
 let mkModoMassa = false;
+/* o arquivo que a Shopee entregou, cru, para ser devolvido preenchido */
+let mkModeloBytes = null, mkModeloNome = '';
 
 function mkAbrir(id, opcoes){
   mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
@@ -83,6 +85,9 @@ function mkAbrir(id, opcoes){
   $('view-mkt').className = 'view ' + def.classe;
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
+  mkModeloBytes = null; mkModeloNome = '';
+  mostrar('mkModeloBox', mkModoMassa);
+  mostrar('mkModeloInfo', false);
   mkAtualizarBotaoMassa();
   ir('mkt');
 }
@@ -132,6 +137,47 @@ async function mkCarregar(file){
     $('mkStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
   }catch(e){
     alert('Não consegui ler a planilha.\n\n' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ── o modelo oficial da Shopee ───────────────────────────────────────────
+   Só guarda os bytes e confere que a aba "Modelo" está lá. O preenchimento é
+   na hora de baixar, para o arquivo sair com os preços já calculados. */
+function mkDropModelo(ev){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag');
+  const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+  if(f) mkCarregarModelo(f);
+}
+
+async function mkCarregarModelo(file){
+  if(!file) return;
+  try{
+    await garantirXLSX();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(bytes, {type:'array', bookSheets:true});
+    const aba = (wb.SheetNames || []).find(n => String(n).trim().toLowerCase() === 'modelo');
+    if(!aba){
+      $('mkModeloInfo').innerHTML = '<div class="modelo-erro"><b>Este arquivo não tem a aba "Modelo".</b> '
+        + 'Baixe o modelo em Central do Vendedor → Produtos → Cadastro em massa → Baixar modelo. '
+        + 'Abas encontradas: ' + esc((wb.SheetNames || []).join(', ')) + '.</div>';
+      mostrar('mkModeloInfo', true);
+      mkModeloBytes = null; mkModeloNome = '';
+      return;
+    }
+    mkModeloBytes = bytes;
+    mkModeloNome = file.name;
+    $('mkModeloInfo').innerHTML = `<div class="file-row">
+      <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+      <div><div class="file-n">${esc(file.name)}</div>
+        <div class="file-i">modelo reconhecido · aba <b>${esc(aba)}</b> · ${(wb.SheetNames||[]).length} abas preservadas</div></div>
+    </div>`;
+    mostrar('mkModeloInfo', true);
+  }catch(e){
+    $('mkModeloInfo').innerHTML = '<div class="modelo-erro"><b>Não consegui ler este arquivo.</b> '
+      + esc(e && e.message ? e.message : String(e)) + '</div>';
+    mostrar('mkModeloInfo', true);
+    mkModeloBytes = null;
   }
 }
 
@@ -524,7 +570,9 @@ async function mkBaixarShopeeMassa(){
   if(p.semEstoque.length) avisos.push('estoque zerado em todas as linhas: o anúncio sobe sem estoque');
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
 
+  const semModelo = !mkModeloBytes;
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
+    + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
     + '\n\nCategoria, CFOP, origem e CSOSN saem em branco de propósito — são decisão fiscal sua, e a Shopee sugere a categoria sozinha.\n\nGerar o arquivo?';
   if(!confirm(texto)) return;
@@ -535,17 +583,35 @@ async function mkBaixarShopeeMassa(){
 
   try{
     await garantirXLSX();
-    const aoa = SM.montarAoa(produtos, {unidadeMedida: unidade});
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    /* as colunas de texto longo ficam legíveis quando ele abre para conferir */
-    ws['!cols'] = SM.LINHA_ROTULOS.map((_, i) =>
-      ({wch: i === SM.COL.ps_product_name || i === SM.COL.ps_product_description ? 42 : 16}));
-
-    const saida = XLSX.utils.book_new();
-    /* o nome da aba é o mesmo do modelo dela: é onde o importador procura */
-    XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
     const hoje = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(saida, `shopee_cadastro_em_massa_${hoje}.xlsx`);
+    /* só as linhas dos produtos: o cabeçalho já está no arquivo dela */
+    const linhas = produtos.map(p => SM.montarLinha(
+      Object.assign({unidadeMedida: unidade}, p)));
+
+    if(mkModeloBytes){
+      /* O caminho bom: escrever DENTRO do arquivo que a Shopee entregou. Ele
+         tem sete abas, listas suspensas e uma assinatura na segunda linha —
+         um arquivo parecido, montado do zero, o importador dela recusa. */
+      const wb = XLSX.read(mkModeloBytes, {type:'array', cellStyles:true});
+      const aba = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'modelo');
+      if(!aba) throw new Error('O modelo carregado não tem a aba "Modelo".');
+      const ws = wb.Sheets[aba];
+      XU.normalizarRef(ws);
+      /* origin 6 = linha 7 da planilha, a primeira depois das seis de
+         cabeçalho: é onde a Shopee espera o primeiro produto */
+      XLSX.utils.sheet_add_aoa(ws, linhas, {origin: SM.LINHA_CABECALHO});
+      XLSX.writeFile(wb, mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido.xlsx');
+    }else{
+      /* Sem o modelo, o arquivo sai montado aqui. Serve para conferir os
+         números, mas a Shopee pode recusar no importador — o aviso antes de
+         baixar diz isso. */
+      const ws = XLSX.utils.aoa_to_sheet(SM.montarAoa(produtos, {unidadeMedida: unidade}));
+      ws['!cols'] = SM.LINHA_ROTULOS.map((_, i) =>
+        ({wch: i === SM.COL.ps_product_name || i === SM.COL.ps_product_description ? 42 : 16}));
+      const saida = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
+      XLSX.writeFile(saida, `shopee_cadastro_em_massa_${hoje}.xlsx`);
+    }
 
     if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
       + `Baixado — ${produtos.length.toLocaleString('pt-BR')} produtos`;

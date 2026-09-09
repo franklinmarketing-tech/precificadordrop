@@ -938,6 +938,29 @@
     <div class="panel hide" id="mkStep2">
       <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Colunas, canal e margem</div></div>
 
+      <!-- O arquivo da Shopee tem sete abas, listas suspensas e uma assinatura
+           na segunda linha. Gerar um parecido do zero não basta: o importador
+           dela recusa. Então o app escreve DENTRO do arquivo que a própria
+           Shopee entregou, e devolve ele de volta com os produtos. -->
+      <div class="modelo-box hide" id="mkModeloBox">
+        <div class="modelo-t">
+          <b>O modelo da Shopee</b>
+          <i>Baixe em Central do Vendedor → Produtos → Cadastro em massa → Baixar modelo,
+             e solte o arquivo aqui. O app escreve os produtos dentro dele e devolve o
+             mesmo arquivo — é assim que o importador aceita.</i>
+        </div>
+        <div class="zone zone-sm" onclick="document.getElementById('mkFiModelo').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')" ondrop="mkDropModelo(event)">
+          <input id="mkFiModelo" type="file" accept=".xlsx,.xls" class="hide"
+                 onchange="mkCarregarModelo(event.target.files[0]); this.value=''"/>
+          <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+          <div class="zone-t">Arraste o modelo da Shopee aqui</div>
+          <div class="zone-s">ou clique · .xlsx</div>
+        </div>
+        <div id="mkModeloInfo" class="hide"></div>
+      </div>
+
       <div class="grp-t">DE ONDE VEM CADA DADO</div>
       <div class="campos" id="mkColunas"></div>
 

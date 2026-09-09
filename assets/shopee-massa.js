@@ -90,6 +90,10 @@ const N_COLUNAS = LINHA_CODIGOS.length;
    tem de cair na linha 7, e é isso que estas duas linhas garantem. */
 const LINHAS_AJUDA = 2;
 
+/* Linha (base 0) onde entra o primeiro produto: as quatro linhas do modelo
+   mais as duas de ajuda. Em planilha, é a linha 7. */
+const LINHA_CABECALHO = 4 + LINHAS_AJUDA;
+
 /* posição de cada campo, pelo código interno da linha 1 */
 const COL = {};
 LINHA_CODIGOS.forEach((c, i) => { COL[String(c).split('|')[0]] = i; });
@@ -205,7 +209,7 @@ function conferir(produtos) {
   return problemas;
 }
 
-return {LINHA_CODIGOS, LINHA_ROTULOS, N_COLUNAS, COL, LINHAS_AJUDA,
+return {LINHA_CODIGOS, LINHA_ROTULOS, N_COLUNAS, COL, LINHAS_AJUDA, LINHA_CABECALHO,
         NOME_MAX, DESC_MIN, DESC_MAX,
         nomeValido, descricaoValida, gtinValido, ncmValido,
         montarLinha, montarAoa, conferir};
