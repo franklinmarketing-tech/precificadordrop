@@ -328,6 +328,31 @@ function lerCabecalho(aoa) {
   };
 }
 
+/* ── quantos produtos cabem num arquivo ───────────────────────────────────
+   A Shopee não diz o limite em lugar nenhum: ela responde "sua solicitação
+   contém arquivo inválido" antes mesmo de processar. Mas a planilha entrega
+   o número sem querer — as validações das colunas cobrem exatamente até a
+   última linha que ela aceita (AE7:AE1007 no modelo de hoje, ou seja mil
+   produtos). Um lote de 2 passou; um de 2.605 voltou inválido.
+
+   Recebe o XML cru da aba Modelo e devolve quantos produtos cabem. */
+function lerLimiteLinhas(xml) {
+  let ultima = 0;
+  const re = /sqref="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(String(xml || '')))) {
+    /* "AE7:AE1007" e também listas com vários intervalos separados por espaço */
+    m[1].split(/\s+/).forEach(faixa => {
+      const fim = /:[A-Z]+([0-9]+)$/.exec(faixa.trim());
+      if (fim) ultima = Math.max(ultima, Number(fim[1]) || 0);
+    });
+  }
+  const cabem = ultima - LINHA_CABECALHO;
+  /* validação curta demais não é limite de verdade: alguma coluna pode ter
+     uma faixa pequena por outro motivo */
+  return cabem >= 50 ? cabem : 0;
+}
+
 /* ── as listas que ficam DENTRO da aba, não na HiddenTax ──────────────────
    Canal de envio e Tipo de Operação têm a lista escrita na própria validação
    da coluna ("Ligado,Desativado"), não numa aba de apoio. Ler de lá é o que
@@ -374,6 +399,6 @@ return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
         LINHAS_AJUDA, LINHA_CABECALHO, COLUNAS_TEXTO, CANAL_ATIVO,
         NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
         nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes,
-        mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline,
+        mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline, lerLimiteLinhas,
         montarLinha, montarAoa, conferir};
 });

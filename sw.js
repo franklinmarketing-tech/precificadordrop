@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v12';  // v12: canal de envio Ligado, lido da validacao da planilha
+const VERSAO = 'v13';  // v13: limite de produtos por arquivo lido da planilha
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

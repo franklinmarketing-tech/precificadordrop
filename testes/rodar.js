@@ -1153,6 +1153,15 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(listas.csosn.length === 2 && listas.csosn[0] === '102 - Tributada', 'lê o CSOSN da HiddenTax');
   ok(listas.unidade[1] === 'KG (QUILOGRAMA)', 'lê a unidade de medida com o nome por extenso');
 
+  /* A Shopee não diz quantos produtos aceita por arquivo: responde "arquivo
+     inválido" antes de processar. A planilha entrega o número — as validações
+     das colunas cobrem só até a última linha aceita. */
+  ok(SM.lerLimiteLinhas('<dataValidation sqref="AE7:AE1007"/>') === 1001,
+     'o limite de produtos por arquivo sai da validação da planilha');
+  ok(SM.lerLimiteLinhas('<x/>') === 0, 'sem validação, não inventa limite');
+  ok(SM.lerLimiteLinhas('<dataValidation sqref="N7:N20"/>') === 0,
+     'faixa curta demais não é tratada como limite');
+
   const conf = SM.conferir([
     {nome:'Produto bom', preco:10, peso:0.5, estoque:5, ean:'0631911390524', imagem:'http://x'},
     {nome:'', preco:0, peso:0, estoque:0, ean:'ABC', imagem:''},

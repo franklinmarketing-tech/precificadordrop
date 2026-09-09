@@ -63,6 +63,8 @@ let mkModoMassa = false;
 let mkModeloBytes = null, mkModeloNome = '';
 /* cabeçalho e listas fechadas lidos do arquivo da Shopee que foi carregado */
 let mkModeloCtx = null, mkModeloListas = null, mkModeloInline = null;
+/* quantos produtos a Shopee aceita por arquivo, lido da própria planilha */
+let mkModeloLimite = 0;
 
 function mkAbrir(id, opcoes){
   mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
@@ -88,7 +90,7 @@ function mkAbrir(id, opcoes){
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   mkModeloBytes = null; mkModeloNome = '';
-  mkModeloCtx = null; mkModeloListas = null; mkModeloInline = null;
+  mkModeloCtx = null; mkModeloListas = null; mkModeloInline = null; mkModeloLimite = 0;
   mostrar('mkFiscalBox', false);
   mostrar('mkModeloBox', mkModoMassa);
   mostrar('mkModeloInfo', false);
@@ -195,6 +197,7 @@ async function mkCarregarModelo(file){
         if(caminho && zip.file(caminho)){
           const xml = await zip.file(caminho).async('string');
           mkModeloInline = window.ShopeeMassa.lerValidacoesInline(xml, mkModeloCtx.codigos);
+          mkModeloLimite = window.ShopeeMassa.lerLimiteLinhas(xml);
         }
       }
     }catch(e){ /* sem as listas embutidas, valem os valores de reserva */ }
@@ -205,7 +208,8 @@ async function mkCarregarModelo(file){
     $('mkModeloInfo').innerHTML = `<div class="file-row">
       <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
       <div><div class="file-n">${esc(file.name)}</div>
-        <div class="file-i">modelo reconhecido · aba <b>${esc(aba)}</b> · ${(wb.SheetNames||[]).length} abas preservadas</div></div>
+        <div class="file-i">modelo reconhecido · aba <b>${esc(aba)}</b> · ${(wb.SheetNames||[]).length} abas preservadas${
+          mkModeloLimite ? ` · até <b>${mkModeloLimite.toLocaleString('pt-BR')}</b> produtos por arquivo` : ''}</div></div>
     </div>`;
     mostrar('mkModeloInfo', true);
   }catch(e){
@@ -686,7 +690,9 @@ async function mkBaixarShopeeMassa(){
     + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
     + '\n\nO canal de envio vai LIGADO em todas as linhas — sem canal a Shopee recusa o produto, e a palavra certa sai da própria planilha dela. A categoria sai em branco e ela mesma sugere.'
-    + '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.'
+    + (mkModeloLimite && produtos.length > mkModeloLimite
+        ? `\n\nA Shopee aceita ${mkModeloLimite.toLocaleString('pt-BR')} produtos por arquivo (e no máximo 3 MB), então isto sai em ${Math.ceil(produtos.length / mkModeloLimite)} arquivos. O navegador vai pedir para autorizar vários downloads, e cada um é enviado separado lá.`
+        : '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.')
     + '\n\nGerar o arquivo?';
   if(!confirm(texto)) return;
 
@@ -757,12 +763,20 @@ async function mkBaixarShopeeMassa(){
        dizer o tamanho. Então o app mede o que gerou e divide em partes, com
        folga para o zip variar de um pedaço para o outro. */
     const LIMITE_KB = 2600;
+    /* Duas fronteiras, e a menor manda. O tamanho vem do aviso na tela dela
+       (3 MB); a quantidade vem da planilha — as validações das colunas cobrem
+       só até a última linha que o importador aceita, e passar disso volta como
+       "arquivo inválido" antes mesmo de processar. */
+    const LIMITE_LINHAS = mkModeloLimite || 0;
     let fatias = [linhas];
-    const inteiro = gerar(linhas);
-    if(inteiro.byteLength / 1024 > LIMITE_KB){
+    const inteiro = gerar(linhas.slice(0, LIMITE_LINHAS || linhas.length));
+    if(inteiro.byteLength / 1024 > LIMITE_KB
+       || (LIMITE_LINHAS && linhas.length > LIMITE_LINHAS)){
       const cabecalhoKB = (mkModeloBytes ? mkModeloBytes.byteLength : 60 * 1024) / 1024;
-      const porLinhaKB = Math.max(0.05, (inteiro.byteLength / 1024 - cabecalhoKB) / linhas.length);
-      const cabem = Math.max(50, Math.floor((LIMITE_KB - cabecalhoKB) / porLinhaKB));
+      const medidas = Math.min(linhas.length, LIMITE_LINHAS || linhas.length);
+      const porLinhaKB = Math.max(0.05, (inteiro.byteLength / 1024 - cabecalhoKB) / medidas);
+      let cabem = Math.max(50, Math.floor((LIMITE_KB - cabecalhoKB) / porLinhaKB));
+      if(LIMITE_LINHAS) cabem = Math.min(cabem, LIMITE_LINHAS);
       /* partes iguais em vez de encher a primeira e sobrar um resto minúsculo:
          com 5.209 produtos saía 4.500 + 709, e o primeiro arquivo raspava o
          limite. Dividido por igual, os dois ficam com folga. */
@@ -775,7 +789,7 @@ async function mkBaixarShopeeMassa(){
     const total = fatias.length;
     for(let i = 0; i < total; i++){
       if(btn) btn.textContent = total > 1 ? `Gerando ${i + 1} de ${total}…` : 'Gerando…';
-      const bytes = i === 0 && total === 1 ? inteiro : gerar(fatias[i]);
+      const bytes = total === 1 && fatias[0].length === linhas.length ? inteiro : gerar(fatias[i]);
       const nome = total > 1 ? `${base}_parte${i + 1}de${total}.xlsx` : `${base}.xlsx`;
       /* download por link: XLSX.writeFile geraria o arquivo de novo, e com
          5 mil linhas isso é caro o bastante para travar a tela */
