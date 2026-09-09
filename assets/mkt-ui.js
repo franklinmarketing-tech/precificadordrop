@@ -54,7 +54,14 @@ function mkMargemDigitada(){
   document.querySelectorAll('#mkMargens .margem').forEach(b => b.classList.remove('active'));
 }
 
-function mkAbrir(id){
+/* Quem chega pelo quadro "Cadastrar em massa" quer o arquivo da Shopee, não a
+   planilha de preços. É o mesmo caminho — a diferença é qual download importa
+   no fim —, então a tela muda o subtítulo e destaca o botão certo em vez de
+   existir duas vezes. */
+let mkModoMassa = false;
+
+function mkAbrir(id, opcoes){
+  mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
   const def = MK_CANAIS[id];
   const motor = def && def.motor();
   if(!motor){ alert('Este canal ainda não está disponível.'); return; }
@@ -65,7 +72,13 @@ function mkAbrir(id){
   mkPesoSuspeito = false; mkPesoConfirmadoKg = false; mkPesoInfo = null;
 
   $('mkMarca').innerHTML = `<img src="${def.logo}" alt="${esc(def.nome)}"/>`;
-  $('mkTitulo').innerHTML = `Precificar <span class="grad">${esc(def.nome)}.</span>`;
+  $('mkTitulo').innerHTML = mkModoMassa
+    ? `Cadastrar em massa na <span class="grad">${esc(def.nome)}.</span>`
+    : `Precificar <span class="grad">${esc(def.nome)}.</span>`;
+  const sub = $('view-mkt').querySelector('.h-sub');
+  if(sub) sub.textContent = mkModoMassa
+    ? 'Suba o catálogo do fornecedor. O app calcula o preço pela tabela da Shopee e devolve o arquivo já no modelo de cadastro em massa dela.'
+    : 'Você diz a margem que quer. Comissão, taxa fixa e envio saem das tabelas oficiais do canal.';
   /* a cor do canal vem da mesma variável usada nos quadros da home */
   $('view-mkt').className = 'view ' + def.classe;
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
@@ -451,8 +464,15 @@ function mkIrPagina(n){ mkPagina = n; mkRenderTabela(); }
 
 /* O modelo de cadastro em massa é coisa da Shopee: na Amazon o botão some. */
 function mkAtualizarBotaoMassa(){
-  const b = $('mkBtnMassa');
-  if(b) b.classList.toggle('hide', !mkCanal || mkCanal.id !== 'shopee');
+  const b = $('mkBtnMassa'), v = $('mkBtnDl');
+  if(!b) return;
+  b.classList.toggle('hide', !mkCanal || mkCanal.id !== 'shopee');
+  /* quem veio pelo cadastro em massa procura o arquivo da Shopee: ele fica em
+     destaque, e a planilha de preços vira o botão discreto — o contrário do
+     que acontece quando a pessoa entrou para precificar */
+  b.classList.toggle('btn-laranja', true);
+  if(v) v.classList.toggle('btn-ghost', mkModoMassa);
+  if(v) v.classList.toggle('btn-green', !mkModoMassa);
 }
 
 /* ── o arquivo no modelo da Shopee ────────────────────────────────────────

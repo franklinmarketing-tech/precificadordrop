@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v7';   // v7: cadastro em massa da Shopee, medidas e margens
+const VERSAO = 'v8';   // v8: quadro do cadastro em massa na tela da Shopee
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
