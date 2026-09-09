@@ -4095,7 +4095,7 @@ const WS_FERRAMENTAS = {
             'No modelo padrão o vendedor não paga frete',
             'Avisa quando o preço cai logo acima da virada dos R$ 80']},
     {nome:'Cadastrar em massa', img:'assets/img/ic-base-shop.webp',
-     acao:"mkAbrir('shopee', {massa:true})", destaque:true,
+     acao:"massaAbrir()", destaque:true,
      fluxo:['Catálogo do fornecedor','Modelo da Shopee'],
      resumo:'O catálogo vira o arquivo de cadastro em massa da Shopee.',
      itens:['O arquivo da Shopee tem 51 colunas e seis linhas de cabeçalho',

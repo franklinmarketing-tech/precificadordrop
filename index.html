@@ -150,7 +150,7 @@
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
-          <button class="mn-i" onclick="mkAbrir('shopee', {massa:true})">
+          <button class="mn-i" onclick="massaAbrir()">
             <img src="assets/img/ic-base-shop.webp" alt=""/>
             <span><b>Cadastrar em massa</b><i>Catálogo no modelo de upload da Shopee</i></span>
           </button>
@@ -916,6 +916,9 @@
 
     <div class="panel" id="mkStep1">
       <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar a planilha de produtos</div></div>
+      <!-- o assistente do cadastro em massa move este grupo inteiro para
+           dentro do pop-up, e devolve ao fechar -->
+      <div id="mkGrupoArquivo">
       <div class="zone" onclick="document.getElementById('mkFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="mkDrop(event)">
@@ -932,6 +935,7 @@
         <div class="dica-l"><span class="dica-e">⚖️</span>
           <span><b>Peso e medidas mudam o frete.</b> Sem eles a conta usa estimativa,
             e o lucro que aparece pode ser maior que o real.</span></div>
+      </div>
       </div>
     </div>
 
@@ -973,6 +977,7 @@
       <div id="mkRessalvas" class="hide"></div>
 
       <div class="grp-t" style="margin-top:22px">QUANTO VOCÊ QUER GANHAR</div>
+      <div id="mkGrupoMargem">
       <div class="lbl verde">Margem líquida sobre a venda</div>
       <div class="margens" id="mkMargens"></div>
       <div class="margem-custom">
@@ -986,6 +991,7 @@
         <div class="dica-l aviso"><span class="dica-e">💡</span>
           <span><b>Produto barato não sustenta margem alta.</b> A taxa fixa pesa mais quanto menor
             o preço — se muitas linhas derem "margem não alcançável", baixe a margem ou venda em kit.</span></div>
+      </div>
       </div>
 
       <button class="btn btn-green btn-block" style="margin-top:18px" onclick="mkCalcular()">
@@ -1865,6 +1871,39 @@
 <!-- ═══ POP-UP: RESUMO ANTES DE BAIXAR ═══
      O balanço do lote na hora em que a decisão é tomada. Vinha tudo por
      confirm() do navegador, que não cabe número nem hierarquia. -->
+<!-- ═══ ASSISTENTE DO CADASTRO EM MASSA ═══
+     A configuração era uma página comprida: catálogo, modelo, colunas, margem,
+     taxas e nota fiscal, cada um num pedaço, e a pessoa rolava atrás do que
+     faltava. Aqui é uma coisa por vez, com o palco recebendo os MESMOS blocos
+     da página — movidos para cá e devolvidos no fim, para não existirem dois
+     campos com o mesmo id. -->
+<div class="scrim" id="scrimMassa" onclick="massaFechar()"></div>
+<div class="pop pop-largo" id="popMassa" role="dialog" aria-modal="true" aria-labelledby="massaTitulo">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t" id="massaTitulo">Cadastrar em massa na Shopee</div>
+      <div class="pop-s" id="massaSub">PASSO 1 DE 6</div>
+    </div>
+    <button class="x" onclick="massaFechar()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="massa-trilha" id="massaTrilha"></div>
+  <div class="pop-b">
+    <p class="massa-explica" id="massaExplica"></p>
+    <div id="massaPalco"></div>
+    <div class="massa-alerta hide" id="massaAlerta"></div>
+  </div>
+  <div class="pop-f massa-f">
+    <button class="btn btn-ghost" id="massaVoltar" onclick="massaVoltar()">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
+    <button class="btn btn-green" id="massaSeguir" onclick="massaSeguir()">
+      <span id="massaSeguirRot">Continuar</span>
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</div>
+
 <div class="scrim" id="scrimResumo" onclick="fecharResumo()"></div>
 <div class="pop pop-largo" id="popResumo" role="dialog" aria-modal="true" aria-labelledby="resumoTitulo">
   <div class="pop-h">

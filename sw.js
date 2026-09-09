@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v14';  // v14: o modelo da Shopee virou obrigatorio no cadastro
+const VERSAO = 'v15';  // v15: assistente em pop-up para o cadastro em massa
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

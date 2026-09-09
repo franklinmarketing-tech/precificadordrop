@@ -105,6 +105,180 @@ function mkDrop(ev){
   if(f) mkCarregar(f);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ASSISTENTE DO CADASTRO EM MASSA DA SHOPEE
+
+   A configuração era uma página comprida — catálogo, modelo, colunas, margem,
+   taxas do canal e nota fiscal, cada um num pedaço — e quem chegava rolava
+   atrás do que faltava. Foi assim que um lote inteiro saiu sem o modelo da
+   Shopee: a caixa estava lá, no meio do caminho, e passou batida.
+
+   Aqui é uma coisa por vez. O palco do pop-up recebe os MESMOS blocos da
+   página, movidos para dentro dele e devolvidos ao fechar: nada é duplicado,
+   então continua existindo um só campo de cada, com os mesmos ids e os mesmos
+   eventos. Quem prefere a página inteira continua entrando por "Precificar
+   Shopee".
+
+   O assistente cuida da configuração e passa a bola: calcular e gerar segue
+   pelo caminho de sempre, com a janela de progresso e a revisão de peso que
+   já existiam.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* de onde cada bloco saiu, para voltar exatamente ao mesmo lugar */
+let massaOrigem = new Map();
+let massaPasso = 0;
+/* o assistente pediu para gerar e ainda não gerou: fica ligado até o download
+   sair. Existe porque o caminho passa pela revisão de escala de peso, que
+   interrompe o cálculo e o retoma depois — sem isto, quem tinha peso em
+   gramas (quase todo catálogo de dropshipping) mandava gerar e não recebia
+   arquivo nenhum, sem nada na tela explicando. */
+let massaAguardando = false;
+
+const MASSA_PASSOS = [
+  {
+    nome: 'Catálogo',
+    titulo: 'O catálogo do fornecedor',
+    explica: 'A planilha com os produtos que você quer cadastrar — a do Wedrop, do seu fornecedor '
+           + 'ou a que já usa no Bling. O app procura sozinho as colunas de custo, peso e medidas.',
+    blocos: ['mkGrupoArquivo'],
+    pronto: () => !!(typeof mkAoa !== 'undefined' && mkAoa && mkAoa.length),
+    falta: 'Carregue a planilha do catálogo para continuar.',
+  },
+  {
+    nome: 'Modelo',
+    titulo: 'O modelo da Shopee',
+    explica: 'Baixe em Central do Vendedor → Produtos → Adicionar em Massa → Baixar modelo. '
+           + 'O app escreve os produtos DENTRO desse arquivo e devolve ele mesmo — é assim que o '
+           + 'importador aceita. Um arquivo montado por fora ela recusa, mesmo com as colunas certas.',
+    blocos: ['mkModeloBox'],
+    pronto: () => !!mkModeloBytes,
+    falta: 'Solte aqui o modelo baixado da Shopee. Sem ele o arquivo não sai.',
+  },
+  {
+    nome: 'Colunas',
+    titulo: 'De onde vem cada dado',
+    explica: 'O app já apontou o que reconheceu no seu catálogo. Confira, principalmente o custo '
+           + 'e o nome do produto — o resto é opcional e sai em branco quando não existe.',
+    blocos: ['mkColunas'],
+    pronto: () => {
+      const c = $('mkColCusto'), n = $('mkColNome');
+      const iC = c ? parseInt(c.value) : -1;
+      const iN = n ? parseInt(n.value) : -1;
+      return iC >= 0 && iN >= 0;
+    },
+    falta: 'Escolha ao menos a coluna do custo e a do nome do produto.',
+  },
+  {
+    nome: 'Margem',
+    titulo: 'Quanto você quer ganhar',
+    explica: 'A margem líquida é o que sobra depois de tudo — comissão, taxa fixa, envio e o custo '
+           + 'do produto. É sobre ela que o preço da Shopee é calculado.',
+    blocos: ['mkGrupoMargem'],
+    pronto: () => true,
+  },
+  {
+    nome: 'Taxas',
+    titulo: 'Como a Shopee cobra de você',
+    explica: 'Comissão por faixa de preço, tipo de conta e quem entrega. No modelo padrão o '
+           + 'vendedor não paga frete — o comprador paga, com cupom da Shopee.',
+    blocos: ['mkParams', 'mkRessalvas'],
+    pronto: () => true,
+  },
+  {
+    nome: 'Nota fiscal',
+    titulo: 'Nota fiscal',
+    explica: 'Estes campos só aceitam os valores das listas da Shopee, que saíram do modelo que '
+           + 'você carregou. Valem para todos os produtos do lote. Se não souber, deixe em branco '
+           + 'e pergunte à sua contabilidade — chutar um CFOP sai como nota fiscal errada.',
+    blocos: ['mkFiscalBox'],
+    pronto: () => true,
+    ultimo: true,
+  },
+];
+
+function massaAbrir(){
+  /* entra pela mesma porta da tela normal: é o mesmo canal e o mesmo motor */
+  mkAbrir('shopee', {massa: true});
+  massaPasso = 0;
+  massaIr(0);
+  abrirPop('popMassa', 'scrimMassa');
+}
+
+/* Move um bloco para o palco guardando de onde ele veio. Mover, e não copiar,
+   é o que garante um só campo de cada id na página. */
+function massaMover(id){
+  const el = $(id);
+  if(!el) return;
+  if(!massaOrigem.has(id)) massaOrigem.set(id, {pai: el.parentNode, antes: el.nextSibling});
+  el.classList.remove('hide');
+  $('massaPalco').appendChild(el);
+}
+
+function massaDevolver(){
+  massaOrigem.forEach((o, id) => {
+    const el = $(id);
+    if(el && o.pai) o.pai.insertBefore(el, o.antes);
+  });
+  massaOrigem.clear();
+}
+
+function massaIr(n){
+  massaPasso = Math.max(0, Math.min(n, MASSA_PASSOS.length - 1));
+  const p = MASSA_PASSOS[massaPasso];
+
+  /* devolve o que estava no palco antes de trazer o próximo */
+  massaDevolver();
+  $('massaPalco').innerHTML = '';
+  p.blocos.forEach(massaMover);
+
+  $('massaTitulo').textContent = p.titulo;
+  $('massaSub').textContent = `PASSO ${massaPasso + 1} DE ${MASSA_PASSOS.length}`;
+  $('massaExplica').textContent = p.explica;
+  massaAviso('');
+
+  $('massaTrilha').innerHTML = MASSA_PASSOS.map((x, i) => {
+    const cls = i < massaPasso ? 'feito' : (i === massaPasso ? 'agora' : '');
+    return `<button class="massa-etapa ${cls}" onclick="massaIrDireto(${i})"
+      ${i > massaPasso ? 'disabled' : ''}>${i < massaPasso ? '✓' : i + 1}
+      <span>${esc(x.nome)}</span></button>`;
+  }).join('');
+
+  $('massaVoltar').classList.toggle('hide', massaPasso === 0);
+  $('massaSeguirRot').textContent = p.ultimo ? 'Calcular e gerar os arquivos' : 'Continuar';
+  $('popMassa').querySelector('.pop-b').scrollTop = 0;
+}
+
+/* voltar por dentro da trilha, só para passos já visitados */
+function massaIrDireto(n){ if(n <= massaPasso) massaIr(n); }
+function massaVoltar(){ massaIr(massaPasso - 1); }
+
+function massaAviso(txt){
+  const el = $('massaAlerta');
+  el.textContent = txt || '';
+  mostrar('massaAlerta', !!txt);
+}
+
+async function massaSeguir(){
+  const p = MASSA_PASSOS[massaPasso];
+  if(!p.pronto()){ massaAviso(p.falta || 'Falta preencher este passo.'); return; }
+
+  if(!p.ultimo){ massaIr(massaPasso + 1); return; }
+
+  /* Daqui em diante é o caminho de sempre: a janela de progresso e a revisão
+     de peso já existiam e funcionam melhor na página do que espremidas num
+     pop-up dentro de outro. */
+  massaAguardando = true;
+  massaFechar();
+  /* o download não é chamado aqui: quem dispara é o fim do cálculo, que pode
+     acontecer agora ou depois da revisão de peso */
+  setTimeout(() => mkCalcular(), 220);
+}
+
+function massaFechar(){
+  massaDevolver();
+  fecharPop('popMassa', 'scrimMassa');
+}
+
 /* ── passo 1: a planilha ─────────────────────────────────────────────────── */
 async function mkCarregar(file){
   if(!file || !mkCanal) return;
@@ -538,6 +712,14 @@ async function mkCalcular(){
   mkRenderStats(); mkRenderChecks(); mkRenderDegraus(); mkRenderTabela();
   mostrar('mkStep3', true);
   $('mkStats').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
+
+  /* veio do assistente: ele parou no "calcular e gerar", então o arquivo sai
+     sozinho assim que o cálculo fecha — inclusive quando a revisão de peso
+     entrou no meio do caminho */
+  if(massaAguardando){
+    massaAguardando = false;
+    setTimeout(() => mkBaixarShopeeMassa(), 260);
+  }
 }
 
 function mkRecomecar(){
