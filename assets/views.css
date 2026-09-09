@@ -4333,36 +4333,36 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
    Uma coisa por vez, em vez da página comprida onde a caixa do modelo da
    Shopee passava batida. A trilha no topo mostra onde a pessoa está e deixa
    voltar ao que já preencheu — nunca pular para o que ainda não fez. */
-.massa-trilha{display:flex;gap:6px;padding:0 22px 16px;flex-wrap:wrap;
+.ass-trilha{display:flex;gap:6px;padding:0 22px 16px;flex-wrap:wrap;
   border-bottom:1px solid var(--line)}
-.massa-etapa{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:100px;
+.ass-etapa{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:100px;
   border:1px solid var(--line);background:var(--sup);cursor:pointer;
   font-family:inherit;font-size:12px;font-weight:700;color:var(--faint)}
-.massa-etapa span{font-weight:600}
-.massa-etapa:disabled{cursor:default;opacity:.55}
-.massa-etapa.agora{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;
+.ass-etapa span{font-weight:600}
+.ass-etapa:disabled{cursor:default;opacity:.55}
+.ass-etapa.agora{background:linear-gradient(180deg,#1ed67f,#0d9455);color:#fff;
   border-color:transparent;box-shadow:0 6px 14px -6px rgba(18,183,106,.7)}
-.massa-etapa.feito{color:var(--green-dk);
+.ass-etapa.feito{color:var(--green-dk);
   border-color:color-mix(in srgb,var(--green) 42%,transparent)}
-.massa-etapa.feito:hover{background:color-mix(in srgb,var(--green) 10%,var(--sup))}
+.ass-etapa.feito:hover{background:color-mix(in srgb,var(--green) 10%,var(--sup))}
 
-.massa-explica{margin:0 0 18px;font-size:14.5px;line-height:1.7;color:var(--sub)}
-.massa-explica b{color:var(--ink)}
+.ass-explica{margin:0 0 18px;font-size:14.5px;line-height:1.7;color:var(--sub)}
+.ass-explica b{color:var(--ink)}
 /* dentro do pop-up os blocos não precisam do respiro que tinham na página */
-#massaPalco > *{margin-top:0}
-#massaPalco .modelo-box,
-#massaPalco .fiscal-box{margin:0}
+#assPalco > *{margin-top:0}
+#assPalco .modelo-box,
+#assPalco .fiscal-box{margin:0}
 
-.massa-alerta{margin-top:16px;padding:12px 15px;border-radius:11px;font-size:13.5px;
+.ass-alerta{margin-top:16px;padding:12px 15px;border-radius:11px;font-size:13.5px;
   line-height:1.6;color:var(--amber-dk);font-weight:600;
   background:color-mix(in srgb,var(--amber) 12%,var(--sup));
   border:1px solid color-mix(in srgb,var(--amber) 36%,transparent)}
-.massa-f{display:flex;gap:12px}
-.massa-f .btn-green{flex:1}
+.ass-f{display:flex;gap:12px}
+.ass-f .btn-green{flex:1}
 
 @media(max-width:620px){
-  .massa-trilha{padding:0 16px 14px}
-  .massa-etapa span{display:none}
+  .ass-trilha{padding:0 16px 14px}
+  .ass-etapa span{display:none}
 }
 
 /* ═══ A ZONA REAGE AO ARQUIVO ══════════════════════════════
@@ -4417,3 +4417,10 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   .zona-giro{animation-duration:1.6s}
   .zona-ok-ic,.zona-ok-ic svg{animation:none;stroke-dashoffset:0}
 }
+
+/* atalho para o conjunto fiscal mais comum — cinco campos de uma vez, em vez
+   de cinco recusas do importador, uma por campo */
+.fiscal-padrao{margin-top:12px;padding:9px 16px;border-radius:100px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:700;color:var(--blue-dk);
+  background:var(--sup);border:1px solid color-mix(in srgb,var(--blue) 40%,transparent)}
+.fiscal-padrao:hover{background:color-mix(in srgb,var(--blue) 8%,var(--sup))}

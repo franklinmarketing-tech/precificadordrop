@@ -109,25 +109,11 @@ function mkDrop(ev){
 /* ══════════════════════════════════════════════════════════════════════════
    ASSISTENTE DO CADASTRO EM MASSA DA SHOPEE
 
-   A configuração era uma página comprida — catálogo, modelo, colunas, margem,
-   taxas do canal e nota fiscal, cada um num pedaço — e quem chegava rolava
-   atrás do que faltava. Foi assim que um lote inteiro saiu sem o modelo da
-   Shopee: a caixa estava lá, no meio do caminho, e passou batida.
-
-   Aqui é uma coisa por vez. O palco do pop-up recebe os MESMOS blocos da
-   página, movidos para dentro dele e devolvidos ao fechar: nada é duplicado,
-   então continua existindo um só campo de cada, com os mesmos ids e os mesmos
-   eventos. Quem prefere a página inteira continua entrando por "Precificar
-   Shopee".
-
-   O assistente cuida da configuração e passa a bola: calcular e gerar segue
-   pelo caminho de sempre, com a janela de progresso e a revisão de peso que
-   já existiam.
+   Só a receita: os passos, o que cada um mostra e quando pode seguir. Quem
+   conduz é o assistente genérico (assAbrir, em app.js), que move estes mesmos
+   blocos da página para dentro do pop-up e os devolve ao fechar.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* de onde cada bloco saiu, para voltar exatamente ao mesmo lugar */
-let massaOrigem = new Map();
-let massaPasso = 0;
 /* o assistente pediu para gerar e ainda não gerou: fica ligado até o download
    sair. Existe porque o caminho passa pela revisão de escala de peso, que
    interrompe o cálculo e o retoma depois — sem isto, quem tinha peso em
@@ -135,149 +121,83 @@ let massaPasso = 0;
    arquivo nenhum, sem nada na tela explicando. */
 let massaAguardando = false;
 
-const MASSA_PASSOS = [
-  {
-    nome: 'Catálogo',
-    titulo: 'O catálogo do fornecedor',
-    explica: 'A planilha com os produtos que você quer cadastrar — a do Wedrop, do seu fornecedor '
-           + 'ou a que já usa no Bling. O app procura sozinho as colunas de custo, peso e medidas.',
-    blocos: ['mkGrupoArquivo'],
-    pronto: () => !!(typeof mkAoa !== 'undefined' && mkAoa && mkAoa.length),
-    falta: 'Carregue a planilha do catálogo para continuar.',
-  },
-  {
-    nome: 'Modelo',
-    titulo: 'O modelo da Shopee',
-    explica: 'Baixe em Central do Vendedor → Produtos → Adicionar em Massa → Baixar modelo. '
-           + 'O app escreve os produtos DENTRO desse arquivo e devolve ele mesmo — é assim que o '
-           + 'importador aceita. Um arquivo montado por fora ela recusa, mesmo com as colunas certas.',
-    blocos: ['mkModeloBox'],
-    pronto: () => !!mkModeloBytes,
-    falta: 'Solte aqui o modelo baixado da Shopee. Sem ele o arquivo não sai.',
-  },
-  {
-    nome: 'Colunas',
-    titulo: 'De onde vem cada dado',
-    explica: 'O app já apontou o que reconheceu no seu catálogo. Confira, principalmente o custo '
-           + 'e o nome do produto — o resto é opcional e sai em branco quando não existe.',
-    blocos: ['mkColunas'],
-    pronto: () => {
-      const c = $('mkColCusto'), n = $('mkColNome');
-      const iC = c ? parseInt(c.value) : -1;
-      const iN = n ? parseInt(n.value) : -1;
-      return iC >= 0 && iN >= 0;
+ASSISTENTES.massa = {
+  titulo: 'Cadastrar em massa na Shopee',
+  preparar: () => mkAbrir('shopee', {massa: true}),
+  passos: [
+    {
+      nome: 'Catálogo',
+      titulo: 'O catálogo do fornecedor',
+      explica: 'A planilha com os produtos que você quer cadastrar — a do Wedrop, do seu fornecedor '
+             + 'ou a que já usa no Bling. O app procura sozinho as colunas de custo, peso e medidas.',
+      blocos: ['mkGrupoArquivo'],
+      pronto: () => !!(mkAoa && mkAoa.length),
+      falta: 'Carregue a planilha do catálogo para continuar.',
     },
-    falta: 'Escolha ao menos a coluna do custo e a do nome do produto.',
+    {
+      nome: 'Modelo',
+      titulo: 'O modelo da Shopee',
+      explica: 'Baixe em Central do Vendedor → Produtos → Adicionar em Massa → Baixar modelo. '
+             + 'O app escreve os produtos DENTRO desse arquivo e devolve ele mesmo — é assim que o '
+             + 'importador aceita. Um arquivo montado por fora ela recusa, mesmo com as colunas certas.',
+      blocos: ['mkModeloBox'],
+      pronto: () => !!mkModeloBytes,
+      falta: 'Solte aqui o modelo baixado da Shopee. Sem ele o arquivo não sai.',
+    },
+    {
+      nome: 'Colunas',
+      titulo: 'De onde vem cada dado',
+      explica: 'O app já apontou o que reconheceu no seu catálogo. Confira, principalmente o custo '
+             + 'e o nome do produto — o resto é opcional e sai em branco quando não existe.',
+      blocos: ['mkColunas'],
+      pronto: () => {
+        const c = $('mkColCusto'), n = $('mkColNome');
+        return (c ? parseInt(c.value) : -1) >= 0 && (n ? parseInt(n.value) : -1) >= 0;
+      },
+      falta: 'Escolha ao menos a coluna do custo e a do nome do produto.',
+    },
+    {
+      nome: 'Margem',
+      titulo: 'Quanto você quer ganhar',
+      explica: 'A margem líquida é o que sobra depois de tudo — comissão, taxa fixa, envio e o custo '
+             + 'do produto. É sobre ela que o preço da Shopee é calculado.',
+      blocos: ['mkGrupoMargem'],
+    },
+    {
+      nome: 'Taxas',
+      titulo: 'Como a Shopee cobra de você',
+      explica: 'Comissão por faixa de preço, tipo de conta e quem entrega. No modelo padrão o '
+             + 'vendedor não paga frete — o comprador paga, com cupom da Shopee.',
+      blocos: ['mkParams', 'mkRessalvas'],
+    },
+    {
+      nome: 'Nota fiscal',
+      titulo: 'Nota fiscal',
+      explica: 'Estes campos só aceitam os valores das listas da Shopee. Valem para todos os produtos '
+             + 'do lote. O tipo de operação é obrigatório para quem emite nota pela Shopee — sem ele '
+             + 'o lote volta recusado.',
+      blocos: ['mkFiscalBox'],
+      rotulo: 'Calcular e gerar os arquivos',
+    },
+  ],
+  concluir: () => {
+    massaAguardando = true;
+    /* o download não é chamado aqui: quem dispara é o fim do cálculo, que pode
+       acontecer agora ou depois da revisão de peso */
+    setTimeout(() => mkCalcular(), 220);
   },
-  {
-    nome: 'Margem',
-    titulo: 'Quanto você quer ganhar',
-    explica: 'A margem líquida é o que sobra depois de tudo — comissão, taxa fixa, envio e o custo '
-           + 'do produto. É sobre ela que o preço da Shopee é calculado.',
-    blocos: ['mkGrupoMargem'],
-    pronto: () => true,
-  },
-  {
-    nome: 'Taxas',
-    titulo: 'Como a Shopee cobra de você',
-    explica: 'Comissão por faixa de preço, tipo de conta e quem entrega. No modelo padrão o '
-           + 'vendedor não paga frete — o comprador paga, com cupom da Shopee.',
-    blocos: ['mkParams', 'mkRessalvas'],
-    pronto: () => true,
-  },
-  {
-    nome: 'Nota fiscal',
-    titulo: 'Nota fiscal',
-    explica: 'Estes campos só aceitam os valores das listas da Shopee, que saíram do modelo que '
-           + 'você carregou. Valem para todos os produtos do lote. Se não souber, deixe em branco '
-           + 'e pergunte à sua contabilidade — chutar um CFOP sai como nota fiscal errada.',
-    blocos: ['mkFiscalBox'],
-    pronto: () => true,
-    ultimo: true,
-  },
-];
+};
 
-function massaAbrir(){
-  /* entra pela mesma porta da tela normal: é o mesmo canal e o mesmo motor */
-  mkAbrir('shopee', {massa: true});
-  massaPasso = 0;
-  massaIr(0);
-  abrirPop('popMassa', 'scrimMassa');
-}
+/* o nome antigo continua valendo: é o que o quadro e o menu chamam */
+function massaAbrir(){ assAbrir('massa'); }
 
-/* Move um bloco para o palco guardando de onde ele veio. Mover, e não copiar,
-   é o que garante um só campo de cada id na página. */
-function massaMover(id){
-  const el = $(id);
-  if(!el) return;
-  if(!massaOrigem.has(id)) massaOrigem.set(id, {pai: el.parentNode, antes: el.nextSibling});
-  el.classList.remove('hide');
-  $('massaPalco').appendChild(el);
-}
-
-function massaDevolver(){
-  massaOrigem.forEach((o, id) => {
-    const el = $(id);
-    if(el && o.pai) o.pai.insertBefore(el, o.antes);
-  });
-  massaOrigem.clear();
-}
-
-function massaIr(n){
-  massaPasso = Math.max(0, Math.min(n, MASSA_PASSOS.length - 1));
-  const p = MASSA_PASSOS[massaPasso];
-
-  /* devolve o que estava no palco antes de trazer o próximo */
-  massaDevolver();
-  $('massaPalco').innerHTML = '';
-  p.blocos.forEach(massaMover);
-
-  $('massaTitulo').textContent = p.titulo;
-  $('massaSub').textContent = `PASSO ${massaPasso + 1} DE ${MASSA_PASSOS.length}`;
-  $('massaExplica').textContent = p.explica;
-  massaAviso('');
-
-  $('massaTrilha').innerHTML = MASSA_PASSOS.map((x, i) => {
-    const cls = i < massaPasso ? 'feito' : (i === massaPasso ? 'agora' : '');
-    return `<button class="massa-etapa ${cls}" onclick="massaIrDireto(${i})"
-      ${i > massaPasso ? 'disabled' : ''}>${i < massaPasso ? '✓' : i + 1}
-      <span>${esc(x.nome)}</span></button>`;
-  }).join('');
-
-  $('massaVoltar').classList.toggle('hide', massaPasso === 0);
-  $('massaSeguirRot').textContent = p.ultimo ? 'Calcular e gerar os arquivos' : 'Continuar';
-  $('popMassa').querySelector('.pop-b').scrollTop = 0;
-}
-
-/* voltar por dentro da trilha, só para passos já visitados */
-function massaIrDireto(n){ if(n <= massaPasso) massaIr(n); }
-function massaVoltar(){ massaIr(massaPasso - 1); }
-
-function massaAviso(txt){
-  const el = $('massaAlerta');
-  el.textContent = txt || '';
-  mostrar('massaAlerta', !!txt);
-}
-
-async function massaSeguir(){
-  const p = MASSA_PASSOS[massaPasso];
-  if(!p.pronto()){ massaAviso(p.falta || 'Falta preencher este passo.'); return; }
-
-  if(!p.ultimo){ massaIr(massaPasso + 1); return; }
-
-  /* Daqui em diante é o caminho de sempre: a janela de progresso e a revisão
-     de peso já existiam e funcionam melhor na página do que espremidas num
-     pop-up dentro de outro. */
-  massaAguardando = true;
-  massaFechar();
-  /* o download não é chamado aqui: quem dispara é o fim do cálculo, que pode
-     acontecer agora ou depois da revisão de peso */
-  setTimeout(() => mkCalcular(), 220);
-}
-
-function massaFechar(){
-  massaDevolver();
-  fecharPop('popMassa', 'scrimMassa');
+/* Precificar pelo assistente. O título acompanha o canal — é a mesma tela
+   servindo Shopee e Amazon, e o que muda entre elas são as perguntas. */
+function mktAssistente(canal){
+  const def = MK_CANAIS[canal];
+  mkAbrir(canal);
+  ASSISTENTES.mkt.titulo = 'Precificar ' + (def ? def.nome : '');
+  assAbrir('mkt');
 }
 
 /* ── passo 1: a planilha ─────────────────────────────────────────────────── */
@@ -440,6 +360,8 @@ function mkMontarFiscal(){
       <i>A Shopee só aceita os valores das listas dela, que saíram do arquivo que você
          carregou. Valem para todos os produtos deste lote — se não souber, pergunte à sua
          contabilidade e deixe em branco por enquanto.</i>
+      <button type="button" class="fiscal-padrao" onclick="mkFiscalPadrao()">
+        Preencher com o padrão do Simples (revenda)</button>
     </div>
     <div class="campos">
       ${sel('mkFiscalUnidade', L.unidade, 'Unidade de medida', 'UN serve para produto vendido por peça', un)}
@@ -456,6 +378,42 @@ function mkMontarFiscal(){
         <input type="number" id="mkFiscalTributos" min="0" max="100" step="0.01" placeholder="opcional"/></label>
     </div>`;
   mostrar('mkFiscalBox', true);
+}
+
+/* ── o padrão de quem revende no Simples ──────────────────────────────────
+   Os campos fiscais são cinco, cada um com uma lista fechada, e deixá-los em
+   branco custa uma ida e volta no importador por vez. Este botão preenche o
+   conjunto mais comum de quem compra pronto e revende, optante do Simples:
+   CSOSN 102, CST 01, CFOP 5102 dentro do estado e 6102 fora, origem nacional.
+
+   Não é conselho fiscal e o aviso diz isso. Catálogo com produto importado
+   muda a origem, e produto com substituição tributária muda o CSOSN e passa a
+   exigir CEST — quem confirma isso é a contabilidade de cada um. */
+function mkFiscalPadrao(){
+  const escolhe = (id, comeca) => {
+    const el = $(id);
+    if(!el) return false;
+    const op = [...el.options].find(o => o.value && o.value.replace(/\s/g, '').indexOf(comeca) === 0);
+    if(op){ el.value = op.value; return true; }
+    return false;
+  };
+  const achou = [
+    escolhe('mkFiscalOrigem', '0-'),
+    escolhe('mkFiscalCsosn', '102-'),
+    escolhe('mkFiscalCst', '01-'),
+    escolhe('mkFiscalTipoOp', '1-'),
+  ];
+  const cfopA = $('mkFiscalCfopMesmo'), cfopB = $('mkFiscalCfopOutro'), trib = $('mkFiscalTributos');
+  if(cfopA && !cfopA.value) cfopA.value = '5102';
+  if(cfopB && !cfopB.value) cfopB.value = '6102';
+  if(trib && !trib.value) trib.value = '0';
+
+  alert('Preenchido com o padrão de revenda no Simples Nacional:\n\n'
+    + '· Origem: 0 — nacional\n· CSOSN: 102\n· CST PIS/Cofins: 01\n'
+    + '· CFOP: 5102 dentro do estado, 6102 fora\n· Tipo de operação: revendedor\n\n'
+    + 'Confira com a sua contabilidade antes de subir o lote. Produto IMPORTADO tem outra origem, '
+    + 'e produto com substituição tributária muda o CSOSN e passa a exigir CEST.'
+    + (achou.every(Boolean) ? '' : '\n\nAlgum campo não tinha essa opção na lista deste modelo — confira na tela.'));
 }
 
 /* o que a tela escolheu, do jeito que a Shopee espera receber */
@@ -909,6 +867,17 @@ async function mkBaixarShopeeMassa(){
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
   if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida');
   if(p.semTipoOperacao) avisos.push('o TIPO DE OPERAÇÃO está vazio — quem emite nota fiscal pela Shopee tem o lote recusado sem ele');
+  /* a Shopee reclama de um campo por vez: dizer todos de uma vez aqui poupa
+     uma ida e volta no importador para cada um */
+  const fiscaisVazios = [
+    [!fiscal.cfopMesmo, 'CFOP dentro do estado'],
+    [!fiscal.cfopOutro, 'CFOP fora do estado'],
+    [!fiscal.csosn, 'CSOSN'],
+    [!fiscal.cstPisCofins, 'CST PIS/Cofins'],
+    [!fiscal.tributos, '% total de tributos'],
+  ].filter(x => x[0]).map(x => x[1]);
+  if(fiscaisVazios.length) avisos.push('campos fiscais em branco: ' + fiscaisVazios.join(', ')
+    + ' — se a sua loja emite nota pela Shopee, ela vai cobrar um por vez');
 
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')

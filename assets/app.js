@@ -868,6 +868,211 @@ function calcB(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   ASSISTENTE — as ferramentas em janelas, uma coisa por vez
+
+   As telas eram páginas compridas: carregar arquivo, escolher colunas,
+   parâmetros do canal, margem, e por fim o botão de calcular. Quem chegava
+   rolava atrás do que faltava, e o que estava no meio do caminho passava
+   batido — foi assim que um lote inteiro da Shopee saiu sem o modelo dela.
+
+   Aqui cada ferramenta descreve seus passos e o assistente conduz. O truque é
+   não duplicar nada: os blocos são MOVIDOS da página para o palco do pop-up e
+   devolvidos ao fechar. Continua existindo um só campo de cada id, com os
+   mesmos eventos, e a página inteira segue funcionando para quem preferir.
+
+   Cada passo é {nome, titulo, explica, blocos, pronto?, falta?, rotulo?}:
+   `pronto` decide se dá para seguir e `falta` é o que se diz quando não dá.
+   ══════════════════════════════════════════════════════════════════════════ */
+const ASSISTENTES = {};
+
+let assAtual = null;      // a configuração em uso
+let assPasso = 0;
+let assOrigem = new Map();  // de onde cada bloco saiu, para voltar ao lugar
+
+function assAbrir(id){
+  const cfg = ASSISTENTES[id];
+  if(!cfg) return;
+  assAtual = cfg;
+  if(cfg.preparar) cfg.preparar();
+  assPasso = 0;
+  assIr(0);
+  abrirPop('popAss', 'scrimAss');
+}
+
+/* Mover, e não copiar, é o que garante um só campo de cada id na página. */
+function assMover(bid){
+  const el = $(bid);
+  if(!el) return;
+  if(!assOrigem.has(bid)) assOrigem.set(bid, {pai: el.parentNode, antes: el.nextSibling});
+  el.classList.remove('hide');
+  $('assPalco').appendChild(el);
+}
+
+function assDevolver(){
+  assOrigem.forEach((o, bid) => {
+    const el = $(bid);
+    if(el && o.pai) o.pai.insertBefore(el, o.antes);
+  });
+  assOrigem.clear();
+}
+
+function assIr(n){
+  if(!assAtual) return;
+  const passos = assAtual.passos;
+  assPasso = Math.max(0, Math.min(n, passos.length - 1));
+  const p = passos[assPasso];
+
+  assDevolver();
+  $('assPalco').innerHTML = '';
+  (p.blocos || []).forEach(assMover);
+
+  $('assTitulo').textContent = p.titulo || assAtual.titulo;
+  $('assSub').textContent = `${(assAtual.titulo || '').toUpperCase()} · PASSO ${assPasso + 1} DE ${passos.length}`;
+  $('assExplica').textContent = p.explica || '';
+  mostrar('assExplica', !!p.explica);
+  assAviso('');
+
+  $('assTrilha').innerHTML = passos.map((x, i) => {
+    const cls = i < assPasso ? 'feito' : (i === assPasso ? 'agora' : '');
+    return `<button class="ass-etapa ${cls}" onclick="assIrDireto(${i})"
+      ${i > assPasso ? 'disabled' : ''}>${i < assPasso ? '✓' : i + 1}
+      <span>${esc(x.nome)}</span></button>`;
+  }).join('');
+
+  mostrar('assVoltar', assPasso > 0);
+  const ultimo = assPasso === passos.length - 1;
+  $('assSeguirRot').textContent = p.rotulo || (ultimo ? 'Concluir' : 'Continuar');
+  const corpo = $('popAss').querySelector('.pop-b');
+  if(corpo) corpo.scrollTop = 0;
+}
+
+/* voltar pela trilha, só para o que já foi visitado */
+function assIrDireto(n){ if(n <= assPasso) assIr(n); }
+function assVoltar(){ assIr(assPasso - 1); }
+
+function assAviso(txt){
+  $('assAlerta').textContent = txt || '';
+  mostrar('assAlerta', !!txt);
+}
+
+function assSeguir(){
+  if(!assAtual) return;
+  const p = assAtual.passos[assPasso];
+  if(p.pronto && !p.pronto()){ assAviso(p.falta || 'Falta preencher este passo.'); return; }
+
+  if(assPasso < assAtual.passos.length - 1){ assIr(assPasso + 1); return; }
+
+  /* Fecha antes de concluir: o que vem depois — janela de progresso, revisão
+     de escala de peso, tabela de conferência — é da página, e cabe melhor
+     nela do que espremido num pop-up dentro de outro. */
+  const cfg = assAtual;
+  assFechar();
+  if(cfg.concluir) cfg.concluir();
+}
+
+function assFechar(){
+  assDevolver();
+  fecharPop('popAss', 'scrimAss');
+}
+
+/* ── o assistente do Precificar Mercado Livre ──────────────────────────────
+   Os mesmos blocos da página, um passo por vez. A ordem segue o que muda o
+   preço: primeiro a planilha, depois de onde vem cada dado, depois o que o
+   Mercado Livre cobra desta conta, e por fim quanto se quer ganhar. */
+ASSISTENTES.ml = {
+  titulo: 'Precificar Mercado Livre',
+  preparar: () => ir('ml'),
+  passos: [
+    {
+      nome: 'Planilha',
+      titulo: 'A planilha de produtos',
+      explica: 'A planilha do Bling ou a do seu fornecedor. O app acha sozinho as colunas de '
+             + 'custo, peso e medidas — e avisa quando o peso parece estar em gramas.',
+      blocos: ['mlGrupoArquivo'],
+      pronto: () => !!(mlAoa && mlAoa.length),
+      falta: 'Carregue a planilha para continuar.',
+    },
+    {
+      nome: 'Colunas',
+      titulo: 'De onde vem cada dado',
+      explica: 'Confira o que o app reconheceu. O custo é o único obrigatório; peso e medidas '
+             + 'mudam o frete, e sem eles a conta usa estimativa — o lucro que aparece pode ser '
+             + 'maior que o real.',
+      blocos: ['mlGrupoColunas'],
+      pronto: () => parseInt(($('mlCusto') || {}).value) >= 0,
+      falta: 'Escolha a coluna do custo do produto.',
+    },
+    {
+      nome: 'Conta',
+      titulo: 'Sua conta no Mercado Livre',
+      explica: 'A reputação muda a tabela de frete, e o tipo de anúncio muda a comissão. As duas '
+             + 'já vêm preenchidas — confira, porque cada uma mexe no preço final.',
+      blocos: ['mlGrupoConta'],
+    },
+    {
+      nome: 'Categoria',
+      titulo: 'A tarifa de cada categoria',
+      explica: 'Ligado, o app pergunta ao Mercado Livre a categoria de cada produto pelo título e '
+             + 'usa a comissão real dela. Desligado, a mesma tarifa vale para a planilha inteira.',
+      blocos: ['mlCatBox'],
+    },
+    {
+      nome: 'Margem',
+      titulo: 'Quanto você quer ganhar',
+      explica: 'Margem líquida é o que sobra depois de tudo: comissão, custo fixo, frete, imposto, '
+             + 'devoluções e embalagem. Não é markup — 20% aqui é R$ 20 no bolso a cada R$ 100.',
+      blocos: ['mlGrupoMargem'],
+      rotulo: 'Calcular os preços',
+    },
+  ],
+  concluir: () => setTimeout(() => mlProcessar(), 220),
+};
+
+/* ── o assistente do Precificar Shopee / Amazon ────────────────────────────
+   O mesmo caminho do cadastro em massa, sem os passos que só o arquivo da
+   Shopee pede. Serve os dois canais: o que muda entre eles são as perguntas,
+   e cada canal já descreve as suas. */
+ASSISTENTES.mkt = {
+  titulo: 'Precificar',
+  passos: [
+    {
+      nome: 'Planilha',
+      titulo: 'A planilha de produtos',
+      explica: 'A planilha do seu fornecedor ou a que você já usa no Bling. Peso e medidas mudam '
+             + 'o frete — sem eles a conta usa estimativa.',
+      blocos: ['mkGrupoArquivo'],
+      pronto: () => !!(mkAoa && mkAoa.length),
+      falta: 'Carregue a planilha para continuar.',
+    },
+    {
+      nome: 'Colunas',
+      titulo: 'De onde vem cada dado',
+      explica: 'Confira o que o app reconheceu — principalmente a coluna do custo, que é a base '
+             + 'de toda a conta.',
+      blocos: ['mkColunas'],
+      pronto: () => parseInt(($('mkColCusto') || {}).value) >= 0,
+      falta: 'Escolha a coluna do custo do produto.',
+    },
+    {
+      nome: 'Taxas',
+      titulo: 'Como este canal cobra de você',
+      explica: 'Cada canal cobra de um jeito, e as perguntas mudam junto. O que estiver errado '
+             + 'aqui aparece como lucro que não existe.',
+      blocos: ['mkParams', 'mkRessalvas'],
+    },
+    {
+      nome: 'Margem',
+      titulo: 'Quanto você quer ganhar',
+      explica: 'É o que sobra depois de tudo — comissão, taxa fixa, envio e o custo do produto. '
+             + 'Produto barato não sustenta margem alta: a taxa fixa pesa mais quanto menor o preço.',
+      blocos: ['mkGrupoMargem'],
+      rotulo: 'Calcular os preços',
+    },
+  ],
+  concluir: () => setTimeout(() => mkCalcular(), 220),
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
    A ZONA DE UPLOAD MOSTRA O QUE ESTÁ ACONTECENDO
 
    Antes o arquivo entrava e a zona continuava dizendo "arraste a planilha
@@ -4078,7 +4283,7 @@ const WS_FERRAMENTAS = {
             'Diz quanto cada produto rende a mais se você baixar',
             'E a partir de que preço volta a compensar cobrar mais',
             'Roda sobre o preço que já está no ar, não sobre o custo']},
-    {nome:'Precificar Mercado Livre', img:'assets/img/ic-ml.webp', acao:"ir('ml')", destaque:true,
+    {nome:'Precificar Mercado Livre', img:'assets/img/ic-ml.webp', acao:"assAbrir('ml')", destaque:true,
      fluxo:['Planilha do Bling','Preços calculados'],
      resumo:'O preço que entrega a margem que você pediu.',
      itens:['Tarifa real da categoria, consultada no ML',
@@ -4132,7 +4337,7 @@ const WS_FERRAMENTAS = {
             'Diz quanto cada produto rende a mais se você baixar',
             'E a partir de que preço volta a compensar cobrar mais',
             'Roda sobre o preço que já está no ar, não sobre o custo']},
-    {nome:'Precificar Shopee', img:'assets/img/ic-shopee.webp', acao:"mkAbrir('shopee')", destaque:true,
+    {nome:'Precificar Shopee', img:'assets/img/ic-shopee.webp', acao:"mktAssistente('shopee')", destaque:true,
      fluxo:['Planilha de custos','Preços da Shopee'],
      resumo:'O preço que entrega a margem, com a tabela de 2026.',
      itens:['A comissão da Shopee é por faixa de preço, não por categoria',

@@ -139,19 +139,19 @@ const LISTAS_RESERVA = {
 const texto = v => v == null ? '' : String(v).trim();
 
 /* ── o hífen dos códigos fiscais ──────────────────────────────────────────
-   A lista da aba HiddenTax escreve "0 - Nacional, exceto…", com espaços ao
-   redor do hífen. O formulário da Shopee, na hora de publicar, mostra
-   "0-Nacional, exceto…" — sem espaço. O produto subia e o campo Origem
-   chegava VAZIO do outro lado: o importador não reconhecia o valor da lista
-   da própria planilha dela.
+   Quem manda é a lista de validação da planilha, e ela escreve com espaço:
+   "0 - Nacional, exceto…", "1 - Revendedor". O formulário da Shopee MOSTRA
+   sem espaço ("0-Nacional"), e foi seguindo o que aparecia na tela que o app
+   passou a escrever assim — aí o lote voltou com "Insira o Operation type"
+   tendo "1-Revendedor" escrito na coluna. O importador lê pela lista, não
+   pelo que a interface desenha.
 
-   Então o que vai para o arquivo é o formato do formulário. Na tela o app
-   continua mostrando o texto da planilha, que é o legível; só a escrita muda. */
+   Esta função normaliza para o formato da lista, venha o valor de onde vier:
+   "1-Revendedor" e "1  -  Revendedor" viram "1 - Revendedor". */
 function codigoDaShopee(v) {
   const t = texto(v);
-  /* "102 - Tributada…" → "102-Tributada…", e não mexe em "UN (UNIDADE)"
-     nem em texto que não comece com código */
-  return t.replace(/^([0-9A-Za-z]+)\s+-\s+/, '$1-');
+  /* não mexe em "UN (UNIDADE)", em CFOP solto nem em texto sem código */
+  return t.replace(/^([0-9A-Za-z]+)\s*-\s*(?=\S)/, '$1 - ');
 }
 
 function nomeValido(v) {

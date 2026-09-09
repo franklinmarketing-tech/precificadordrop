@@ -99,7 +99,7 @@
         </button>
         <div class="mn-drop">
           <div class="mn-grupo">PRECIFICAR</div>
-          <button class="mn-i" onclick="ir('ml')">
+          <button class="mn-i" onclick="assAbrir('ml')">
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
           </button>
@@ -142,7 +142,7 @@
           <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mn-drop">
-          <button class="mn-i" onclick="mkAbrir('shopee')">
+          <button class="mn-i" onclick="mktAssistente('shopee')">
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Precificar Shopee</b><i>Comissão e taxa fixa da Shopee</i></span>
           </button>
@@ -170,7 +170,7 @@
           <svg class="mn-v" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="mn-drop">
-          <button class="mn-i" onclick="mkAbrir('amazon')">
+          <button class="mn-i" onclick="mktAssistente('amazon')">
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Amazon</b><i>Referral fee e tarifa por categoria</i></span>
           </button>
@@ -380,7 +380,7 @@
          está produzindo. Antes as três coisas ficavam soltas na mesma linha. -->
     <div class="ctx">
       <div class="ctx-esq">
-      <div class="ctx-linha">
+      <div class="ctx-linha" id="mlGrupoConta">
       <div class="ctx-bloco">
         <div class="ctx-lbl">1 · Reputação da conta</div>
         <div class="ctx-opts" id="ctxReputacao"></div>
@@ -447,6 +447,7 @@
     <div id="ml-massa">
       <div class="panel" id="mlStep1">
         <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar planilha de produtos</div></div>
+        <div id="mlGrupoArquivo">
         <div class="zone" id="mlZone" onclick="document.getElementById('mlFi').click()"
              ondragover="event.preventDefault();this.classList.add('drag')"
              ondragleave="this.classList.remove('drag')" ondrop="mlDrop(event)">
@@ -454,6 +455,7 @@
           <div class="zone-ic verde"><svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
           <div class="zone-t">Arraste a planilha do Bling aqui</div>
           <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
+        </div>
         </div>
       </div>
 
@@ -466,6 +468,7 @@
             <button class="btn btn-ghost" style="margin-left:auto" onclick="mlTrocarArquivo()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6m-3-3h6"/></svg>Nova planilha</button>
           </div>
 
+          <div id="mlGrupoColunas">
           <div class="grid3" style="margin-bottom:18px">
             <div>
               <div class="lbl verde">Coluna do custo do produto *</div>
@@ -534,6 +537,7 @@
                 degrau de taxa — onde baixar o preço rende mais.</div>
             </div>
           </div>
+          </div>
 
           <!-- ═══ PUXAR DA CONTA DO MERCADO LIVRE ═══
                Planilha de dropshipping chega sem nome de produto e, muitas vezes,
@@ -579,6 +583,7 @@
             </div>
           </div>
 
+          <div id="mlGrupoMargem">
           <div class="lbl verde">Margem líquida desejada</div>
           <div class="margens" id="mlMargens"></div>
           <div class="margem-custom">
@@ -586,6 +591,7 @@
             <span>%</span>
           </div>
           <div class="nota">Margem líquida = lucro depois de comissão, custo fixo, frete, imposto, devoluções e embalagem · Selecionada: <b id="mlMargemAtual" style="color:var(--green-dk)">20%</b> · Reputação: <b id="mlRepAtual" style="color:var(--green-dk)">verde</b></div>
+          </div>
 
           <button class="btn btn-green btn-lg btn-block" id="mlBtnCalc" style="margin-top:20px" onclick="mlProcessar()" disabled>
             Calcular preços para todos os produtos
@@ -1877,28 +1883,28 @@
      faltava. Aqui é uma coisa por vez, com o palco recebendo os MESMOS blocos
      da página — movidos para cá e devolvidos no fim, para não existirem dois
      campos com o mesmo id. -->
-<div class="scrim" id="scrimMassa" onclick="massaFechar()"></div>
-<div class="pop pop-largo" id="popMassa" role="dialog" aria-modal="true" aria-labelledby="massaTitulo">
+<div class="scrim" id="scrimAss" onclick="assFechar()"></div>
+<div class="pop pop-largo" id="popAss" role="dialog" aria-modal="true" aria-labelledby="assTitulo">
   <div class="pop-h">
     <div>
-      <div class="pop-t" id="massaTitulo">Cadastrar em massa na Shopee</div>
-      <div class="pop-s" id="massaSub">PASSO 1 DE 6</div>
+      <div class="pop-t" id="assTitulo">—</div>
+      <div class="pop-s" id="assSub">—</div>
     </div>
-    <button class="x" onclick="massaFechar()" aria-label="Fechar">
+    <button class="x" onclick="assFechar()" aria-label="Fechar">
       <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>
-  <div class="massa-trilha" id="massaTrilha"></div>
+  <div class="ass-trilha" id="assTrilha"></div>
   <div class="pop-b">
-    <p class="massa-explica" id="massaExplica"></p>
-    <div id="massaPalco"></div>
-    <div class="massa-alerta hide" id="massaAlerta"></div>
+    <p class="ass-explica" id="assExplica"></p>
+    <div id="assPalco"></div>
+    <div class="ass-alerta hide" id="assAlerta"></div>
   </div>
-  <div class="pop-f massa-f">
-    <button class="btn btn-ghost" id="massaVoltar" onclick="massaVoltar()">
+  <div class="pop-f ass-f">
+    <button class="btn btn-ghost hide" id="assVoltar" onclick="assVoltar()">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
-    <button class="btn btn-green" id="massaSeguir" onclick="massaSeguir()">
-      <span id="massaSeguirRot">Continuar</span>
+    <button class="btn btn-green" id="assSeguir" onclick="assSeguir()">
+      <span id="assSeguirRot">Continuar</span>
       <svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
     </button>
   </div>

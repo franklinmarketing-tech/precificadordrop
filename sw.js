@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v17';  // v17: zona de upload viva e tipo de operacao garantido
+const VERSAO = 'v18';  // v18: assistente em todas as telas e separador fiscal certo
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

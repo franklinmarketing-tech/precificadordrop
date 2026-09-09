@@ -1096,18 +1096,24 @@ secao('19. Modelo de upload em massa da Shopee');
   /* O formulário da Shopee escreve "102-Tributada…", sem espaço no hífen; a
      lista da planilha dela escreve "102 - Tributada…", com espaço. Mandando
      o da planilha, o produto sobe e o campo chega VAZIO do outro lado. */
-  ok(p1[SM.COL.ps_invoice_csosn].indexOf('102-') === 0,
-     'o CSOSN sai no formato do formulário, sem espaço no hífen',
+  /* Quem manda é a lista de validação da planilha, que escreve com espaço.
+     O formulário MOSTRA "1-Revendedor" e, escrevendo assim, o lote voltou com
+     "Insira o Operation type" — com o campo preenchido. O importador lê pela
+     lista, não pelo que a interface desenha. */
+  ok(p1[SM.COL.ps_invoice_csosn].indexOf('102 - ') === 0,
+     'o CSOSN sai no formato da lista da planilha, com espaço no hífen',
      p1[SM.COL.ps_invoice_csosn].slice(0, 24));
-  ok(p1[SM.COL.ps_invoice_origin].indexOf('0-') === 0,
+  ok(p1[SM.COL.ps_invoice_origin].indexOf('0 - ') === 0,
      'e a origem também', p1[SM.COL.ps_invoice_origin].slice(0, 24));
+  ok(SM.codigoDaShopee('1-Revendedor') === '1 - Revendedor',
+     'valor sem espaço, venha de onde vier, é normalizado para o da lista');
   ok(SM.codigoDaShopee('UN (UNIDADE)') === 'UN (UNIDADE)',
      'valor sem código de hífen passa intacto');
   ok(SM.codigoDaShopee('5102') === '5102', 'CFOP não é mexido');
   ok(p1[SM.COL.ps_invoice_cfop_same] === '5102' && p1[SM.COL.ps_invoice_cfop_diff] === '6102',
      'os dois CFOP vão para as colunas certas');
   perto(p1[SM.COL.ps_federal_state_taxes_default], 12.5, 'o total de tributos vai como número', 0.001);
-  ok(p1[SM.COL.ps_operation_type_default] === '1-Revendedor', 'o tipo de operação escolhido vai junto, no mesmo formato');
+  ok(p1[SM.COL.ps_operation_type_default] === '1 - Revendedor', 'o tipo de operação vai no formato da lista');
 
   /* sem descrição no catálogo, ela é montada com o que existe */
   const d = p1[SM.COL.ps_product_description];
