@@ -114,8 +114,14 @@ const PESO_MAX = 100000;
 const ESTOQUE_MAX = 10000000;
 
 /* "Pelo menos um canal de envio precisa estar ativo por produto" — sem isto
-   a Shopee recusa, e é o erro que não aparece em lugar nenhum na planilha. */
-const CANAL_ATIVO = 'Ativar';
+   a Shopee recusa, e é o erro que não aparece em lugar nenhum na planilha.
+
+   O valor NÃO é "Ativar", por mais que a aba de exemplo do arquivo use essa
+   palavra: aquela aba é de outro país. A lista de verdade está na validação
+   da própria coluna e diz "Ligado,Desativado" — escrever "Ativar" volta como
+   ID[90006] channelToggleStr[Ativar] no relatório de erro dela. Por isso o
+   app lê a lista do arquivo carregado; este valor é só a reserva. */
+const CANAL_ATIVO = 'Ligado';
 
 const texto = v => v == null ? '' : String(v).trim();
 
@@ -222,8 +228,11 @@ function montarLinha(produto, ctx) {
   põe('ps_gtin_code', gtinValido(p.ean));
   põe('ps_item_cover_image', texto(p.imagem));
 
-  /* sem canal ativo a Shopee recusa o produto, e nada na planilha avisa */
-  põe('channel_id.90006', CANAL_ATIVO);
+  /* sem canal ativo a Shopee recusa o produto, e nada na planilha avisa.
+     Liga todos os canais que o arquivo trouxer, não só o dos Correios: o
+     modelo pode vir com mais de um, e basta um estar ligado. */
+  const ligado = (ctx && ctx.canalLigado) || CANAL_ATIVO;
+  Object.keys(c).forEach(k => { if (k.indexOf('channel_id.') === 0) linha[c[k]] = ligado; });
 
   põe('ps_invoice_ncm', ncmValido(p.ncm));
   põe('ps_invoice_cest', texto(p.cest));
@@ -237,6 +246,7 @@ function montarLinha(produto, ctx) {
   põe('ps_pis_cofins_cst_default', texto(fiscal.cstPisCofins));
   põe('ps_invoice_cfop_same', texto(fiscal.cfopMesmo));
   põe('ps_invoice_cfop_diff', texto(fiscal.cfopOutro));
+  põe('ps_operation_type_default', texto(fiscal.tipoOperacao));
   const trib = numero(fiscal.tributos);
   põe('ps_federal_state_taxes_default', trib === '' ? '' : trib);
 
@@ -318,6 +328,33 @@ function lerCabecalho(aoa) {
   };
 }
 
+/* ── as listas que ficam DENTRO da aba, não na HiddenTax ──────────────────
+   Canal de envio e Tipo de Operação têm a lista escrita na própria validação
+   da coluna ("Ligado,Desativado"), não numa aba de apoio. Ler de lá é o que
+   evita repetir o erro do "Ativar": a palavra certa é a que o arquivo diz,
+   não a que parece razoável. Recebe o XML cru da aba Modelo. */
+function lerValidacoesInline(xml, codigos) {
+  const col = mapaDeColunas(codigos);
+  const porIndice = {};
+  const re = /<dataValidation\b[^>]*sqref="([^"]+)"[^>]*>[\s\S]*?<formula1>\s*"([^"]*)"\s*<\/formula1>/g;
+  let m;
+  while ((m = re.exec(String(xml || '')))) {
+    const letras = /^([A-Z]+)/.exec(m[1].trim());
+    if (!letras) continue;
+    let i = 0;
+    for (const ch of letras[1]) i = i * 26 + (ch.charCodeAt(0) - 64);
+    i -= 1;
+    if (porIndice[i]) continue;
+    porIndice[i] = m[2].split(',').map(v => v.trim()).filter(Boolean);
+  }
+  const porCampo = {};
+  Object.keys(col).forEach(campo => {
+    const lista = porIndice[col[campo]];
+    if (lista && lista.length) porCampo[campo] = lista;
+  });
+  return porCampo;
+}
+
 /* As listas fechadas (Origem, CSOSN, CST PIS/Cofins, Unidade de Medida) vivem
    na aba HiddenTax do próprio modelo, uma por coluna, a partir da linha 7.
    Ler de lá é melhor do que guardar cópia: valem os valores daquele arquivo. */
@@ -337,6 +374,6 @@ return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
         LINHAS_AJUDA, LINHA_CABECALHO, COLUNAS_TEXTO, CANAL_ATIVO,
         NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
         nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes,
-        mapaDeColunas, lerCabecalho, lerListasFiscais,
+        mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline,
         montarLinha, montarAoa, conferir};
 });

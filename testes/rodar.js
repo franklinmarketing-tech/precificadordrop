@@ -1031,7 +1031,8 @@ secao('19. Modelo de upload em massa da Shopee');
   const FISCAL = {unidade:'UN (UNIDADE)', origem:'0 - Nacional, exceto as indicadas',
                   csosn:'102 - Tributada pelo Simples Nacional sem permissão de crédito',
                   cstPisCofins:'01 - Operação Tributável com Alíquota Básica',
-                  cfopMesmo:'5102', cfopOutro:'6102', tributos:'12.5'};
+                  cfopMesmo:'5102', cfopOutro:'6102', tributos:'12.5',
+                  tipoOperacao:'1 - Revendedor'};
 
   const produtos = [
     {sku:'PTE-009', nome:'Pote Hermético Retangular de Vidro 1040ml', preco:39.9,
@@ -1064,9 +1065,27 @@ secao('19. Modelo de upload em massa da Shopee');
 
   /* "Pelo menos um canal de envio precisa estar ativo por produto" — este é o
      campo que não aparece em planilha nenhuma e derruba o lote calado */
-  ok(p1[SM.COL['channel_id.90006']] === 'Ativar',
-     'o canal Correios sai ATIVO — sem canal a Shopee recusa o produto',
+  ok(p1[SM.COL['channel_id.90006']] === 'Ligado',
+     'o canal de envio sai LIGADO — sem canal a Shopee recusa o produto',
      'veio ' + JSON.stringify(p1[SM.COL['channel_id.90006']]));
+
+  /* A palavra é a do arquivo, não a que parece razoável: "Ativar" aparece na
+     aba de exemplo (de outro país) e volta recusado como
+     ID[90006] channelToggleStr[Ativar]. A lista de verdade está na validação
+     da coluna, dentro do XML da aba. */
+  const xmlVal = '<dataValidation type="list" sqref="AE7:AE1007">'
+    + '<formula1>"Ligado,Desativado"</formula1></dataValidation>'
+    + '<dataValidation sqref="AP7:AP1007">'
+    + '<formula1>"1 - Revendedor,2 - Fabricante"</formula1></dataValidation>';
+  const inline = SM.lerValidacoesInline(xmlVal, SM.LINHA_CODIGOS);
+  ok(inline['channel_id.90006'][0] === 'Ligado',
+     'a lista do canal é lida da validação da própria coluna');
+  ok(inline.ps_operation_type_default[0] === '1 - Revendedor',
+     'e a de tipo de operação também');
+  const comLista = SM.montarLinha(produtos[0],
+    {canalLigado: inline['channel_id.90006'][0], fiscal: FISCAL});
+  ok(comLista[SM.COL['channel_id.90006']] === 'Ligado',
+     'e é ela que vai para o arquivo, não um valor fixo no código');
 
   /* a coluna de retorno é dela, não nossa */
   ok(p1[SM.COL.et_title_reason] === '', '"Motivo da Falha" sai vazia, é coluna de retorno dela');
@@ -1078,6 +1097,7 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(p1[SM.COL.ps_invoice_cfop_same] === '5102' && p1[SM.COL.ps_invoice_cfop_diff] === '6102',
      'os dois CFOP vão para as colunas certas');
   perto(p1[SM.COL.ps_federal_state_taxes_default], 12.5, 'o total de tributos vai como número', 0.001);
+  ok(p1[SM.COL.ps_operation_type_default] === '1 - Revendedor', 'o tipo de operação escolhido vai junto');
 
   /* sem descrição no catálogo, ela é montada com o que existe */
   const d = p1[SM.COL.ps_product_description];

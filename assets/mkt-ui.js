@@ -62,7 +62,7 @@ let mkModoMassa = false;
 /* o arquivo que a Shopee entregou, cru, para ser devolvido preenchido */
 let mkModeloBytes = null, mkModeloNome = '';
 /* cabeçalho e listas fechadas lidos do arquivo da Shopee que foi carregado */
-let mkModeloCtx = null, mkModeloListas = null;
+let mkModeloCtx = null, mkModeloListas = null, mkModeloInline = null;
 
 function mkAbrir(id, opcoes){
   mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
@@ -88,7 +88,7 @@ function mkAbrir(id, opcoes){
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   mkModeloBytes = null; mkModeloNome = '';
-  mkModeloCtx = null; mkModeloListas = null;
+  mkModeloCtx = null; mkModeloListas = null; mkModeloInline = null;
   mostrar('mkFiscalBox', false);
   mostrar('mkModeloBox', mkModoMassa);
   mostrar('mkModeloInfo', false);
@@ -183,6 +183,22 @@ async function mkCarregarModelo(file){
           XU.normalizarRef(wbTudo.Sheets[abaTax]), {header:1, defval:'', raw:false, blankrows:true}))
       : null;
 
+    /* As listas de canal e de tipo de operação não estão em aba nenhuma: são
+       validações escritas na própria coluna. Só o XML cru tem isso, e é dele
+       que sai a palavra certa — foi supor "Ativar" no lugar de "Ligado" que
+       fez a Shopee recusar o lote inteiro. */
+    mkModeloInline = null;
+    try{
+      if(await garantirZip()){
+        const zip = await window.JSZip.loadAsync(bytes);
+        const caminho = await anAcharXmlDaAba(zip, aba);
+        if(caminho && zip.file(caminho)){
+          const xml = await zip.file(caminho).async('string');
+          mkModeloInline = window.ShopeeMassa.lerValidacoesInline(xml, mkModeloCtx.codigos);
+        }
+      }
+    }catch(e){ /* sem as listas embutidas, valem os valores de reserva */ }
+
     mkModeloBytes = bytes;
     mkModeloNome = file.name;
     mkMontarFiscal();
@@ -234,6 +250,8 @@ function mkMontarFiscal(){
       ${sel('mkFiscalOrigem', L.origem, 'Origem da mercadoria', 'nacional, importada, e as faixas de conteúdo importado')}
       ${sel('mkFiscalCsosn', L.csosn, 'CSOSN', 'código do Simples Nacional')}
       ${sel('mkFiscalCst', L.cstPisCofins, 'CST PIS/Cofins', 'a situação tributária do PIS e da Cofins')}
+      ${sel('mkFiscalTipoOp', (mkModeloInline && mkModeloInline.ps_operation_type_default) || [],
+             'Tipo de operação', 'quem revende compra pronto para vender', '1 - Revendedor')}
       <label class="campo"><span>CFOP dentro do estado <i>no Simples, costuma ser 5102</i></span>
         <input type="text" id="mkFiscalCfopMesmo" maxlength="4" placeholder="5102"/></label>
       <label class="campo"><span>CFOP fora do estado <i>no Simples, costuma ser 6102</i></span>
@@ -254,6 +272,7 @@ function mkLerFiscal(){
     cstPisCofins: v('mkFiscalCst'),
     cfopMesmo:    v('mkFiscalCfopMesmo'),
     cfopOutro:    v('mkFiscalCfopOutro'),
+    tipoOperacao: v('mkFiscalTipoOp'),
     tributos:     v('mkFiscalTributos'),
   };
 }
@@ -642,7 +661,13 @@ async function mkBaixarShopeeMassa(){
   if(!produtos.length){ alert('Nenhuma linha tem preço calculado para cadastrar.'); return; }
 
   const fiscal = mkLerFiscal();
-  const ctx = Object.assign({}, mkModeloCtx || {}, {fiscal});
+  /* a palavra que liga o canal sai da validação do arquivo — "Ligado" no
+     modelo de hoje, e o que ele disser amanhã */
+  const canais = mkModeloInline && mkModeloInline['channel_id.90006'];
+  const ctx = Object.assign({}, mkModeloCtx || {}, {
+    fiscal,
+    canalLigado: (canais && canais[0]) || undefined,
+  });
 
   const p = SM.conferir(produtos, ctx);
   const avisos = [];
@@ -660,7 +685,7 @@ async function mkBaixarShopeeMassa(){
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
-    + '\n\nO canal Correios vai ATIVO em todas as linhas — sem canal de envio a Shopee recusa o produto. A categoria sai em branco e ela mesma sugere.'
+    + '\n\nO canal de envio vai LIGADO em todas as linhas — sem canal a Shopee recusa o produto, e a palavra certa sai da própria planilha dela. A categoria sai em branco e ela mesma sugere.'
     + '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.'
     + '\n\nGerar o arquivo?';
   if(!confirm(texto)) return;

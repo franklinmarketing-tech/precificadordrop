@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v11';  // v11: cadastro em massa segue a especificacao da Shopee
+const VERSAO = 'v12';  // v12: canal de envio Ligado, lido da validacao da planilha
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
