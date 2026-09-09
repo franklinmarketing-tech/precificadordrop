@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v6';   // v6: puxar nome e peso da conta, e peso em lote
+const VERSAO = 'v7';   // v7: cadastro em massa da Shopee, medidas e margens
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
@@ -39,6 +39,7 @@ const SHELL = [
   '/assets/mkt-engine.js',
   '/assets/mkt-amazon.js',
   '/assets/mkt-shopee.js',
+  '/assets/shopee-massa.js',
   '/assets/anuncios-engine.js',
   '/assets/app.js',
   '/assets/anuncios-ui.js',
