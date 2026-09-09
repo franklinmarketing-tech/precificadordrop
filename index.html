@@ -787,7 +787,7 @@
         <div class="arq" id="arqML">
           <div class="arq-n"><span class="arq-num">1</span> Planilha do Mercado Livre</div>
           <div class="arq-d">A que você baixa em <b>Anúncios → Editar em massa → Baixar planilha</b></div>
-          <div class="zone zone-sm" onclick="document.getElementById('anFi2').click()"
+          <div class="zone zone-sm" id="anZoneML" onclick="document.getElementById('anFi2').click()"
                ondragover="event.preventDefault();this.classList.add('drag')"
                ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'ml')">
             <input id="anFi2" type="file" accept=".xlsx,.xls" class="hide" onchange="anCarregarML(event.target.files[0]); this.value=''"/>
@@ -801,7 +801,7 @@
         <div class="arq" id="arqPrecos">
           <div class="arq-n"><span class="arq-num">2</span> Planilha de preços</div>
           <div class="arq-d">A que você gerou aqui no <b>Hub Drop</b>, com o preço certo de cada SKU</div>
-          <div class="zone zone-sm" onclick="document.getElementById('anFi').click()"
+          <div class="zone zone-sm" id="anZonePrecos" onclick="document.getElementById('anFi').click()"
                ondragover="event.preventDefault();this.classList.add('drag')"
                ondragleave="this.classList.remove('drag')" ondrop="anDrop(event,'precos')">
             <input id="anFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="anCarregarPrecos(event.target.files[0]); this.value=''"/>
@@ -919,7 +919,7 @@
       <!-- o assistente do cadastro em massa move este grupo inteiro para
            dentro do pop-up, e devolve ao fechar -->
       <div id="mkGrupoArquivo">
-      <div class="zone" onclick="document.getElementById('mkFi').click()"
+      <div class="zone" id="mkZone" onclick="document.getElementById('mkFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="mkDrop(event)">
         <input id="mkFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="mkCarregar(event.target.files[0]); this.value=''"/>
@@ -953,7 +953,7 @@
              e solte o arquivo aqui. O app escreve os produtos dentro dele e devolve o
              mesmo arquivo — é assim que o importador aceita.</i>
         </div>
-        <div class="zone zone-sm" onclick="document.getElementById('mkFiModelo').click()"
+        <div class="zone zone-sm" id="mkZoneModelo" onclick="document.getElementById('mkFiModelo').click()"
              ondragover="event.preventDefault();this.classList.add('drag')"
              ondragleave="this.classList.remove('drag')" ondrop="mkDropModelo(event)">
           <input id="mkFiModelo" type="file" accept=".xlsx,.xls" class="hide"
@@ -1067,7 +1067,7 @@
 
     <div class="panel" id="dgStep1">
       <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar a planilha</div></div>
-      <div class="zone" onclick="document.getElementById('dgFi').click()"
+      <div class="zone" id="dgZone" onclick="document.getElementById('dgFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="dgDrop(event)">
         <input id="dgFi" type="file" accept=".xlsx,.xls,.csv" class="hide" onchange="dgCarregar(event.target.files[0]); this.value=''"/>

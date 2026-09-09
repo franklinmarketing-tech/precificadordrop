@@ -867,6 +867,52 @@ function calcB(){
     ML.analisar(preco, isNaN(custo) ? 0 : custo, kg, p, dims), null, p);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   A ZONA DE UPLOAD MOSTRA O QUE ESTÁ ACONTECENDO
+
+   Antes o arquivo entrava e a zona continuava dizendo "arraste a planilha
+   aqui": a única prova de que algo aconteceu era uma linha de texto embaixo,
+   fácil de não ver. E enquanto uma planilha de cinco mil linhas era lida, a
+   tela ficava parada, sem dizer que estava trabalhando.
+
+   Agora a própria zona é o retorno: gira enquanto lê, fica verde com o nome
+   do arquivo quando termina, e oferece trocar. Serve todas as telas — o
+   estado guarda o conteúdo original para poder voltar. */
+const zonaOriginal = new Map();
+
+function zonaLendo(id, nomeArquivo){
+  const z = $(id);
+  if(!z) return;
+  if(!zonaOriginal.has(id)) zonaOriginal.set(id, z.innerHTML);
+  z.classList.remove('ok');
+  z.classList.add('lendo');
+  z.innerHTML = `<div class="zona-giro"></div>
+    <div class="zona-nome">${esc(nomeArquivo || 'Lendo a planilha…')}</div>
+    <div class="zona-dado">abrindo o arquivo…</div>`;
+}
+
+/* `dado` é o resumo do que foi encontrado; `aoTrocar` é o que o botão chama */
+function zonaPronta(id, nomeArquivo, dado, aoTrocar){
+  const z = $(id);
+  if(!z) return;
+  if(!zonaOriginal.has(id)) zonaOriginal.set(id, z.innerHTML);
+  z.classList.remove('lendo');
+  z.classList.add('ok');
+  z.innerHTML = `<div class="zona-ok-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <div class="zona-nome">${esc(nomeArquivo)}</div>
+    <div class="zona-dado">${dado || ''}</div>
+    ${aoTrocar ? `<button type="button" class="zona-trocar" onclick="event.stopPropagation();${aoTrocar}">
+      Trocar arquivo</button>` : ''}`;
+}
+
+function zonaLimpa(id){
+  const z = $(id);
+  if(!z) return;
+  const original = zonaOriginal.get(id);
+  z.classList.remove('lendo', 'ok');
+  if(original != null) z.innerHTML = original;
+}
+
 /* ── planilha em massa ── */
 const MARGENS = [10,15,20,25,30,35,40,50,60];
 $('mlMargens').innerHTML = MARGENS.map((m,i) =>

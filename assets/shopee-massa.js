@@ -123,6 +123,19 @@ const ESTOQUE_MAX = 10000000;
    app lê a lista do arquivo carregado; este valor é só a reserva. */
 const CANAL_ATIVO = 'Ligado';
 
+/* Reserva para quando a leitura do XML da aba não acontece — ela depende de
+   uma biblioteca que vem de CDN, e num acesso em que ela não carrega o campo
+   ficaria sem opção nenhuma. Foi assim que um lote voltou com "Insira o
+   Operation type porque a loja emite Nota Fiscal através da Shopee": o campo
+   é obrigatório para quem emite nota pela Shopee, e chegou vazio.
+
+   São os valores do modelo de 09/09/2026; quando o XML é lido, quem manda é
+   a lista de lá. */
+const LISTAS_RESERVA = {
+  'channel_id.90006': ['Ligado', 'Desativado'],
+  ps_operation_type_default: ['1 - Revendedor', '2 - Fabricante'],
+};
+
 const texto = v => v == null ? '' : String(v).trim();
 
 /* ── o hífen dos códigos fiscais ──────────────────────────────────────────
@@ -299,7 +312,10 @@ function conferir(produtos, ctx) {
   const fiscal = (ctx && ctx.fiscal) || {};
   const p = {semNome: [], semDescricao: [], semPreco: [], semPeso: [],
              semEstoque: [], semImagem: [], eanIgnorado: [], dimensaoParcial: [],
-             skuRepetido: [], semUnidade: !texto(fiscal.unidade)};
+             skuRepetido: [], semUnidade: !texto(fiscal.unidade),
+             /* obrigatório para quem emite nota fiscal pela Shopee — o lote
+                volta com "Insira o Operation type" e nada é criado */
+             semTipoOperacao: !texto(fiscal.tipoOperacao)};
   const vistos = new Map();
 
   (produtos || []).forEach((prod, i) => {
@@ -393,7 +409,19 @@ function lerValidacoesInline(xml, codigos) {
     const lista = porIndice[col[campo]];
     if (lista && lista.length) porCampo[campo] = lista;
   });
+  /* o que o arquivo não entregou vem da reserva: campo obrigatório sem opção
+     nenhuma é pior do que uma lista que pode estar um pouco desatualizada */
+  Object.keys(LISTAS_RESERVA).forEach(campo => {
+    if (!porCampo[campo]) porCampo[campo] = LISTAS_RESERVA[campo].slice();
+  });
   return porCampo;
+}
+
+/* As mesmas listas, para quando nem o XML pôde ser aberto. */
+function listasDeReserva() {
+  const out = {};
+  Object.keys(LISTAS_RESERVA).forEach(k => { out[k] = LISTAS_RESERVA[k].slice(); });
+  return out;
 }
 
 /* As listas fechadas (Origem, CSOSN, CST PIS/Cofins, Unidade de Medida) vivem
@@ -416,5 +444,6 @@ return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
         NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
         nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes, codigoDaShopee,
         mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline, lerLimiteLinhas,
+        listasDeReserva, LISTAS_RESERVA,
         montarLinha, montarAoa, conferir};
 });

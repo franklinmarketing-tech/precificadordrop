@@ -4364,3 +4364,56 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   .massa-trilha{padding:0 16px 14px}
   .massa-etapa span{display:none}
 }
+
+/* ═══ A ZONA REAGE AO ARQUIVO ══════════════════════════════
+   Antes o arquivo entrava e a zona continuava dizendo "arraste a planilha
+   aqui", como se nada tivesse acontecido — a única prova era uma linha
+   discreta embaixo. Agora ela mesma vira o retorno: gira enquanto lê e fica
+   verde quando termina, com o nome do arquivo e o que foi encontrado. */
+.zone.lendo{border-style:solid;border-color:var(--blue);cursor:default;
+  background:color-mix(in srgb,var(--blue) 7%,transparent)}
+.zone.lendo:hover{transform:none}
+.zone.ok{border-style:solid;cursor:default;
+  border-color:color-mix(in srgb,var(--green) 55%,transparent);
+  background:color-mix(in srgb,var(--green) 8%,transparent)}
+.zone.ok:hover{transform:none}
+
+/* o anel girando enquanto o arquivo é lido — planilha de 5 mil linhas leva
+   alguns segundos, e sem isto a tela parece travada */
+.zona-giro{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;
+  border:3px solid color-mix(in srgb,var(--blue) 22%,transparent);
+  border-top-color:var(--blue);animation:zonaGira .8s linear infinite}
+@keyframes zonaGira{to{transform:rotate(360deg)}}
+
+/* o ✓ que se desenha ao terminar */
+.zona-ok-ic{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(160deg,#28dd8a,#079254);
+  box-shadow:0 10px 22px -8px rgba(18,183,106,.85);
+  animation:zonaEntra .32s cubic-bezier(.2,1.3,.4,1) both}
+.zona-ok-ic svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:26;stroke-dashoffset:26;
+  animation:zonaRisca .34s .16s ease-out forwards}
+@keyframes zonaEntra{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes zonaRisca{to{stroke-dashoffset:0}}
+
+.zona-nome{font-family:var(--display);font-weight:700;font-size:17px;color:var(--ink);
+  margin-bottom:5px;word-break:break-word}
+.zona-dado{font-size:14px;color:var(--sub)}
+.zona-dado b{color:var(--green-dk);font-weight:700}
+.zona-trocar{margin-top:14px;padding:8px 16px;border-radius:100px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:700;color:var(--sub);
+  background:var(--sup);border:1px solid var(--line)}
+.zona-trocar:hover{color:var(--ink);border-color:var(--blue)}
+
+/* na versão pequena (as duas caixas lado a lado) tudo encolhe junto */
+.zone-sm .zona-giro,.zone-sm .zona-ok-ic{width:44px;height:44px}
+.zone-sm .zona-ok-ic svg{width:24px;height:24px}
+.zone-sm .zona-nome{font-size:14px}
+.zone-sm .zona-dado{font-size:12.5px}
+
+@media(prefers-reduced-motion:reduce){
+  .zona-giro{animation-duration:1.6s}
+  .zona-ok-ic,.zona-ok-ic svg{animation:none;stroke-dashoffset:0}
+}

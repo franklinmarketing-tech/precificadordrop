@@ -90,6 +90,7 @@ function mkAbrir(id, opcoes){
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   mkModeloBytes = null; mkModeloNome = '';
+  zonaLimpa('mkZone'); zonaLimpa('mkZoneModelo');
   mkModeloCtx = null; mkModeloListas = null; mkModeloInline = null; mkModeloLimite = 0;
   mostrar('mkFiscalBox', false);
   mostrar('mkModeloBox', mkModoMassa);
@@ -282,6 +283,7 @@ function massaFechar(){
 /* ── passo 1: a planilha ─────────────────────────────────────────────────── */
 async function mkCarregar(file){
   if(!file || !mkCanal) return;
+  zonaLendo('mkZone', file.name);
   try{
     await garantirXLSX();
     mkBytes = new Uint8Array(await file.arrayBuffer());
@@ -311,11 +313,16 @@ async function mkCarregar(file){
       <div><div class="file-n">${esc(file.name)}</div>
         <div class="file-i">aba <b>${esc(nomeAba)}</b> · <b>${n.toLocaleString('pt-BR')}</b> produtos · ${mkCab.length} colunas</div></div>
     </div>`;
-    mostrar('mkInfo', true);
+    mostrar('mkInfo', false);
+    /* a zona passa a ser o retorno: nome do arquivo, aba e o que foi achado */
+    zonaPronta('mkZone', file.name,
+      `aba <b>${esc(nomeAba)}</b> · <b>${n.toLocaleString('pt-BR')}</b> produtos · ${mkCab.length} colunas`,
+      "document.getElementById('mkFi').click()");
     mkMontarForm();
     mostrar('mkStep2', true);
     $('mkStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
   }catch(e){
+    zonaLimpa('mkZone');
     alert('Não consegui ler a planilha.\n\n' + (e && e.message ? e.message : e));
   }
 }
@@ -332,6 +339,7 @@ function mkDropModelo(ev){
 
 async function mkCarregarModelo(file){
   if(!file) return;
+  zonaLendo('mkZoneModelo', file.name);
   try{
     await garantirXLSX();
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -342,6 +350,7 @@ async function mkCarregarModelo(file){
         + 'Baixe o modelo em Central do Vendedor → Produtos → Cadastro em massa → Baixar modelo. '
         + 'Abas encontradas: ' + esc((wb.SheetNames || []).join(', ')) + '.</div>';
       mostrar('mkModeloInfo', true);
+      zonaLimpa('mkZoneModelo');
       mkModeloBytes = null; mkModeloNome = '';
       return;
     }
@@ -363,7 +372,9 @@ async function mkCarregarModelo(file){
        validações escritas na própria coluna. Só o XML cru tem isso, e é dele
        que sai a palavra certa — foi supor "Ativar" no lugar de "Ligado" que
        fez a Shopee recusar o lote inteiro. */
-    mkModeloInline = null;
+    /* começa pela reserva: se o XML abrir, ela é substituída pela lista de
+       verdade; se não abrir, o campo obrigatório continua tendo opção */
+    mkModeloInline = window.ShopeeMassa.listasDeReserva();
     try{
       if(await garantirZip()){
         const zip = await window.JSZip.loadAsync(bytes);
@@ -375,9 +386,15 @@ async function mkCarregarModelo(file){
         }
       }
     }catch(e){ /* sem as listas embutidas, valem os valores de reserva */ }
+    if(!mkModeloLimite) mkModeloLimite = 1000;   /* o teto conhecido do modelo */
 
     mkModeloBytes = bytes;
     mkModeloNome = file.name;
+    mostrar('mkModeloInfo', false);
+    zonaPronta('mkZoneModelo', file.name,
+      `<b>${(wb.SheetNames||[]).length}</b> abas preservadas${mkModeloLimite
+        ? ` · até <b>${mkModeloLimite.toLocaleString('pt-BR')}</b> produtos por arquivo` : ''}`,
+      "document.getElementById('mkFiModelo').click()");
     mkMontarFiscal();
     $('mkModeloInfo').innerHTML = `<div class="file-row">
       <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
@@ -390,6 +407,7 @@ async function mkCarregarModelo(file){
     $('mkModeloInfo').innerHTML = '<div class="modelo-erro"><b>Não consegui ler este arquivo.</b> '
       + esc(e && e.message ? e.message : String(e)) + '</div>';
     mostrar('mkModeloInfo', true);
+    zonaLimpa('mkZoneModelo');
     mkModeloBytes = null;
   }
 }
@@ -889,7 +907,8 @@ async function mkBaixarShopeeMassa(){
   if(p.dimensaoParcial.length) avisos.push(`${p.dimensaoParcial.length} com medida pela metade — vão sem medida nenhuma, porque a Shopee exige as três juntas`);
   if(p.semEstoque.length) avisos.push('estoque zerado em todas as linhas: o anúncio sobe sem estoque');
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
-  if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida ali no passo 2');
+  if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida');
+  if(p.semTipoOperacao) avisos.push('o TIPO DE OPERAÇÃO está vazio — quem emite nota fiscal pela Shopee tem o lote recusado sem ele');
 
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')

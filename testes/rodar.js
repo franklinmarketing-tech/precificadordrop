@@ -1184,6 +1184,16 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(conf.semImagem.length === 1, 'e a linha sem imagem de capa, que não publica');
   ok(conf.skuRepetido.length === 1, 'e o SKU repetido dentro do mesmo arquivo');
   ok(conf.semUnidade === true, 'e avisa quando a unidade de medida não foi escolhida');
+  ok(conf.semTipoOperacao === true,
+     'e o tipo de operação vazio, que derruba quem emite nota fiscal pela Shopee');
+
+  /* a lista do tipo de operação não pode depender de abrir o XML da aba: num
+     acesso em que a biblioteca do zip não carrega, o campo ficava sem opção
+     nenhuma e o lote voltava com "Insira o Operation type" */
+  const semXml = SM.lerValidacoesInline('', SM.LINHA_CODIGOS);
+  ok(semXml.ps_operation_type_default[0] === '1 - Revendedor',
+     'sem o XML da aba, o tipo de operação cai na lista de reserva');
+  ok(semXml['channel_id.90006'][0] === 'Ligado', 'e o canal de envio também');
 }
 
 /* ── 20. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────
