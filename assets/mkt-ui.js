@@ -610,6 +610,12 @@ function mkAtualizarBotaoMassa(){
   const b = $('mkBtnMassa'), v = $('mkBtnDl');
   if(!b) return;
   b.classList.toggle('hide', !mkCanal || mkCanal.id !== 'shopee');
+  /* enquanto o modelo não entra, o botão pede o modelo — não promete um
+     arquivo que a Shopee vai recusar */
+  const rotulo = mkModeloBytes ? 'Baixar no modelo de cadastro em massa'
+                               : 'Carregar o modelo da Shopee para gerar';
+  const alvo = b.querySelector('span.btn-rot');
+  if(alvo) alvo.textContent = rotulo;
   /* quem veio pelo cadastro em massa procura o arquivo da Shopee: ele fica em
      destaque, e a planilha de preços vira o botão discreto — o contrário do
      que acontece quando a pessoa entrou para precificar */
@@ -636,6 +642,24 @@ async function mkBaixarShopeeMassa(){
 
   if(iNome < 0){
     alert('Escolha a coluna do nome do produto no passo 2.\n\nA Shopee recusa o cadastro sem nome — é o único campo que o app não tem como inventar.');
+    return;
+  }
+
+  /* Sem o modelo dela não dá para gerar nada que preste: o importador confere
+     o arquivo que ela mesma entrega — as sete abas, as listas de validação e
+     a assinatura da segunda linha. Um arquivo montado aqui volta como
+     "arquivo inválido", e gerar assim mesmo só faz perder tempo do usuário.
+     Então em vez de baixar, o app abre o seletor do modelo. */
+  if(!mkModeloBytes){
+    alert('Falta o modelo da Shopee.\n\nBaixe em Central do Vendedor → Produtos → Adicionar em Massa → Baixar modelo, '
+      + 'e solte o arquivo na caixa amarela do passo 2.\n\nO app escreve os produtos DENTRO do arquivo dela e devolve o '
+      + 'mesmo arquivo — é assim que o importador aceita. Um arquivo montado por fora ela recusa, mesmo com as colunas certas.\n\n'
+      + 'Vou abrir o seletor agora.');
+    mostrar('mkModeloBox', true);
+    const box = $('mkModeloBox');
+    if(box) box.scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'center'});
+    const campo = $('mkFiModelo');
+    if(campo) setTimeout(() => campo.click(), reduzido ? 0 : 400);
     return;
   }
 
@@ -685,9 +709,7 @@ async function mkBaixarShopeeMassa(){
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
   if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida ali no passo 2');
 
-  const semModelo = !mkModeloBytes;
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
-    + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
     + '\n\nO canal de envio vai LIGADO em todas as linhas — sem canal a Shopee recusa o produto, e a palavra certa sai da própria planilha dela. A categoria sai em branco e ela mesma sugere.'
     + (mkModeloLimite && produtos.length > mkModeloLimite
@@ -721,41 +743,27 @@ async function mkBaixarShopeeMassa(){
       });
     };
 
-    const base = mkModeloBytes
-      ? mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido'
-      : 'shopee_cadastro_em_massa_' + hoje;
+    const base = mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido';
 
     /* Monta o arquivo com um pedaço das linhas e devolve os bytes. */
+    /* Escreve DENTRO do arquivo que a Shopee entregou. Ele tem sete abas,
+       listas de validação e uma assinatura na segunda linha — um arquivo
+       parecido, montado do zero, o importador dela recusa. */
     const gerar = fatia => {
-      if(mkModeloBytes){
-        /* O caminho bom: escrever DENTRO do arquivo que a Shopee entregou. Ele
-           tem sete abas, listas suspensas e uma assinatura na segunda linha —
-           um arquivo parecido, montado do zero, o importador dela recusa. */
-        const wb = XLSX.read(mkModeloBytes, {type:'array', cellStyles:true});
-        const aba = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'modelo');
-        if(!aba) throw new Error('O modelo carregado não tem a aba "Modelo".');
-        const ws = wb.Sheets[aba];
-        XU.normalizarRef(ws);
-        /* LINHA_CABECALHO = 6, ou seja a linha 7 da planilha: a primeira depois
-           das seis de cabeçalho, onde a Shopee espera o primeiro produto */
-        XLSX.utils.sheet_add_aoa(ws, fatia, {origin: SM.LINHA_CABECALHO});
-        forcarTexto(ws, SM.LINHA_CABECALHO, fatia.length);
-        /* bookSST guarda os textos numa tabela única: sai t="s" (shared
-           string), que é o texto padrão do formato, em vez do t="str" de
-           fórmula que o SheetJS usa sem ela. De quebra, nome e descrição
-           repetidos ocupam espaço uma vez só. */
-        return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true, bookSST:true});
-      }
-      /* Sem o modelo, o arquivo sai montado aqui. Serve para conferir os
-         números, mas a Shopee recusa no importador — o aviso antes de baixar
-         diz isso. */
-      const prods = fatia.map(l => l);   // já são linhas prontas
-      const aoa = SM.montarAoa([], {}).slice(0, SM.LINHA_CABECALHO).concat(prods);
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      forcarTexto(ws, SM.LINHA_CABECALHO, prods.length);
-      const saida = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
-      return XLSX.write(saida, {bookType:'xlsx', type:'array', compression:true, bookSST:true});
+      const wb = XLSX.read(mkModeloBytes, {type:'array', cellStyles:true});
+      const aba = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'modelo');
+      if(!aba) throw new Error('O modelo carregado não tem a aba "Modelo".');
+      const ws = wb.Sheets[aba];
+      XU.normalizarRef(ws);
+      /* LINHA_CABECALHO = 6, ou seja a linha 7 da planilha: a primeira depois
+         das seis de cabeçalho, onde a Shopee espera o primeiro produto */
+      XLSX.utils.sheet_add_aoa(ws, fatia, {origin: SM.LINHA_CABECALHO});
+      forcarTexto(ws, SM.LINHA_CABECALHO, fatia.length);
+      /* bookSST guarda os textos numa tabela única: sai t="s" (shared string),
+         que é o texto padrão do formato, em vez do t="str" de fórmula que o
+         SheetJS usa sem ela. De quebra, nome e descrição repetidos ocupam
+         espaço uma vez só. */
+      return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true, bookSST:true});
     };
 
     /* A Shopee só aceita arquivo de até 3 MB. Com catálogo grande não tem
@@ -772,7 +780,7 @@ async function mkBaixarShopeeMassa(){
     const inteiro = gerar(linhas.slice(0, LIMITE_LINHAS || linhas.length));
     if(inteiro.byteLength / 1024 > LIMITE_KB
        || (LIMITE_LINHAS && linhas.length > LIMITE_LINHAS)){
-      const cabecalhoKB = (mkModeloBytes ? mkModeloBytes.byteLength : 60 * 1024) / 1024;
+      const cabecalhoKB = mkModeloBytes.byteLength / 1024;
       const medidas = Math.min(linhas.length, LIMITE_LINHAS || linhas.length);
       const porLinhaKB = Math.max(0.05, (inteiro.byteLength / 1024 - cabecalhoKB) / medidas);
       let cabem = Math.max(50, Math.floor((LIMITE_KB - cabecalhoKB) / porLinhaKB));

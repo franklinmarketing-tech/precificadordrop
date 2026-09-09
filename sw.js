@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v13';  // v13: limite de produtos por arquivo lido da planilha
+const VERSAO = 'v14';  // v14: o modelo da Shopee virou obrigatorio no cadastro
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

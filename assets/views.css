@@ -4323,3 +4323,8 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
 .fiscal-t b{display:block;font-size:14.5px;font-weight:800;color:var(--ink);margin-bottom:3px}
 .fiscal-t i{display:block;font-style:normal;font-size:13px;line-height:1.6;color:var(--sub)}
 .fiscal-box select{max-width:100%}
+
+/* o rótulo do botão vive num span para poder mudar sozinho sem levar o ícone
+   junto — é assim que o botão do cadastro em massa pede o modelo quando ele
+   ainda não foi carregado */
+.btn-rot{display:inline}
