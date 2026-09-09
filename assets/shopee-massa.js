@@ -125,6 +125,22 @@ const CANAL_ATIVO = 'Ligado';
 
 const texto = v => v == null ? '' : String(v).trim();
 
+/* ── o hífen dos códigos fiscais ──────────────────────────────────────────
+   A lista da aba HiddenTax escreve "0 - Nacional, exceto…", com espaços ao
+   redor do hífen. O formulário da Shopee, na hora de publicar, mostra
+   "0-Nacional, exceto…" — sem espaço. O produto subia e o campo Origem
+   chegava VAZIO do outro lado: o importador não reconhecia o valor da lista
+   da própria planilha dela.
+
+   Então o que vai para o arquivo é o formato do formulário. Na tela o app
+   continua mostrando o texto da planilha, que é o legível; só a escrita muda. */
+function codigoDaShopee(v) {
+  const t = texto(v);
+  /* "102 - Tributada…" → "102-Tributada…", e não mexe em "UN (UNIDADE)"
+     nem em texto que não comece com código */
+  return t.replace(/^([0-9A-Za-z]+)\s+-\s+/, '$1-');
+}
+
 function nomeValido(v) {
   const t = texto(v);
   return t.length >= NOME_MIN ? t.slice(0, NOME_MAX) : '';
@@ -241,12 +257,12 @@ function montarLinha(produto, ctx) {
      da empresa, não do produto. Vazio é vazio — chutar CFOP ou origem sai
      como nota fiscal errada. */
   põe('ps_invoice_measure_unit', texto(fiscal.unidade));
-  põe('ps_invoice_origin', texto(fiscal.origem));
-  põe('ps_invoice_csosn', texto(fiscal.csosn));
-  põe('ps_pis_cofins_cst_default', texto(fiscal.cstPisCofins));
+  põe('ps_invoice_origin', codigoDaShopee(fiscal.origem));
+  põe('ps_invoice_csosn', codigoDaShopee(fiscal.csosn));
+  põe('ps_pis_cofins_cst_default', codigoDaShopee(fiscal.cstPisCofins));
   põe('ps_invoice_cfop_same', texto(fiscal.cfopMesmo));
   põe('ps_invoice_cfop_diff', texto(fiscal.cfopOutro));
-  põe('ps_operation_type_default', texto(fiscal.tipoOperacao));
+  põe('ps_operation_type_default', codigoDaShopee(fiscal.tipoOperacao));
   const trib = numero(fiscal.tributos);
   põe('ps_federal_state_taxes_default', trib === '' ? '' : trib);
 
@@ -398,7 +414,7 @@ function lerListasFiscais(aoaHiddenTax) {
 return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
         LINHAS_AJUDA, LINHA_CABECALHO, COLUNAS_TEXTO, CANAL_ATIVO,
         NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
-        nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes,
+        nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes, codigoDaShopee,
         mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline, lerLimiteLinhas,
         montarLinha, montarAoa, conferir};
 });

@@ -1093,11 +1093,21 @@ secao('19. Modelo de upload em massa da Shopee');
   /* fiscais iguais em todas as linhas: dependem do regime, não do produto */
   ok(p1[SM.COL.ps_invoice_measure_unit] === 'UN (UNIDADE)',
      'a unidade sai no formato da lista fechada, com o nome por extenso');
-  ok(p1[SM.COL.ps_invoice_csosn].indexOf('102 -') === 0, 'o CSOSN escolhido vai completo');
+  /* O formulário da Shopee escreve "102-Tributada…", sem espaço no hífen; a
+     lista da planilha dela escreve "102 - Tributada…", com espaço. Mandando
+     o da planilha, o produto sobe e o campo chega VAZIO do outro lado. */
+  ok(p1[SM.COL.ps_invoice_csosn].indexOf('102-') === 0,
+     'o CSOSN sai no formato do formulário, sem espaço no hífen',
+     p1[SM.COL.ps_invoice_csosn].slice(0, 24));
+  ok(p1[SM.COL.ps_invoice_origin].indexOf('0-') === 0,
+     'e a origem também', p1[SM.COL.ps_invoice_origin].slice(0, 24));
+  ok(SM.codigoDaShopee('UN (UNIDADE)') === 'UN (UNIDADE)',
+     'valor sem código de hífen passa intacto');
+  ok(SM.codigoDaShopee('5102') === '5102', 'CFOP não é mexido');
   ok(p1[SM.COL.ps_invoice_cfop_same] === '5102' && p1[SM.COL.ps_invoice_cfop_diff] === '6102',
      'os dois CFOP vão para as colunas certas');
   perto(p1[SM.COL.ps_federal_state_taxes_default], 12.5, 'o total de tributos vai como número', 0.001);
-  ok(p1[SM.COL.ps_operation_type_default] === '1 - Revendedor', 'o tipo de operação escolhido vai junto');
+  ok(p1[SM.COL.ps_operation_type_default] === '1-Revendedor', 'o tipo de operação escolhido vai junto, no mesmo formato');
 
   /* sem descrição no catálogo, ela é montada com o que existe */
   const d = p1[SM.COL.ps_product_description];

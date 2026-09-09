@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v15';  // v15: assistente em pop-up para o cadastro em massa
+const VERSAO = 'v16';  // v16: codigos fiscais no formato do formulario da Shopee
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
