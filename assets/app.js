@@ -988,6 +988,19 @@ function assFechar(){
   fecharPop('popAss', 'scrimAss');
 }
 
+/* ── o fim de um download vira pop-up, não um botão que muda de cor ────────
+   Baixar dois arquivos deixava a pessoa olhando dois botões — um verde e um
+   laranja, um deles marcado "Baixado" — sem saber qual valia. Aqui o que
+   aconteceu aparece separado, com uma única saída. */
+function prontoAbrir(titulo, corpoHTML){
+  $('prontoTitulo').textContent = titulo || 'Pronto';
+  $('prontoCorpo').innerHTML = corpoHTML || '';
+  abrirPop('popPronto', 'scrimPronto');
+}
+function prontoFechar(){
+  fecharPop('popPronto', 'scrimPronto');
+}
+
 /* ── o assistente do Precificar Mercado Livre ──────────────────────────────
    Os mesmos blocos da página, um passo por vez. A ordem segue o que muda o
    preço: primeiro a planilha, depois de onde vem cada dado, depois o que o

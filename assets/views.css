@@ -4424,3 +4424,18 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   font-family:inherit;font-size:12.5px;font-weight:700;color:var(--blue-dk);
   background:var(--sup);border:1px solid color-mix(in srgb,var(--blue) 40%,transparent)}
 .fiscal-padrao:hover{background:color-mix(in srgb,var(--blue) 8%,var(--sup))}
+
+/* ═══ POP-UP DE CONCLUÍDO ══════════════════════════════════
+   Fecha o ciclo de um download: em vez de deixar dois botões competindo na
+   tela, o que aconteceu aparece aqui, isolado, com uma saída só. */
+#popPronto{width:min(480px,calc(100vw - 32px))}
+.pronto-ic{width:64px;height:64px;margin:4px auto 18px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(160deg,#28dd8a,#079254);
+  box-shadow:0 10px 22px -8px rgba(18,183,106,.85)}
+.pronto-ic svg{width:32px;height:32px;fill:none;stroke:#fff;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round}
+#prontoCorpo{text-align:center;font-size:14.5px;line-height:1.7;color:var(--sub)}
+#prontoCorpo b{color:var(--ink)}
+#prontoCorpo ul{text-align:left;margin:14px 0 0;padding-left:18px;display:flex;
+  flex-direction:column;gap:5px}

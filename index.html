@@ -1910,6 +1910,30 @@
   </div>
 </div>
 
+<!-- ═══ CONCLUÍDO ═══
+     O fim de um download não deve depender de olhar qual botão mudou de cor
+     no meio da tela: aparece aqui, num pop-up só com o que aconteceu e um
+     jeito de fechar. Chamado por prontoAbrir(), em app.js. -->
+<div class="scrim" id="scrimPronto" onclick="prontoFechar()"></div>
+<div class="pop" id="popPronto" role="dialog" aria-modal="true" aria-labelledby="prontoTitulo">
+  <div class="pop-h">
+    <div>
+      <div class="pop-t" id="prontoTitulo">Pronto</div>
+      <div class="pop-s">CONCLUÍDO</div>
+    </div>
+    <button class="x" onclick="prontoFechar()" aria-label="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="pop-b">
+    <div class="pronto-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <div id="prontoCorpo"></div>
+  </div>
+  <div class="pop-f">
+    <button class="btn btn-green btn-block" onclick="prontoFechar()">Fechar</button>
+  </div>
+</div>
+
 <div class="scrim" id="scrimResumo" onclick="fecharResumo()"></div>
 <div class="pop pop-largo" id="popResumo" role="dialog" aria-modal="true" aria-labelledby="resumoTitulo">
   <div class="pop-h">

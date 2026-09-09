@@ -344,6 +344,9 @@ async function mkCarregarModelo(file){
         ? ` · até <b>${mkModeloLimite.toLocaleString('pt-BR')}</b> produtos por arquivo` : ''}`,
       "document.getElementById('mkFiModelo').click()");
     mkMontarFiscal();
+    /* o botão só sabe que o modelo chegou se alguém contar para ele — sem
+       isto ele continuava pedindo o modelo mesmo depois de carregado */
+    mkAtualizarBotaoMassa();
     $('mkModeloInfo').innerHTML = `<div class="file-row">
       <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
       <div><div class="file-n">${esc(file.name)}</div>
@@ -381,6 +384,9 @@ function mkMontarFiscal(){
   /* UN é a unidade de quase todo produto vendido por peça; vem escolhida
      porque deixá-la vazia é o erro mais provável desta tela */
   const un = (L.unidade || []).find(v => /^UN\b/i.test(v)) || '';
+  /* nacional é o caso comum, e é o campo que mais gente esquece de escolher;
+     quem tiver produto importado troca na hora, é só um clique */
+  const origemNacional = (L.origem || []).find(v => /^0\s*-/.test(v)) || '';
 
   $('mkFiscalBox').innerHTML = `
     <div class="fiscal-t">
@@ -393,7 +399,7 @@ function mkMontarFiscal(){
     </div>
     <div class="campos" id="mkFiscalImpostos">
       ${sel('mkFiscalUnidade', L.unidade, 'Unidade de medida', 'UN serve para produto vendido por peça', un)}
-      ${sel('mkFiscalOrigem', L.origem, 'Origem da mercadoria', 'nacional, importada, e as faixas de conteúdo importado')}
+      ${sel('mkFiscalOrigem', L.origem, 'Origem da mercadoria', 'nacional, importada, e as faixas de conteúdo importado', origemNacional)}
       ${sel('mkFiscalCsosn', L.csosn, 'CSOSN', 'código do Simples Nacional')}
       ${sel('mkFiscalCst', L.cstPisCofins, 'CST PIS/Cofins', 'a situação tributária do PIS e da Cofins')}
       ${sel('mkFiscalTipoOp', (mkModeloInline && mkModeloInline.ps_operation_type_default) || [],
@@ -817,23 +823,26 @@ function mkVerLinhas(id){
 }
 function mkIrPagina(n){ mkPagina = n; mkRenderTabela(); }
 
-/* O modelo de cadastro em massa é coisa da Shopee: na Amazon o botão some. */
+/* O botão de cadastro em massa só existe para quem entrou por ali. Ele
+   aparecia toda vez que o canal era Shopee — inclusive em "Precificar
+   Shopee", disputando espaço com "Baixar planilha com os preços" sem ter
+   nada a ver com aquele fluxo. Dois botões de download um do lado do outro,
+   e nenhuma pista de qual usar. */
 function mkAtualizarBotaoMassa(){
   const b = $('mkBtnMassa'), v = $('mkBtnDl');
   if(!b) return;
-  b.classList.toggle('hide', !mkCanal || mkCanal.id !== 'shopee');
+  b.classList.toggle('hide', !mkModoMassa);
+  if(!mkModoMassa){ if(v) v.classList.remove('hide'); return; }
   /* enquanto o modelo não entra, o botão pede o modelo — não promete um
      arquivo que a Shopee vai recusar */
   const rotulo = mkModeloBytes ? 'Baixar no modelo de cadastro em massa'
                                : 'Carregar o modelo da Shopee para gerar';
   const alvo = b.querySelector('span.btn-rot');
   if(alvo) alvo.textContent = rotulo;
-  /* quem veio pelo cadastro em massa procura o arquivo da Shopee: ele fica em
-     destaque, e a planilha de preços vira o botão discreto — o contrário do
-     que acontece quando a pessoa entrou para precificar */
-  b.classList.toggle('btn-laranja', true);
-  if(v) v.classList.toggle('btn-ghost', mkModoMassa);
-  if(v) v.classList.toggle('btn-green', !mkModoMassa);
+  /* quem veio pelo cadastro em massa procura só o arquivo da Shopee: a
+     planilha de preços normal, aqui, é ruído — some de vez */
+  b.classList.add('btn-laranja');
+  if(v) v.classList.add('hide');
 }
 
 /* ── o arquivo no modelo da Shopee ────────────────────────────────────────
@@ -1035,10 +1044,17 @@ async function mkBaixarShopeeMassa(){
       if(i < total - 1) await new Promise(r => setTimeout(r, 700));
     }
 
-    if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
-      + (total > 1
-        ? `Baixados ${total} arquivos — ${produtos.length.toLocaleString('pt-BR')} produtos`
-        : `Baixado — ${produtos.length.toLocaleString('pt-BR')} produtos`);
+    if(btn) btn.innerHTML = rotulo;
+
+    prontoAbrir('Arquivo da Shopee gerado', `
+      <p><b>${produtos.length.toLocaleString('pt-BR')}</b> produtos prontos para o cadastro em massa.</p>
+      ${total > 1
+        ? `<p>Saiu em <b>${total}</b> arquivos, um por vez — a Shopee aceita até
+             ${(mkModeloLimite || 1000).toLocaleString('pt-BR')} produtos por lote.
+             Suba um de cada vez em <b>Adicionar em Massa</b>.</p>`
+        : `<p>Suba em <b>Central do Vendedor → Produtos → Adicionar em Massa</b>.</p>`}
+      <p>Confira o arquivo <b>Result_...</b> que a Shopee devolve depois: é onde ela aponta
+         linha a linha o que precisa de ajuste, se precisar.</p>`);
   }catch(e){
     if(btn) btn.innerHTML = rotulo;
     alert('Não deu para gerar o arquivo: ' + (e.message || e));
@@ -1231,8 +1247,10 @@ async function mkBaixarAgora(){
       saida, n === nomeAba ? ws : wb.Sheets[n], XU.nomeDeAbaValido(n, 'Aba')));
     XLSX.writeFile(saida, mkNomeArquivo.replace(/\.[^.]+$/, '') + '_' + mkCanal.id.toUpperCase() + '.xlsx');
 
-    $('mkBtnDl').innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
-      + `Baixado — ${mkConf.precificados.toLocaleString('pt-BR')} preços`;
+    prontoAbrir('Planilha gerada', `
+      <p><b>${mkConf.precificados.toLocaleString('pt-BR')}</b> preços calculados para ${esc(mkCanal.nome)}.</p>
+      <p>A planilha original volta com o preço novo gravado, mais as colunas de conferência
+         ao lado — custo, comissão, envio, lucro e margem de cada produto.</p>`);
   }catch(e){
     alert('Não consegui gerar a planilha.\n\n' + (e && e.message ? e.message : e));
   }

@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v19';  // v19: janelas curtas, sem rolagem, e pop-up sobre pop-up
+const VERSAO = 'v20';  // v20: botao certo por fluxo, pop-up de concluido, origem nacional
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
