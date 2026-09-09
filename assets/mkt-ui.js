@@ -70,6 +70,7 @@ function mkAbrir(id){
   $('view-mkt').className = 'view ' + def.classe;
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
+  mkAtualizarBotaoMassa();
   ir('mkt');
 }
 
@@ -141,7 +142,7 @@ function mkMontarForm(){
     + '</select>';
 
   $('mkColunas').innerHTML = `
-    <label class="campo"><span>Custo do produto</span>${sel('mkColCusto', mkAcha(['custo','preço de custo','preco','valor']))}</label>
+    <label class="campo"><span>Custo do produto</span>${sel('mkColCusto', mkAcha(['custo','preço de custo','preço','preco','valor']))}</label>
     <label class="campo"><span>Peso</span>${sel('mkColPeso', mkAcha(['peso (kg)','peso']), true)}
       <div class="uni-peso" id="mkUniBox">
         <span>Os números estão em</span>
@@ -158,7 +159,34 @@ function mkMontarForm(){
     <label class="campo"><span>Gravar o preço em</span>${sel('mkColPreco', mkAcha(['preço','preco','valor']))}</label>
     <label class="campo"><span>Preço que você pratica hoje
       <i>opcional — com ele o app procura produtos parados num degrau de taxa</i></span>
-      ${sel('mkColPrecoHoje', mkAcha(['preço de venda','preco de venda','preço atual','preco atual']), true)}</label>`;
+      ${sel('mkColPrecoHoje', mkAcha(['preço de venda','preco de venda','preço atual','preco atual']), true)}</label>`
+    /* A Shopee tem um arquivo próprio para cadastrar produto em massa, e ele
+       pede o que a precificação não usa: nome, EAN, NCM, imagem. Estes campos
+       só aparecem na Shopee, e só servem para esse download. */
+    + (mkCanal.id !== 'shopee' ? '' : `
+    <div class="grp-t" style="grid-column:1/-1;margin-top:6px">PARA O CADASTRO EM MASSA NA SHOPEE</div>
+    <label class="campo"><span>Nome do produto
+      <i>vira o título do anúncio e também a descrição</i></span>
+      ${sel('mkColNome', mkAcha(['nome do produto','nome','título','titulo','descrição','descricao','produto']), true)}</label>
+    <label class="campo"><span>SKU
+      <i>o código que liga este produto ao seu estoque</i></span>
+      ${sel('mkColSku', mkAcha(['sku','código','codigo','referência','referencia']), true)}</label>
+    <label class="campo"><span>EAN (código de barras)
+      <i>só entra se tiver 8 a 14 dígitos — senão a Shopee recusa a linha</i></span>
+      ${sel('mkColEan', mkAcha(['ean','gtin','código de barras','codigo de barras']), true)}</label>
+    <label class="campo"><span>NCM<i>opcional</i></span>
+      ${sel('mkColNcm', mkAcha(['ncm']), true)}</label>
+    <label class="campo"><span>CEST<i>opcional</i></span>
+      ${sel('mkColCest', mkAcha(['cest']), true)}</label>
+    <label class="campo"><span>Imagem principal
+      <i>a URL da foto — sem ela o anúncio sobe sem imagem</i></span>
+      ${sel('mkColImagem', mkAcha(['imagem principal','imagem','foto','url da imagem']), true)}</label>
+    <label class="campo"><span>Estoque de cada produto
+      <i>o catálogo não traz estoque; este número vai em todas as linhas</i></span>
+      <input type="number" id="mkEstoque" min="0" step="1" value="100"/></label>
+    <label class="campo"><span>Unidade de medida
+      <i>o que a nota fiscal chama de unidade — UN serve para a maioria</i></span>
+      <input type="text" id="mkUnidade" maxlength="6" value="UN"/></label>`);
 
   const selPeso = $('mkColPeso');
   if(selPeso) selPeso.addEventListener('change', mkChecarPeso);
@@ -420,6 +448,94 @@ function mkVerLinhas(id){
   }
 }
 function mkIrPagina(n){ mkPagina = n; mkRenderTabela(); }
+
+/* O modelo de cadastro em massa é coisa da Shopee: na Amazon o botão some. */
+function mkAtualizarBotaoMassa(){
+  const b = $('mkBtnMassa');
+  if(b) b.classList.toggle('hide', !mkCanal || mkCanal.id !== 'shopee');
+}
+
+/* ── o arquivo no modelo da Shopee ────────────────────────────────────────
+   Aqui não se aproveita a planilha do fornecedor: o arquivo da Shopee tem
+   colunas e cabeçalho próprios (ver shopee-massa.js). O que vem do catálogo
+   é o conteúdo; o formato é inteiro dela. */
+async function mkBaixarShopeeMassa(){
+  if(!mkLinhas.length || !window.ShopeeMassa) return;
+  const SM = window.ShopeeMassa;
+
+  const col = id => { const el = $(id); const v = el ? parseInt(el.value) : -1; return isNaN(v) ? -1 : v; };
+  const iNome = col('mkColNome'), iSku = col('mkColSku'), iEan = col('mkColEan');
+  const iNcm = col('mkColNcm'), iCest = col('mkColCest'), iImg = col('mkColImagem');
+  const iA = col('mkColA'), iL = col('mkColL'), iC = col('mkColC');
+  const estoque = Math.max(0, Number(($('mkEstoque') || {}).value) || 0);
+  const unidade = String((($('mkUnidade') || {}).value) || '').trim();
+
+  if(iNome < 0){
+    alert('Escolha a coluna do nome do produto no passo 2.\n\nA Shopee recusa o cadastro sem nome — é o único campo que o app não tem como inventar.');
+    return;
+  }
+
+  const dado = (linha, i) => i >= 0 ? (mkAoa[linha] || [])[i] : '';
+
+  /* só o que a Shopee aceita: linha sem preço não vira anúncio */
+  const produtos = mkLinhas.filter(r => r.preco != null).map(r => ({
+    sku:         dado(r.linha, iSku),
+    nome:        dado(r.linha, iNome),
+    preco:       r.preco,
+    estoque:     estoque,
+    /* o peso do arquivo é o da balança, em quilos — o volumétrico é conta do
+       frete, não uma medida do produto */
+    peso:        r.pesoReal || r.peso || '',
+    altura:      dado(r.linha, iA),
+    largura:     dado(r.linha, iL),
+    comprimento: dado(r.linha, iC),
+    ean:         dado(r.linha, iEan),
+    ncm:         dado(r.linha, iNcm),
+    cest:        dado(r.linha, iCest),
+    imagem:      dado(r.linha, iImg),
+  }));
+
+  if(!produtos.length){ alert('Nenhuma linha tem preço calculado para cadastrar.'); return; }
+
+  const p = SM.conferir(produtos);
+  const avisos = [];
+  if(p.semNome.length)   avisos.push(`${p.semNome.length} sem nome — a Shopee recusa essas linhas`);
+  if(p.semPeso.length)   avisos.push(`${p.semPeso.length} sem peso — a Shopee recusa essas linhas`);
+  if(p.semEstoque.length) avisos.push('estoque zerado em todas as linhas: o anúncio sobe sem estoque');
+  if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
+
+  const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
+    + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
+    + '\n\nCategoria, CFOP, origem e CSOSN saem em branco de propósito — são decisão fiscal sua, e a Shopee sugere a categoria sozinha.\n\nGerar o arquivo?';
+  if(!confirm(texto)) return;
+
+  const btn = $('mkBtnMassa');
+  const rotulo = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Gerando…'; }
+
+  try{
+    await garantirXLSX();
+    const aoa = SM.montarAoa(produtos, {unidadeMedida: unidade});
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    /* as colunas de texto longo ficam legíveis quando ele abre para conferir */
+    ws['!cols'] = SM.LINHA_ROTULOS.map((_, i) =>
+      ({wch: i === SM.COL.ps_product_name || i === SM.COL.ps_product_description ? 42 : 16}));
+
+    const saida = XLSX.utils.book_new();
+    /* o nome da aba é o mesmo do modelo dela: é onde o importador procura */
+    XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
+    const hoje = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(saida, `shopee_cadastro_em_massa_${hoje}.xlsx`);
+
+    if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
+      + `Baixado — ${produtos.length.toLocaleString('pt-BR')} produtos`;
+  }catch(e){
+    if(btn) btn.innerHTML = rotulo;
+    alert('Não deu para gerar o arquivo: ' + (e.message || e));
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
 
 function mkRenderTabela(){
   const grupo = mkFiltro ? mkConf.grupos.find(g => g.id === mkFiltro) : null;

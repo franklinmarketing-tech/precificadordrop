@@ -1014,13 +1014,89 @@ secao('18. Prejuízo separado da oportunidade de degrau');
   ok(lote.todos.length === 2, 'e "todos" continua com os dois, para quem quiser');
 }
 
-/* ── 19. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────
+/* ── 19. Modelo de upload em massa da Shopee ───────────────────────────────
+   O importador da Shopee lê por POSIÇÃO de coluna e recusa a linha inteira
+   quando um campo passa do limite dela. Aqui o que importa é o arquivo sair
+   com o produto na linha certa, o preço na coluna certa, e sem os valores
+   que ela devolveria recusados.                                            */
+secao('19. Modelo de upload em massa da Shopee');
+{
+  const SM = require('../assets/shopee-massa.js');
+
+  ok(SM.N_COLUNAS === 51, 'o modelo tem as 51 colunas da Shopee', 'tem ' + SM.N_COLUNAS);
+  ok(SM.LINHA_ROTULOS[SM.COL.ps_price] === 'Preço', 'o preço cai na coluna "Preço"');
+  ok(SM.LINHA_ROTULOS[SM.COL.ps_weight] === 'Peso', 'o peso cai na coluna "Peso"');
+
+  const produtos = [
+    {sku:'PTE-009', nome:'Pote Hermético Retangular de Vidro 1040ml', preco:39.9,
+     estoque:999, peso:0.661, altura:8, largura:21, comprimento:16,
+     ean:'0631911390524', ncm:'70134290', imagem:'https://x/y.jpg'},
+    {sku:'PTE-008', nome:'Pote 370ml', preco:19.9, estoque:999, peso:0.328,
+     altura:7, largura:16, comprimento:12, ean:'PTE-008', ncm:'70134290', imagem:''},
+  ];
+  const aoa = SM.montarAoa(produtos, {unidadeMedida:'UN'});
+
+  ok(aoa.length === 6 + produtos.length, 'seis linhas de cabeçalho antes do primeiro produto',
+     'saiu com ' + aoa.length + ' linhas');
+  ok(aoa[0][0] === 'ps_category|0|0', 'a linha 1 mantém os códigos internos da Shopee');
+  ok(aoa[2][1] === 'Nome do Produto', 'a linha 3 mantém os rótulos em português');
+  ok(aoa[4].every(v => v === '') && aoa[5].every(v => v === ''),
+     'as linhas 5 e 6 vão vazias, só segurando a posição');
+
+  const p1 = aoa[6];
+  ok(p1[SM.COL.ps_product_name] === 'Pote Hermético Retangular de Vidro 1040ml',
+     'o primeiro produto cai na linha 7');
+  perto(p1[SM.COL.ps_price], 39.9, 'com o preço calculado, não o custo', 0.001);
+  perto(p1[SM.COL.ps_weight], 0.661, 'e o peso em quilos', 0.0001);
+  perto(p1[SM.COL.ps_height], 8, 'altura na coluna de altura', 0.001);
+  perto(p1[SM.COL.ps_width], 21, 'largura na coluna de largura', 0.001);
+  perto(p1[SM.COL.ps_length], 16, 'comprimento na coluna de comprimento', 0.001);
+  ok(p1[SM.COL.ps_sku_parent_short] === 'PTE-009' && p1[SM.COL.ps_sku_short] === 'PTE-009',
+     'o SKU vai nos dois campos, principal e da variação');
+  ok(p1[SM.COL.ps_invoice_ncm] === '70134290', 'o NCM do catálogo é aproveitado');
+  ok(p1[SM.COL.ps_invoice_measure_unit] === 'UN', 'a unidade de medida vem das opções');
+
+  /* sem descrição própria, o nome vira descrição — a Shopee exige as duas */
+  ok(p1[SM.COL.ps_product_description] === p1[SM.COL.ps_product_name],
+     'sem descrição no catálogo, o nome preenche a descrição');
+
+  /* EAN inválido é o caso mais comum do catálogo do fornecedor: quando não há
+     código de barras, ele repete o SKU ali. Isso derruba a linha na Shopee. */
+  ok(aoa[7][SM.COL.ps_gtin_code] === '', 'EAN que não é código de barras vai em branco',
+     'veio ' + JSON.stringify(aoa[7][SM.COL.ps_gtin_code]));
+  ok(p1[SM.COL.ps_gtin_code] === '0631911390524', 'EAN de verdade é mantido');
+
+  /* o que é decisão fiscal do vendedor não pode sair chutado */
+  ok(p1[SM.COL.ps_invoice_cfop_same] === '' && p1[SM.COL.ps_invoice_origin] === ''
+     && p1[SM.COL.ps_invoice_csosn] === '' && p1[SM.COL.ps_category] === '',
+     'categoria, CFOP, origem e CSOSN saem em branco, para o vendedor decidir');
+
+  /* limites que a Shopee impõe */
+  const longo = 'A'.repeat(200);
+  ok(SM.nomeValido(longo).length === 120, 'nome maior que 120 é cortado, não recusado');
+  ok(SM.nomeValido('X') === '', 'nome de um caractere não passa');
+  ok(SM.descricaoValida('', 'Kit').length >= 10,
+     'descrição curta demais é completada até o mínimo da Shopee',
+     JSON.stringify(SM.descricaoValida('', 'Kit')));
+  ok(SM.ncmValido('7013.42.90') === '70134290', 'NCM com pontuação vira os 8 dígitos');
+  ok(SM.ncmValido('123') === '', 'NCM curto demais vai em branco');
+
+  const conf = SM.conferir([
+    {nome:'Produto bom', preco:10, peso:0.5, estoque:5, ean:'0631911390524'},
+    {nome:'', preco:0, peso:0, estoque:0, ean:'ABC'},
+  ]);
+  ok(conf.semNome.length === 1 && conf.semPreco.length === 1 && conf.semPeso.length === 1,
+     'a conferência aponta nome, preço e peso que a Shopee recusaria');
+  ok(conf.eanIgnorado.length === 1, 'e avisa o EAN que será ignorado');
+}
+
+/* ── 20. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────
    O ML guarda a embalagem em formatos que variam conforme o anúncio foi
    criado. Ler 500 g como 500 kg estoura o frete e o preço sai errado — cada
    formato tem de virar quilo certo, e o que não dá para reconhecer tem de
    voltar nulo em vez de virar chute.                                        */
 (async () => {
-  secao('19. Peso e medidas vindos do anúncio (API do Mercado Livre)');
+  secao('20. Peso e medidas vindos do anúncio (API do Mercado Livre)');
   const {envioDe} = await import('../api/ml-meus-anuncios.js');
 
   const attr = (id, valor) => typeof valor === 'string'

@@ -150,6 +150,10 @@
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
+          <button class="mn-i" onclick="mkAbrir('shopee')">
+            <img src="assets/img/ic-shopee.webp" alt=""/>
+            <span><b>Cadastrar em massa</b><i>Catálogo no modelo de upload da Shopee</i></span>
+          </button>
           <div class="mn-grupo">EM PREPARAÇÃO</div>
           <button class="mn-i mn-off" disabled>
             <img src="assets/img/ic-base-shop.webp" alt=""/>
@@ -972,6 +976,12 @@
         <button class="btn btn-green" id="mkBtnDl" onclick="mkBaixar()">
           <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
           Baixar planilha com os preços
+        </button>
+        <!-- só a Shopee tem modelo próprio de cadastro em massa; na Amazon
+             este botão nem aparece -->
+        <button class="btn btn-laranja hide" id="mkBtnMassa" onclick="mkBaixarShopeeMassa()">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0-12 4 4m-4-4-4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          Baixar no modelo de cadastro em massa
         </button>
         <button class="btn btn-ghost" onclick="mkRecomecar()">
           <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Recomeçar</button>
@@ -2227,6 +2237,7 @@
 <script src="assets/mkt-engine.js"></script>
   <script src="assets/mkt-amazon.js"></script>
   <script src="assets/mkt-shopee.js"></script>
+  <script src="assets/shopee-massa.js"></script>
   <script src="assets/anuncios-engine.js"></script>
   <script src="assets/app.js"></script>
   <script src="assets/anuncios-ui.js"></script>
