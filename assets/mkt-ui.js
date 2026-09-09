@@ -574,7 +574,9 @@ async function mkBaixarShopeeMassa(){
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
-    + '\n\nCategoria, CFOP, origem e CSOSN saem em branco de propósito — são decisão fiscal sua, e a Shopee sugere a categoria sozinha.\n\nGerar o arquivo?';
+    + '\n\nCategoria, CFOP, origem e CSOSN saem em branco de propósito — são decisão fiscal sua, e a Shopee sugere a categoria sozinha.'
+    + '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.'
+    + '\n\nGerar o arquivo?';
   if(!confirm(texto)) return;
 
   const btn = $('mkBtnMassa');
@@ -588,33 +590,78 @@ async function mkBaixarShopeeMassa(){
     const linhas = produtos.map(p => SM.montarLinha(
       Object.assign({unidadeMedida: unidade}, p)));
 
-    if(mkModeloBytes){
-      /* O caminho bom: escrever DENTRO do arquivo que a Shopee entregou. Ele
-         tem sete abas, listas suspensas e uma assinatura na segunda linha —
-         um arquivo parecido, montado do zero, o importador dela recusa. */
-      const wb = XLSX.read(mkModeloBytes, {type:'array', cellStyles:true});
-      const aba = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'modelo');
-      if(!aba) throw new Error('O modelo carregado não tem a aba "Modelo".');
-      const ws = wb.Sheets[aba];
-      XU.normalizarRef(ws);
-      /* origin 6 = linha 7 da planilha, a primeira depois das seis de
-         cabeçalho: é onde a Shopee espera o primeiro produto */
-      XLSX.utils.sheet_add_aoa(ws, linhas, {origin: SM.LINHA_CABECALHO});
-      XLSX.writeFile(wb, mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido.xlsx');
-    }else{
+    const base = mkModeloBytes
+      ? mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido'
+      : 'shopee_cadastro_em_massa_' + hoje;
+
+    /* Monta o arquivo com um pedaço das linhas e devolve os bytes. */
+    const gerar = fatia => {
+      if(mkModeloBytes){
+        /* O caminho bom: escrever DENTRO do arquivo que a Shopee entregou. Ele
+           tem sete abas, listas suspensas e uma assinatura na segunda linha —
+           um arquivo parecido, montado do zero, o importador dela recusa. */
+        const wb = XLSX.read(mkModeloBytes, {type:'array', cellStyles:true});
+        const aba = wb.SheetNames.find(n => String(n).trim().toLowerCase() === 'modelo');
+        if(!aba) throw new Error('O modelo carregado não tem a aba "Modelo".');
+        const ws = wb.Sheets[aba];
+        XU.normalizarRef(ws);
+        /* LINHA_CABECALHO = 6, ou seja a linha 7 da planilha: a primeira depois
+           das seis de cabeçalho, onde a Shopee espera o primeiro produto */
+        XLSX.utils.sheet_add_aoa(ws, fatia, {origin: SM.LINHA_CABECALHO});
+        return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true});
+      }
       /* Sem o modelo, o arquivo sai montado aqui. Serve para conferir os
-         números, mas a Shopee pode recusar no importador — o aviso antes de
-         baixar diz isso. */
-      const ws = XLSX.utils.aoa_to_sheet(SM.montarAoa(produtos, {unidadeMedida: unidade}));
-      ws['!cols'] = SM.LINHA_ROTULOS.map((_, i) =>
-        ({wch: i === SM.COL.ps_product_name || i === SM.COL.ps_product_description ? 42 : 16}));
+         números, mas a Shopee recusa no importador — o aviso antes de baixar
+         diz isso. */
+      const prods = fatia.map(l => l);   // já são linhas prontas
+      const aoa = SM.montarAoa([], {}).slice(0, SM.LINHA_CABECALHO).concat(prods);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
       const saida = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
-      XLSX.writeFile(saida, `shopee_cadastro_em_massa_${hoje}.xlsx`);
+      return XLSX.write(saida, {bookType:'xlsx', type:'array', compression:true});
+    };
+
+    /* A Shopee só aceita arquivo de até 3 MB. Com catálogo grande não tem
+       jeito: o arquivo passa disso e ela responde "arquivo inválido", sem
+       dizer o tamanho. Então o app mede o que gerou e divide em partes, com
+       folga para o zip variar de um pedaço para o outro. */
+    const LIMITE_KB = 2600;
+    let fatias = [linhas];
+    const inteiro = gerar(linhas);
+    if(inteiro.byteLength / 1024 > LIMITE_KB){
+      const cabecalhoKB = (mkModeloBytes ? mkModeloBytes.byteLength : 60 * 1024) / 1024;
+      const porLinhaKB = Math.max(0.05, (inteiro.byteLength / 1024 - cabecalhoKB) / linhas.length);
+      const cabem = Math.max(50, Math.floor((LIMITE_KB - cabecalhoKB) / porLinhaKB));
+      /* partes iguais em vez de encher a primeira e sobrar um resto minúsculo:
+         com 5.209 produtos saía 4.500 + 709, e o primeiro arquivo raspava o
+         limite. Dividido por igual, os dois ficam com folga. */
+      const nPartes = Math.ceil(linhas.length / cabem);
+      const porArquivo = Math.ceil(linhas.length / nPartes);
+      fatias = [];
+      for(let i = 0; i < linhas.length; i += porArquivo) fatias.push(linhas.slice(i, i + porArquivo));
+    }
+
+    const total = fatias.length;
+    for(let i = 0; i < total; i++){
+      if(btn) btn.textContent = total > 1 ? `Gerando ${i + 1} de ${total}…` : 'Gerando…';
+      const bytes = i === 0 && total === 1 ? inteiro : gerar(fatias[i]);
+      const nome = total > 1 ? `${base}_parte${i + 1}de${total}.xlsx` : `${base}.xlsx`;
+      /* download por link: XLSX.writeFile geraria o arquivo de novo, e com
+         5 mil linhas isso é caro o bastante para travar a tela */
+      const url = URL.createObjectURL(new Blob([bytes],
+        {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+      const a = document.createElement('a');
+      a.href = url; a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      /* o navegador engasga com vários downloads disparados no mesmo instante */
+      if(i < total - 1) await new Promise(r => setTimeout(r, 700));
     }
 
     if(btn) btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
-      + `Baixado — ${produtos.length.toLocaleString('pt-BR')} produtos`;
+      + (total > 1
+        ? `Baixados ${total} arquivos — ${produtos.length.toLocaleString('pt-BR')} produtos`
+        : `Baixado — ${produtos.length.toLocaleString('pt-BR')} produtos`);
   }catch(e){
     if(btn) btn.innerHTML = rotulo;
     alert('Não deu para gerar o arquivo: ' + (e.message || e));
