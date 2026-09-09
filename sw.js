@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v18';  // v18: assistente em todas as telas e separador fiscal certo
+const VERSAO = 'v19';  // v19: janelas curtas, sem rolagem, e pop-up sobre pop-up
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

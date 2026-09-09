@@ -359,6 +359,16 @@ function recalcularTudo(){
    os custos oficiais viram pop-up: são consultas pontuais, não passos do
    trabalho — antes dividiam a tela em três abas de peso igual.             */
 function abrirPop(pop, scrim, aoAbrir){
+  /* Um pop-up aberto sobre outro precisa ficar por cima, e todos nascem com o
+     mesmo z-index: o que decidia era a ordem no HTML. Foi assim que o
+     "Conferir agora" da escala de peso parou de funcionar dentro do
+     assistente — a janela abria atrás dele, e o clique parecia não fazer nada.
+     Aqui cada janela nova sobe um degrau acima da anterior. */
+  const abertos = document.querySelectorAll('.pop.open').length;
+  if(abertos){
+    $(scrim).style.zIndex = 200 + abertos * 4;
+    $(pop).style.zIndex   = 202 + abertos * 4;
+  }
   $(scrim).classList.add('open');
   $(pop).classList.add('open');
   document.body.classList.add('sem-rolagem');
@@ -367,6 +377,9 @@ function abrirPop(pop, scrim, aoAbrir){
 function fecharPop(pop, scrim){
   $(scrim).classList.remove('open');
   $(pop).classList.remove('open');
+  /* devolve o degrau: da próxima vez a conta recomeça do zero */
+  $(scrim).style.zIndex = '';
+  $(pop).style.zIndex = '';
   if(!document.querySelector('.pop.open, .drawer.open'))
     document.body.classList.remove('sem-rolagem');
 }
@@ -1045,20 +1058,41 @@ ASSISTENTES.mkt = {
       falta: 'Carregue a planilha para continuar.',
     },
     {
-      nome: 'Colunas',
-      titulo: 'De onde vem cada dado',
-      explica: 'Confira o que o app reconheceu — principalmente a coluna do custo, que é a base '
-             + 'de toda a conta.',
-      blocos: ['mkColunas'],
+      nome: 'Custo',
+      titulo: 'O custo e o peso',
+      explica: 'O custo é a base de toda a conta. O peso muda o frete — e quando os números '
+             + 'parecem estar em gramas numa coluna que diz quilos, o app avisa aqui.',
+      blocos: ['mkColCustoPeso'],
       pronto: () => parseInt(($('mkColCusto') || {}).value) >= 0,
       falta: 'Escolha a coluna do custo do produto.',
     },
     {
-      nome: 'Taxas',
+      nome: 'Medidas',
+      titulo: 'Altura, largura e comprimento',
+      explica: 'Com as três, o app cobra pelo maior entre o peso da balança e o volumétrico — '
+             + 'que é como o canal cobra. Sem elas, a conta usa só o peso.',
+      blocos: ['mkColMedidas'],
+    },
+    {
+      nome: 'Saída',
+      titulo: 'Onde gravar o preço',
+      explica: 'A coluna que recebe o preço calculado no arquivo que você vai baixar. A do preço '
+             + 'que você pratica hoje é opcional, e com ela o app acha produtos parados num degrau.',
+      blocos: ['mkColSaida'],
+    },
+    {
+      nome: 'Canal',
       titulo: 'Como este canal cobra de você',
       explica: 'Cada canal cobra de um jeito, e as perguntas mudam junto. O que estiver errado '
              + 'aqui aparece como lucro que não existe.',
-      blocos: ['mkParams', 'mkRessalvas'],
+      blocos: ['mkParamsCanal', 'mkRessalvas'],
+    },
+    {
+      nome: 'Seus custos',
+      titulo: 'O que sai do seu bolso',
+      explica: 'Imposto, devoluções, embalagem e desconto que você banca. O canal não cobra nada '
+             + 'disso — mas tudo sai do lucro, e sem eles a margem que aparece é maior que a real.',
+      blocos: ['mkParamsSeus'],
     },
     {
       nome: 'Margem',

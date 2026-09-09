@@ -145,16 +145,29 @@ ASSISTENTES.massa = {
       falta: 'Solte aqui o modelo baixado da Shopee. Sem ele o arquivo não sai.',
     },
     {
-      nome: 'Colunas',
-      titulo: 'De onde vem cada dado',
-      explica: 'O app já apontou o que reconheceu no seu catálogo. Confira, principalmente o custo '
-             + 'e o nome do produto — o resto é opcional e sai em branco quando não existe.',
-      blocos: ['mkColunas'],
-      pronto: () => {
-        const c = $('mkColCusto'), n = $('mkColNome');
-        return (c ? parseInt(c.value) : -1) >= 0 && (n ? parseInt(n.value) : -1) >= 0;
-      },
-      falta: 'Escolha ao menos a coluna do custo e a do nome do produto.',
+      nome: 'Custo',
+      titulo: 'O custo e o peso',
+      explica: 'O custo é a base de toda a conta. O peso muda o frete — e quando os números '
+             + 'parecem estar em gramas numa coluna que diz quilos, o app avisa aqui.',
+      blocos: ['mkColCustoPeso'],
+      pronto: () => parseInt(($('mkColCusto') || {}).value) >= 0,
+      falta: 'Escolha a coluna do custo do produto.',
+    },
+    {
+      nome: 'Medidas',
+      titulo: 'Altura, largura e comprimento',
+      explica: 'A Shopee cobra pelo maior entre o peso da balança e o volumétrico. Sem as três '
+             + 'medidas juntas o app não manda medida nenhuma — ela exige as três ou nenhuma.',
+      blocos: ['mkColMedidas'],
+    },
+    {
+      nome: 'Produto',
+      titulo: 'O que vai no anúncio',
+      explica: 'Nome, SKU, código de barras, NCM e a foto — o que a Shopee usa para montar o '
+             + 'anúncio. O nome é obrigatório; o resto sai em branco quando o catálogo não tem.',
+      blocos: ['mkColShopee'],
+      pronto: () => parseInt(($('mkColNome') || {}).value) >= 0,
+      falta: 'Escolha a coluna do nome do produto — a Shopee recusa o cadastro sem nome.',
     },
     {
       nome: 'Margem',
@@ -164,19 +177,34 @@ ASSISTENTES.massa = {
       blocos: ['mkGrupoMargem'],
     },
     {
-      nome: 'Taxas',
+      nome: 'Canal',
       titulo: 'Como a Shopee cobra de você',
       explica: 'Comissão por faixa de preço, tipo de conta e quem entrega. No modelo padrão o '
              + 'vendedor não paga frete — o comprador paga, com cupom da Shopee.',
-      blocos: ['mkParams', 'mkRessalvas'],
+      blocos: ['mkParamsCanal', 'mkRessalvas'],
     },
     {
-      nome: 'Nota fiscal',
-      titulo: 'Nota fiscal',
-      explica: 'Estes campos só aceitam os valores das listas da Shopee. Valem para todos os produtos '
-             + 'do lote. O tipo de operação é obrigatório para quem emite nota pela Shopee — sem ele '
-             + 'o lote volta recusado.',
+      nome: 'Seus custos',
+      titulo: 'O que sai do seu bolso',
+      explica: 'Imposto, devoluções esperadas, embalagem e desconto que você banca. Nada disso a '
+             + 'Shopee cobra — mas tudo isso sai do lucro, e sem eles a margem que aparece é maior '
+             + 'do que a real.',
+      blocos: ['mkParamsSeus'],
+    },
+    {
+      nome: 'Impostos',
+      titulo: 'Nota fiscal · impostos',
+      explica: 'Só valores das listas da Shopee, iguais para todo o lote. O tipo de operação é '
+             + 'obrigatório para quem emite nota pela Shopee — sem ele o lote volta recusado.',
       blocos: ['mkFiscalBox'],
+    },
+    {
+      nome: 'CFOP',
+      titulo: 'Nota fiscal · CFOP',
+      explica: 'O CFOP não tem lista no modelo: quem define é a sua contabilidade. Na revenda de '
+             + 'mercadoria por optante do Simples, o par mais comum é 5102 dentro do estado e 6102 '
+             + 'fora dele.',
+      blocos: ['mkFiscalCfop'],
       rotulo: 'Calcular e gerar os arquivos',
     },
   ],
@@ -363,13 +391,15 @@ function mkMontarFiscal(){
       <button type="button" class="fiscal-padrao" onclick="mkFiscalPadrao()">
         Preencher com o padrão do Simples (revenda)</button>
     </div>
-    <div class="campos">
+    <div class="campos" id="mkFiscalImpostos">
       ${sel('mkFiscalUnidade', L.unidade, 'Unidade de medida', 'UN serve para produto vendido por peça', un)}
       ${sel('mkFiscalOrigem', L.origem, 'Origem da mercadoria', 'nacional, importada, e as faixas de conteúdo importado')}
       ${sel('mkFiscalCsosn', L.csosn, 'CSOSN', 'código do Simples Nacional')}
       ${sel('mkFiscalCst', L.cstPisCofins, 'CST PIS/Cofins', 'a situação tributária do PIS e da Cofins')}
       ${sel('mkFiscalTipoOp', (mkModeloInline && mkModeloInline.ps_operation_type_default) || [],
              'Tipo de operação', 'quem revende compra pronto para vender', '1 - Revendedor')}
+    </div>
+    <div class="campos" id="mkFiscalCfop">
       <label class="campo"><span>CFOP dentro do estado <i>no Simples, costuma ser 5102</i></span>
         <input type="text" id="mkFiscalCfopMesmo" maxlength="4" placeholder="5102"/></label>
       <label class="campo"><span>CFOP fora do estado <i>no Simples, costuma ser 6102</i></span>
@@ -450,7 +480,11 @@ function mkMontarForm(){
     + mkCab.map((c, i) => `<option value="${i}"${i === escolhido ? ' selected' : ''}>${esc(c || 'coluna ' + (i+1))}</option>`).join('')
     + '</select>';
 
+  /* Quatro caixas em vez de uma lista só: o assistente mostra uma por janela,
+     e assim nenhuma delas precisa de rolagem. Na página inteira as quatro
+     aparecem seguidas, como antes. */
   $('mkColunas').innerHTML = `
+    <div class="campos" id="mkColCustoPeso">
     <label class="campo"><span>Custo do produto</span>${sel('mkColCusto', mkAcha(['custo','preço de custo','preço','preco','valor']))}</label>
     <label class="campo"><span>Peso</span>${sel('mkColPeso', mkAcha(['peso (kg)','peso']), true)}
       <div class="uni-peso" id="mkUniBox">
@@ -462,17 +496,23 @@ function mkMontarForm(){
         </select>
       </div>
       <div class="uni-alerta hide" id="mkUniAlerta"></div></label>
+    </div>
+    <div class="campos" id="mkColMedidas">
     <label class="campo"><span>Altura</span>${sel('mkColA', mkAcha(['altura']), true)}</label>
     <label class="campo"><span>Largura</span>${sel('mkColL', mkAcha(['largura']), true)}</label>
     <label class="campo"><span>Comprimento</span>${sel('mkColC', mkAcha(['comprimento']), true)}</label>
+    </div>
+    <div class="campos" id="mkColSaida">
     <label class="campo"><span>Gravar o preço em</span>${sel('mkColPreco', mkAcha(['preço','preco','valor']))}</label>
     <label class="campo"><span>Preço que você pratica hoje
       <i>opcional — com ele o app procura produtos parados num degrau de taxa</i></span>
-      ${sel('mkColPrecoHoje', mkAcha(['preço de venda','preco de venda','preço atual','preco atual']), true)}</label>`
+      ${sel('mkColPrecoHoje', mkAcha(['preço de venda','preco de venda','preço atual','preco atual']), true)}</label>
+    </div>`
     /* A Shopee tem um arquivo próprio para cadastrar produto em massa, e ele
        pede o que a precificação não usa: nome, EAN, NCM, imagem. Estes campos
        só aparecem na Shopee, e só servem para esse download. */
     + (mkCanal.id !== 'shopee' ? '' : `
+    <div class="campos" id="mkColShopee">
     <div class="grp-t" style="grid-column:1/-1;margin-top:6px">PARA O CADASTRO EM MASSA NA SHOPEE</div>
     <label class="campo"><span>Nome do produto
       <i>vira o título do anúncio e também a descrição</i></span>
@@ -492,14 +532,22 @@ function mkMontarForm(){
       ${sel('mkColImagem', mkAcha(['imagem principal','imagem','foto','url da imagem']), true)}</label>
     <label class="campo"><span>Estoque de cada produto
       <i>o catálogo não traz estoque; este número vai em todas as linhas</i></span>
-      <input type="number" id="mkEstoque" min="0" step="1" value="100"/></label>`);
+      <input type="number" id="mkEstoque" min="0" step="1" value="100"/></label>
+    </div>`);
 
   const selPeso = $('mkColPeso');
   if(selPeso) selPeso.addEventListener('change', mkChecarPeso);
 
   /* as perguntas do canal saem do FORM que ele mesmo declara */
   const P = mkCanal.PADRAO;
-  $('mkParams').innerHTML = (mkCanal.FORM || []).map(f => {
+
+  /* Duas naturezas diferentes na mesma lista: o que o CANAL cobra (comissão,
+     logística, antecipação) e o que sai do SEU bolso (imposto, devoluções,
+     embalagem). Separadas, cada uma cabe numa janela do assistente — e na
+     página inteira continuam seguidas, como antes. */
+  const SEUS_CUSTOS = ['aliquotaImposto','taxaDevolucao','embalagem','rebate',
+                       'pesoPadrao','usarPesoVolumetrico','divisorVolumetrico','freteManual'];
+  const campoHTML = f => {
     if(f.tipo === 'select')
       return `<label class="campo" data-campo="${f.id}"><span>${esc(f.rot)}${f.ajuda ? ` <i>${esc(f.ajuda)}</i>` : ''}</span>
         <select id="mkP_${f.id}" onchange="mkAtualizarForm()">${f.opcoes.map(o =>
@@ -514,7 +562,13 @@ function mkMontarForm(){
     return `<label class="sw" data-campo="${f.id}" style="grid-column:1/-1">
       <input type="checkbox" id="mkP_${f.id}"${P[f.id] ? ' checked' : ''}/>
       ${esc(f.rot)}${f.ajuda ? ` — ${esc(f.ajuda)}` : ''}</label>`;
-  }).join('');
+  };
+
+  const doCanal = (mkCanal.FORM || []).filter(f => SEUS_CUSTOS.indexOf(f.id) < 0);
+  const meus    = (mkCanal.FORM || []).filter(f => SEUS_CUSTOS.indexOf(f.id) >= 0);
+  $('mkParams').innerHTML =
+    `<div class="campos" id="mkParamsCanal">${doCanal.map(campoHTML).join('')}</div>
+     <div class="campos" id="mkParamsSeus">${meus.map(campoHTML).join('')}</div>`;
 
   /* o que a documentação do canal não responde fica visível, não escondido:
      quem precifica milhares de itens precisa saber onde a conta pode variar */
