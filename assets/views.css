@@ -4312,3 +4312,14 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   line-height:1.6;color:var(--sub);background:var(--sup);
   border:1px solid color-mix(in srgb,#e5484d 42%,transparent)}
 .modelo-erro b{color:var(--ink)}
+
+/* ═══ CAMPOS FISCAIS DO CADASTRO EM MASSA ══════════════════
+   Origem, CSOSN, CST e Unidade são listas fechadas da Shopee, e valor fora
+   delas derruba o lote inteiro. Por isso as opções saem da aba HiddenTax do
+   arquivo carregado — e a caixa só aparece depois que o modelo entra. */
+.fiscal-box{margin-top:16px;padding:15px 16px;border-radius:14px;
+  background:var(--sup);border:1px solid var(--line)}
+.fiscal-t{margin-bottom:14px}
+.fiscal-t b{display:block;font-size:14.5px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.fiscal-t i{display:block;font-style:normal;font-size:13px;line-height:1.6;color:var(--sub)}
+.fiscal-box select{max-width:100%}

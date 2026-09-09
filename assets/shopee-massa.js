@@ -3,28 +3,29 @@
 
    A Shopee tem um arquivo próprio para cadastrar produto em massa, e ele não
    se parece com planilha nenhuma: são SEIS linhas de cabeçalho antes do
-   primeiro produto. A linha 1 traz os códigos internos que o importador da
-   Shopee lê (ps_price, ps_weight…), a 2 traz a assinatura do modelo, a 3 os
-   rótulos em português, a 4 diz o que é obrigatório, e as linhas 5 e 6 são
-   textos de ajuda para quem preenche à mão. O produto começa na linha 7.
+   primeiro produto. A linha 1 traz os códigos internos que o importador dela
+   lê (ps_price, ps_weight…), a 2 traz o hash do modelo e o ID da loja — que
+   amarram o arquivo à conta —, a 3 os rótulos em português, a 4 diz o que é
+   obrigatório, e as linhas 5 e 6 explicam os limites. O produto começa na
+   linha 7, e é a única região que se escreve.
 
-   Aqui o catálogo do fornecedor (SKU, nome, custo, peso, medidas, EAN, NCM,
-   imagem) vira esse formato, com o preço que o app calculou pela tabela real
-   da Shopee no lugar do custo.
+   Por isso o app não monta um arquivo parecido: ele escreve DENTRO do que a
+   Shopee entregou. E lê o cabeçalho de lá em tempo de execução, em vez de
+   confiar na cópia guardada aqui — a Shopee muda o layout de tempos em
+   tempos, inclusive acrescentando coluna fiscal.
 
-   O que este módulo NÃO preenche, de propósito: categoria, CFOP, origem,
-   CSOSN, tipo de operação e o canal Correios. Categoria pede o ID da árvore
-   da Shopee, que o catálogo não tem — em branco, a própria Shopee sugere. O
-   resto é decisão fiscal de cada vendedor: chutar um CFOP ou uma origem sai
-   como nota fiscal errada, e isso é problema maior do que preencher à mão.
+   O que derruba um lote inteiro, e por isso está tratado aqui: canal de
+   envio sem nenhum ativo, unidade de medida fora da lista fechada dela,
+   dimensão preenchida pela metade, zero à esquerda perdido no NCM e nome
+   passando de 120 caracteres.
    ══════════════════════════════════════════════════════════════════════════ */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.ShopeeMassa = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
 
-/* As quatro primeiras linhas saem do modelo oficial baixado da Shopee, sem
-   uma vírgula mudada: é por elas que o importador reconhece cada coluna. */
+/* Cópia do cabeçalho do modelo de 09/09/2026. Serve de reserva: quando o
+   arquivo da Shopee está carregado, quem manda é o cabeçalho dele. */
 const LINHA_CODIGOS = [
   "ps_category|0|0", "ps_product_name|1|0", "ps_product_description|1|0",
   "ps_sku_parent_short|0|0", "et_title_variation_integration_no|0|0",
@@ -85,9 +86,9 @@ const LINHA_OBRIGATORIEDADE = [
 
 const N_COLUNAS = LINHA_CODIGOS.length;
 
-/* As linhas 5 e 6 do original são só texto de ajuda para quem preenche na
-   mão. Vão vazias: o que não pode mudar é a POSIÇÃO — o primeiro produto
-   tem de cair na linha 7, e é isso que estas duas linhas garantem. */
+/* As linhas 5 e 6 do original explicam os limites de cada campo. Quando o app
+   monta o arquivo sem o modelo da Shopee, vão vazias: o que não pode mudar é
+   a POSIÇÃO — o primeiro produto tem de cair na linha 7. */
 const LINHAS_AJUDA = 2;
 
 /* Linha (base 0) onde entra o primeiro produto: as quatro linhas do modelo
@@ -95,29 +96,50 @@ const LINHAS_AJUDA = 2;
 const LINHA_CABECALHO = 4 + LINHAS_AJUDA;
 
 /* posição de cada campo, pelo código interno da linha 1 */
-const COL = {};
-LINHA_CODIGOS.forEach((c, i) => { COL[String(c).split('|')[0]] = i; });
+function mapaDeColunas(codigos) {
+  const col = {};
+  (codigos || LINHA_CODIGOS).forEach((c, i) => { col[String(c).split('|')[0]] = i; });
+  return col;
+}
+const COL = mapaDeColunas(LINHA_CODIGOS);
 
-/* ── validações que evitam o arquivo voltar recusado ──────────────────────
-   A Shopee recusa a linha inteira quando um campo passa do limite dela, e o
-   relatório de erro dela é críptico. Melhor cortar aqui. */
-const NOME_MAX = 120;      // "Insira 2 a 120 caracteres para o nome do produto"
-const DESC_MIN = 10;       // "insira 10 para 5000 caracteres"
-const DESC_MAX = 5000;
+/* ── limites que a Shopee impõe ───────────────────────────────────────────
+   Ela recusa a linha inteira quando um campo passa do limite, e o relatório
+   de erro dela é críptico. Melhor cortar aqui. */
+const NOME_MIN = 2, NOME_MAX = 120;
+const DESC_MIN = 10, DESC_MAX = 5000;
 const SKU_MAX = 100;
+const PRECO_MIN = 1, PRECO_MAX = 100000;
+const PESO_MAX = 100000;
+const ESTOQUE_MAX = 10000000;
+
+/* "Pelo menos um canal de envio precisa estar ativo por produto" — sem isto
+   a Shopee recusa, e é o erro que não aparece em lugar nenhum na planilha. */
+const CANAL_ATIVO = 'Ativar';
 
 const texto = v => v == null ? '' : String(v).trim();
 
 function nomeValido(v) {
   const t = texto(v);
-  return t.length >= 2 ? t.slice(0, NOME_MAX) : '';
+  return t.length >= NOME_MIN ? t.slice(0, NOME_MAX) : '';
 }
 
-/* Catálogo de dropshipping quase nunca traz descrição: só o nome. Repetir o
-   nome é o que sobra — mas abaixo de 10 caracteres a Shopee recusa, então o
-   nome curto ganha um complemento em vez de derrubar a linha. */
-function descricaoValida(desc, nome) {
-  let t = texto(desc) || texto(nome);
+/* Catálogo de dropshipping quase nunca traz descrição: só o nome. Então ela é
+   montada com o que existe — nome, marca, categoria e as medidas —, porque a
+   Shopee exige de 10 a 5000 caracteres e recusa a linha sem isso. */
+function descricaoValida(desc, nome, extras) {
+  let t = texto(desc);
+  if (!t) {
+    const e = extras || {};
+    const partes = [texto(nome)];
+    if (texto(e.marca)) partes.push('Marca: ' + texto(e.marca) + '.');
+    if (texto(e.categoria)) partes.push('Categoria: ' + texto(e.categoria) + '.');
+    const a = Number(e.altura), l = Number(e.largura), c = Number(e.comprimento);
+    if (a > 0 && l > 0 && c > 0) partes.push(`Medidas da embalagem: ${a} x ${l} x ${c} cm.`);
+    const p = Number(e.peso);
+    if (p > 0) partes.push(`Peso: ${p} kg.`);
+    t = partes.filter(Boolean).join(' ');
+  }
   if (!t) return '';
   /* repete até passar do mínimo: um nome de 3 letras dobrado ainda tem 9 e
      voltaria recusado. Repetir uma vez só resolvia "Pote", não "Kit". */
@@ -134,10 +156,15 @@ function gtinValido(v) {
   return /^[0-9]{8,14}$/.test(t) ? t : '';
 }
 
-/* NCM é sempre 8 dígitos; qualquer outra coisa a Shopee recusa. */
+/* NCM é sempre 8 dígitos. O zero à esquerda é o problema clássico: a planilha
+   de origem já pode ter perdido, e quem lê como número perde de novo. */
 function ncmValido(v) {
   const t = texto(v).replace(/[^0-9]/g, '');
-  return t.length === 8 ? t : '';
+  if (!t) return '';
+  if (t.length === 8) return t;
+  /* 7 dígitos quase sempre é um 8 que perdeu o zero da frente no Excel */
+  if (t.length === 7) return '0' + t;
+  return '';
 }
 
 function numero(v) {
@@ -146,38 +173,85 @@ function numero(v) {
   return isFinite(n) && n >= 0 ? n : '';
 }
 
+/* As três dimensões vão juntas ou nenhuma vai: "preencher todas as dimensões
+   ou deixar todas vazias". Uma sozinha derruba a linha. */
+function dimensoes(p) {
+  const a = numero(p.altura), l = numero(p.largura), c = numero(p.comprimento);
+  if (a > 0 && l > 0 && c > 0) return {altura: a, largura: l, comprimento: c};
+  return {altura: '', largura: '', comprimento: ''};
+}
+
 /* ── uma linha do arquivo ─────────────────────────────────────────────────
    produto = {sku, nome, descricao, preco, estoque, peso, altura, largura,
-              comprimento, ean, ncm, cest, imagem, unidadeMedida}          */
-function montarLinha(produto) {
-  const linha = new Array(N_COLUNAS).fill('');
+              comprimento, ean, ncm, cest, imagem, marca, categoria}
+   ctx     = {col, nColunas, fiscal} — o cabeçalho lido do arquivo da Shopee
+             e os valores fiscais escolhidos na tela.                       */
+function montarLinha(produto, ctx) {
+  const c = (ctx && ctx.col) || COL;
+  const n = (ctx && ctx.nColunas) || N_COLUNAS;
+  const fiscal = (ctx && ctx.fiscal) || {};
+  const linha = new Array(n).fill('');
   const p = produto || {};
+
+  const põe = (campo, valor) => { if (c[campo] != null) linha[c[campo]] = valor; };
 
   const nome = nomeValido(p.nome);
   const sku = texto(p.sku).slice(0, SKU_MAX);
+  const dim = dimensoes(p);
 
-  linha[COL.ps_product_name]         = nome;
-  linha[COL.ps_product_description]  = descricaoValida(p.descricao, nome);
+  põe('ps_product_name', nome);
+  põe('ps_product_description', descricaoValida(p.descricao, nome, p));
   /* o mesmo código nos dois campos: sem variação, a Shopee aceita os dois e
      não é claro qual ela indexa para o estoque — preencher os dois não custa */
-  linha[COL.ps_sku_parent_short]     = sku;
-  linha[COL.ps_sku_short]            = sku;
-  linha[COL.ps_price]                = numero(p.preco);
-  linha[COL.ps_stock]                = numero(p.estoque);
-  linha[COL.ps_weight]               = numero(p.peso);
-  linha[COL.ps_length]               = numero(p.comprimento);
-  linha[COL.ps_width]                = numero(p.largura);
-  linha[COL.ps_height]               = numero(p.altura);
-  linha[COL.ps_gtin_code]            = gtinValido(p.ean);
-  linha[COL.ps_item_cover_image]     = texto(p.imagem);
-  linha[COL.ps_invoice_ncm]          = ncmValido(p.ncm);
-  linha[COL.ps_invoice_cest]         = texto(p.cest);
-  linha[COL.ps_invoice_measure_unit] = texto(p.unidadeMedida);
+  põe('ps_sku_parent_short', sku);
+  põe('ps_sku_short', sku);
+
+  const preco = numero(p.preco);
+  põe('ps_price', preco >= PRECO_MIN && preco <= PRECO_MAX ? preco : '');
+
+  const estoque = numero(p.estoque);
+  põe('ps_stock', estoque <= ESTOQUE_MAX ? Math.floor(estoque || 0) : ESTOQUE_MAX);
+
+  const peso = numero(p.peso);
+  põe('ps_weight', peso > 0 && peso <= PESO_MAX ? peso : '');
+
+  põe('ps_length', dim.comprimento);
+  põe('ps_width', dim.largura);
+  põe('ps_height', dim.altura);
+
+  põe('ps_gtin_code', gtinValido(p.ean));
+  põe('ps_item_cover_image', texto(p.imagem));
+
+  /* sem canal ativo a Shopee recusa o produto, e nada na planilha avisa */
+  põe('channel_id.90006', CANAL_ATIVO);
+
+  põe('ps_invoice_ncm', ncmValido(p.ncm));
+  põe('ps_invoice_cest', texto(p.cest));
+
+  /* Os fiscais vêm da tela, iguais para todas as linhas: dependem do regime
+     da empresa, não do produto. Vazio é vazio — chutar CFOP ou origem sai
+     como nota fiscal errada. */
+  põe('ps_invoice_measure_unit', texto(fiscal.unidade));
+  põe('ps_invoice_origin', texto(fiscal.origem));
+  põe('ps_invoice_csosn', texto(fiscal.csosn));
+  põe('ps_pis_cofins_cst_default', texto(fiscal.cstPisCofins));
+  põe('ps_invoice_cfop_same', texto(fiscal.cfopMesmo));
+  põe('ps_invoice_cfop_diff', texto(fiscal.cfopOutro));
+  const trib = numero(fiscal.tributos);
+  põe('ps_federal_state_taxes_default', trib === '' ? '' : trib);
+
+  /* "Motivo da Falha" é coluna de retorno: a Shopee escreve nela quando
+     recusa. Sai vazia daqui. */
+  põe('et_title_reason', '');
 
   return linha;
 }
 
-/* O arquivo inteiro: seis linhas de cabeçalho e um produto por linha. */
+/* Colunas que precisam ir como TEXTO no arquivo, senão o zero à esquerda
+   some: 07013429 viraria 7013429 e a Shopee recusa o NCM. */
+const COLUNAS_TEXTO = ['ps_gtin_code', 'ps_invoice_ncm', 'ps_invoice_cest'];
+
+/* O arquivo inteiro, para quando não há o modelo da Shopee em mãos. */
 function montarAoa(produtos, opcoes) {
   const o = opcoes || {};
   const vazia = new Array(N_COLUNAS).fill('');
@@ -188,29 +262,81 @@ function montarAoa(produtos, opcoes) {
     LINHA_OBRIGATORIEDADE.slice(),
   ];
   for (let i = 0; i < LINHAS_AJUDA; i++) aoa.push(vazia.slice());
-
-  (produtos || []).forEach(p => aoa.push(montarLinha(Object.assign(
-    {unidadeMedida: o.unidadeMedida || ''}, p))));
-
+  (produtos || []).forEach(p => aoa.push(montarLinha(p, o)));
   return aoa;
 }
 
-/* O que a Shopee vai recusar, dito antes de baixar. Só o que é obrigatório
-   por regra dela: nome, descrição, preço e peso. */
-function conferir(produtos) {
-  const problemas = {semNome: [], semPreco: [], semPeso: [], semEstoque: [], eanIgnorado: []};
-  (produtos || []).forEach((p, i) => {
-    if (!nomeValido(p.nome)) problemas.semNome.push(i);
-    if (!(Number(p.preco) > 0)) problemas.semPreco.push(i);
-    if (!(Number(p.peso) > 0)) problemas.semPeso.push(i);
-    if (!(Number(p.estoque) > 0)) problemas.semEstoque.push(i);
-    if (texto(p.ean) && !gtinValido(p.ean)) problemas.eanIgnorado.push(i);
+/* ── o que a Shopee vai recusar, dito antes de baixar ─────────────────────
+   Só o que ela trata como obrigatório de verdade, mais o que o documento
+   dela chama de opcional mas impede a publicação (a imagem de capa). */
+function conferir(produtos, ctx) {
+  const fiscal = (ctx && ctx.fiscal) || {};
+  const p = {semNome: [], semDescricao: [], semPreco: [], semPeso: [],
+             semEstoque: [], semImagem: [], eanIgnorado: [], dimensaoParcial: [],
+             skuRepetido: [], semUnidade: !texto(fiscal.unidade)};
+  const vistos = new Map();
+
+  (produtos || []).forEach((prod, i) => {
+    const nome = nomeValido(prod.nome);
+    if (!nome) p.semNome.push(i);
+    if (!descricaoValida(prod.descricao, nome, prod)) p.semDescricao.push(i);
+    const preco = numero(prod.preco);
+    if (!(preco >= PRECO_MIN && preco <= PRECO_MAX)) p.semPreco.push(i);
+    const peso = numero(prod.peso);
+    if (!(peso > 0 && peso <= PESO_MAX)) p.semPeso.push(i);
+    if (!(numero(prod.estoque) > 0)) p.semEstoque.push(i);
+    if (!texto(prod.imagem)) p.semImagem.push(i);
+    if (texto(prod.ean) && !gtinValido(prod.ean)) p.eanIgnorado.push(i);
+
+    /* dimensão pela metade não vai para o arquivo — some inteira. Vale
+       avisar: quem preencheu duas de três achava que tinha medida. */
+    const a = numero(prod.altura), l = numero(prod.largura), c = numero(prod.comprimento);
+    const preenchidas = [a, l, c].filter(x => x > 0).length;
+    if (preenchidas > 0 && preenchidas < 3) p.dimensaoParcial.push(i);
+
+    const sku = texto(prod.sku);
+    if (sku) {
+      if (vistos.has(sku)) p.skuRepetido.push(i);
+      else vistos.set(sku, i);
+    }
   });
-  return problemas;
+  return p;
 }
 
-return {LINHA_CODIGOS, LINHA_ROTULOS, N_COLUNAS, COL, LINHAS_AJUDA, LINHA_CABECALHO,
-        NOME_MAX, DESC_MIN, DESC_MAX,
-        nomeValido, descricaoValida, gtinValido, ncmValido,
+/* ── leitura do modelo carregado ──────────────────────────────────────────
+   O cabeçalho de verdade é o do arquivo que a pessoa acabou de carregar. A
+   Shopee muda o layout de tempos em tempos, e um mapa fixo aqui dentro
+   escreveria o preço na coluna errada sem ninguém perceber. */
+function lerCabecalho(aoa) {
+  const codigos = (aoa && aoa[0]) || [];
+  if (!codigos.length) return null;
+  return {
+    col: mapaDeColunas(codigos),
+    nColunas: codigos.length,
+    codigos: codigos.slice(),
+    rotulos: (aoa && aoa[2]) ? aoa[2].slice() : [],
+  };
+}
+
+/* As listas fechadas (Origem, CSOSN, CST PIS/Cofins, Unidade de Medida) vivem
+   na aba HiddenTax do próprio modelo, uma por coluna, a partir da linha 7.
+   Ler de lá é melhor do que guardar cópia: valem os valores daquele arquivo. */
+function lerListasFiscais(aoaHiddenTax) {
+  const col = i => (aoaHiddenTax || []).slice(6)
+    .map(l => (l && l[i] != null ? String(l[i]).trim() : ''))
+    .filter(Boolean);
+  return {
+    csosn:        col(1),   // B
+    origem:       col(2),   // C
+    cstPisCofins: col(3),   // D
+    unidade:      col(4),   // E
+  };
+}
+
+return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
+        LINHAS_AJUDA, LINHA_CABECALHO, COLUNAS_TEXTO, CANAL_ATIVO,
+        NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
+        nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes,
+        mapaDeColunas, lerCabecalho, lerListasFiscais,
         montarLinha, montarAoa, conferir};
 });

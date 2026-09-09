@@ -61,6 +61,8 @@ function mkMargemDigitada(){
 let mkModoMassa = false;
 /* o arquivo que a Shopee entregou, cru, para ser devolvido preenchido */
 let mkModeloBytes = null, mkModeloNome = '';
+/* cabeçalho e listas fechadas lidos do arquivo da Shopee que foi carregado */
+let mkModeloCtx = null, mkModeloListas = null;
 
 function mkAbrir(id, opcoes){
   mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
@@ -86,6 +88,8 @@ function mkAbrir(id, opcoes){
   ['mkStep2','mkStep3','mkInfo'].forEach(x => mostrar(x, false));
   $('mkFi').value = '';
   mkModeloBytes = null; mkModeloNome = '';
+  mkModeloCtx = null; mkModeloListas = null;
+  mostrar('mkFiscalBox', false);
   mostrar('mkModeloBox', mkModoMassa);
   mostrar('mkModeloInfo', false);
   mkAtualizarBotaoMassa();
@@ -165,8 +169,23 @@ async function mkCarregarModelo(file){
       mkModeloBytes = null; mkModeloNome = '';
       return;
     }
+    /* O cabeçalho de verdade é o deste arquivo: a Shopee muda o layout de
+       tempos em tempos, e um mapa fixo no código escreveria o preço na coluna
+       errada sem ninguém perceber. */
+    const wbTudo = XLSX.read(bytes, {type:'array'});
+    const aoaModelo = XLSX.utils.sheet_to_json(XU.normalizarRef(wbTudo.Sheets[aba]),
+      {header:1, defval:'', raw:false, blankrows:true});
+    mkModeloCtx = window.ShopeeMassa.lerCabecalho(aoaModelo);
+
+    const abaTax = wbTudo.SheetNames.find(n => /hiddentax/i.test(String(n)));
+    mkModeloListas = abaTax
+      ? window.ShopeeMassa.lerListasFiscais(XLSX.utils.sheet_to_json(
+          XU.normalizarRef(wbTudo.Sheets[abaTax]), {header:1, defval:'', raw:false, blankrows:true}))
+      : null;
+
     mkModeloBytes = bytes;
     mkModeloNome = file.name;
+    mkMontarFiscal();
     $('mkModeloInfo').innerHTML = `<div class="file-row">
       <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
       <div><div class="file-n">${esc(file.name)}</div>
@@ -179,6 +198,64 @@ async function mkCarregarModelo(file){
     mostrar('mkModeloInfo', true);
     mkModeloBytes = null;
   }
+}
+
+/* ── os campos fiscais ────────────────────────────────────────────────────
+   A Shopee marca Origem, CSOSN, CST PIS/Cofins e Unidade de Medida como
+   "condicional obrigatório", e cada um só aceita valores de uma lista fechada
+   — que vem na aba HiddenTax do próprio arquivo dela. Valem para a loja
+   inteira, não para o produto, então são escolhidos uma vez aqui e repetidos
+   em todas as linhas.
+
+   CFOP não tem lista no arquivo: quem define é a contabilidade de cada um. O
+   campo vem vazio de propósito, com o par mais comum do Simples como dica —
+   e nada é escrito se a pessoa não preencher. */
+function mkMontarFiscal(){
+  const L = mkModeloListas;
+  if(!L){ mostrar('mkFiscalBox', false); return; }
+
+  const sel = (id, lista, rot, ajuda, escolhido) => `<label class="campo"><span>${esc(rot)}${ajuda ? ` <i>${esc(ajuda)}</i>` : ''}</span>
+    <select id="${id}"><option value="">— não preencher —</option>${(lista || []).map(v =>
+      `<option value="${esc(v)}"${v === escolhido ? ' selected' : ''}>${esc(v.length > 70 ? v.slice(0, 70) + '…' : v)}</option>`).join('')}</select></label>`;
+
+  /* UN é a unidade de quase todo produto vendido por peça; vem escolhida
+     porque deixá-la vazia é o erro mais provável desta tela */
+  const un = (L.unidade || []).find(v => /^UN\b/i.test(v)) || '';
+
+  $('mkFiscalBox').innerHTML = `
+    <div class="fiscal-t">
+      <b>Nota fiscal</b>
+      <i>A Shopee só aceita os valores das listas dela, que saíram do arquivo que você
+         carregou. Valem para todos os produtos deste lote — se não souber, pergunte à sua
+         contabilidade e deixe em branco por enquanto.</i>
+    </div>
+    <div class="campos">
+      ${sel('mkFiscalUnidade', L.unidade, 'Unidade de medida', 'UN serve para produto vendido por peça', un)}
+      ${sel('mkFiscalOrigem', L.origem, 'Origem da mercadoria', 'nacional, importada, e as faixas de conteúdo importado')}
+      ${sel('mkFiscalCsosn', L.csosn, 'CSOSN', 'código do Simples Nacional')}
+      ${sel('mkFiscalCst', L.cstPisCofins, 'CST PIS/Cofins', 'a situação tributária do PIS e da Cofins')}
+      <label class="campo"><span>CFOP dentro do estado <i>no Simples, costuma ser 5102</i></span>
+        <input type="text" id="mkFiscalCfopMesmo" maxlength="4" placeholder="5102"/></label>
+      <label class="campo"><span>CFOP fora do estado <i>no Simples, costuma ser 6102</i></span>
+        <input type="text" id="mkFiscalCfopOutro" maxlength="4" placeholder="6102"/></label>
+      <label class="campo"><span>% total de tributos <i>o que sai impresso na nota</i></span>
+        <input type="number" id="mkFiscalTributos" min="0" max="100" step="0.01" placeholder="opcional"/></label>
+    </div>`;
+  mostrar('mkFiscalBox', true);
+}
+
+/* o que a tela escolheu, do jeito que a Shopee espera receber */
+function mkLerFiscal(){
+  const v = id => { const el = $(id); return el ? String(el.value || '').trim() : ''; };
+  return {
+    unidade:      v('mkFiscalUnidade'),
+    origem:       v('mkFiscalOrigem'),
+    csosn:        v('mkFiscalCsosn'),
+    cstPisCofins: v('mkFiscalCst'),
+    cfopMesmo:    v('mkFiscalCfopMesmo'),
+    cfopOutro:    v('mkFiscalCfopOutro'),
+    tributos:     v('mkFiscalTributos'),
+  };
 }
 
 /* ── passo 2: colunas e parâmetros do canal ──────────────────────────────── */
@@ -242,10 +319,7 @@ function mkMontarForm(){
       ${sel('mkColImagem', mkAcha(['imagem principal','imagem','foto','url da imagem']), true)}</label>
     <label class="campo"><span>Estoque de cada produto
       <i>o catálogo não traz estoque; este número vai em todas as linhas</i></span>
-      <input type="number" id="mkEstoque" min="0" step="1" value="100"/></label>
-    <label class="campo"><span>Unidade de medida
-      <i>o que a nota fiscal chama de unidade — UN serve para a maioria</i></span>
-      <input type="text" id="mkUnidade" maxlength="6" value="UN"/></label>`);
+      <input type="number" id="mkEstoque" min="0" step="1" value="100"/></label>`);
 
   const selPeso = $('mkColPeso');
   if(selPeso) selPeso.addEventListener('change', mkChecarPeso);
@@ -534,7 +608,8 @@ async function mkBaixarShopeeMassa(){
   const iNcm = col('mkColNcm'), iCest = col('mkColCest'), iImg = col('mkColImagem');
   const iA = col('mkColA'), iL = col('mkColL'), iC = col('mkColC');
   const estoque = Math.max(0, Number(($('mkEstoque') || {}).value) || 0);
-  const unidade = String((($('mkUnidade') || {}).value) || '').trim();
+  /* a unidade de medida agora vem da lista fechada da Shopee, no painel
+     fiscal — o campo solto aceitava "UN", que ela recusa (espera "UN (UNIDADE)") */
 
   if(iNome < 0){
     alert('Escolha a coluna do nome do produto no passo 2.\n\nA Shopee recusa o cadastro sem nome — é o único campo que o app não tem como inventar.');
@@ -544,9 +619,12 @@ async function mkBaixarShopeeMassa(){
   const dado = (linha, i) => i >= 0 ? (mkAoa[linha] || [])[i] : '';
 
   /* só o que a Shopee aceita: linha sem preço não vira anúncio */
+  const iMarca = mkAcha(['marca']), iCategoria = mkAcha(['categoria']);
   const produtos = mkLinhas.filter(r => r.preco != null).map(r => ({
     sku:         dado(r.linha, iSku),
     nome:        dado(r.linha, iNome),
+    marca:       dado(r.linha, iMarca),
+    categoria:   dado(r.linha, iCategoria),
     preco:       r.preco,
     estoque:     estoque,
     /* o peso do arquivo é o da balança, em quilos — o volumétrico é conta do
@@ -563,18 +641,26 @@ async function mkBaixarShopeeMassa(){
 
   if(!produtos.length){ alert('Nenhuma linha tem preço calculado para cadastrar.'); return; }
 
-  const p = SM.conferir(produtos);
+  const fiscal = mkLerFiscal();
+  const ctx = Object.assign({}, mkModeloCtx || {}, {fiscal});
+
+  const p = SM.conferir(produtos, ctx);
   const avisos = [];
   if(p.semNome.length)   avisos.push(`${p.semNome.length} sem nome — a Shopee recusa essas linhas`);
+  if(p.semPreco.length)  avisos.push(`${p.semPreco.length} com preço fora de R$ 1,00 a R$ 100.000,00 — recusadas`);
   if(p.semPeso.length)   avisos.push(`${p.semPeso.length} sem peso — a Shopee recusa essas linhas`);
+  if(p.semImagem.length) avisos.push(`${p.semImagem.length} sem imagem de capa — sobem, mas não publicam sem foto`);
+  if(p.skuRepetido.length) avisos.push(`${p.skuRepetido.length} com SKU repetido dentro do arquivo`);
+  if(p.dimensaoParcial.length) avisos.push(`${p.dimensaoParcial.length} com medida pela metade — vão sem medida nenhuma, porque a Shopee exige as três juntas`);
   if(p.semEstoque.length) avisos.push('estoque zerado em todas as linhas: o anúncio sobe sem estoque');
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
+  if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida ali no passo 2');
 
   const semModelo = !mkModeloBytes;
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (semModelo ? '\n\nATENÇÃO: você não carregou o modelo da Shopee ali no passo 2. Sem ele o arquivo sai montado por aqui, e o importador dela costuma recusar — ele confere a estrutura do arquivo que ela mesma entrega. Carregue o modelo e baixe de novo.' : '')
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
-    + '\n\nCategoria, CFOP, origem e CSOSN saem em branco de propósito — são decisão fiscal sua, e a Shopee sugere a categoria sozinha.'
+    + '\n\nO canal Correios vai ATIVO em todas as linhas — sem canal de envio a Shopee recusa o produto. A categoria sai em branco e ela mesma sugere.'
     + '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.'
     + '\n\nGerar o arquivo?';
   if(!confirm(texto)) return;
@@ -587,8 +673,22 @@ async function mkBaixarShopeeMassa(){
     await garantirXLSX();
     const hoje = new Date().toISOString().slice(0, 10);
     /* só as linhas dos produtos: o cabeçalho já está no arquivo dela */
-    const linhas = produtos.map(p => SM.montarLinha(
-      Object.assign({unidadeMedida: unidade}, p)));
+    const linhas = produtos.map(prod => SM.montarLinha(prod, ctx));
+
+    /* NCM, CEST e GTIN vão como TEXTO: 07013429 lido como número vira
+       7013429, e a Shopee recusa o NCM com sete dígitos */
+    const colsTexto = SM.COLUNAS_TEXTO
+      .map(nome => (ctx.col || SM.COL)[nome])
+      .filter(i => i != null);
+    const forcarTexto = (ws, primeiraLinha, qtd) => {
+      colsTexto.forEach(c => {
+        for(let i = 0; i < qtd; i++){
+          const ref = XLSX.utils.encode_cell({r: primeiraLinha + i, c});
+          const cel = ws[ref];
+          if(cel && cel.v !== '' && cel.v != null){ cel.t = 's'; cel.v = String(cel.v); delete cel.z; }
+        }
+      });
+    };
 
     const base = mkModeloBytes
       ? mkModeloNome.replace(/\.[^.]+$/, '') + '_preenchido'
@@ -608,7 +708,12 @@ async function mkBaixarShopeeMassa(){
         /* LINHA_CABECALHO = 6, ou seja a linha 7 da planilha: a primeira depois
            das seis de cabeçalho, onde a Shopee espera o primeiro produto */
         XLSX.utils.sheet_add_aoa(ws, fatia, {origin: SM.LINHA_CABECALHO});
-        return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true});
+        forcarTexto(ws, SM.LINHA_CABECALHO, fatia.length);
+        /* bookSST guarda os textos numa tabela única: sai t="s" (shared
+           string), que é o texto padrão do formato, em vez do t="str" de
+           fórmula que o SheetJS usa sem ela. De quebra, nome e descrição
+           repetidos ocupam espaço uma vez só. */
+        return XLSX.write(wb, {bookType:'xlsx', type:'array', compression:true, bookSST:true});
       }
       /* Sem o modelo, o arquivo sai montado aqui. Serve para conferir os
          números, mas a Shopee recusa no importador — o aviso antes de baixar
@@ -616,9 +721,10 @@ async function mkBaixarShopeeMassa(){
       const prods = fatia.map(l => l);   // já são linhas prontas
       const aoa = SM.montarAoa([], {}).slice(0, SM.LINHA_CABECALHO).concat(prods);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
+      forcarTexto(ws, SM.LINHA_CABECALHO, prods.length);
       const saida = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(saida, ws, 'Modelo');
-      return XLSX.write(saida, {bookType:'xlsx', type:'array', compression:true});
+      return XLSX.write(saida, {bookType:'xlsx', type:'array', compression:true, bookSST:true});
     };
 
     /* A Shopee só aceita arquivo de até 3 MB. Com catálogo grande não tem

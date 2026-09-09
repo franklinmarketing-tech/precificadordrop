@@ -1015,10 +1015,10 @@ secao('18. Prejuízo separado da oportunidade de degrau');
 }
 
 /* ── 19. Modelo de upload em massa da Shopee ───────────────────────────────
-   O importador da Shopee lê por POSIÇÃO de coluna e recusa a linha inteira
-   quando um campo passa do limite dela. Aqui o que importa é o arquivo sair
-   com o produto na linha certa, o preço na coluna certa, e sem os valores
-   que ela devolveria recusados.                                            */
+   O importador da Shopee lê por POSIÇÃO de coluna e recusa o lote inteiro
+   quando um campo sai fora da regra dela. O que está aqui saiu da
+   especificação do template de 09/09/2026 — e cada caso destes já derrubou
+   um upload de verdade.                                                    */
 secao('19. Modelo de upload em massa da Shopee');
 {
   const SM = require('../assets/shopee-massa.js');
@@ -1026,22 +1026,29 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(SM.N_COLUNAS === 51, 'o modelo tem as 51 colunas da Shopee', 'tem ' + SM.N_COLUNAS);
   ok(SM.LINHA_ROTULOS[SM.COL.ps_price] === 'Preço', 'o preço cai na coluna "Preço"');
   ok(SM.LINHA_ROTULOS[SM.COL.ps_weight] === 'Peso', 'o peso cai na coluna "Peso"');
+  ok(SM.LINHA_CABECALHO === 6, 'o primeiro produto cai na linha 7');
+
+  const FISCAL = {unidade:'UN (UNIDADE)', origem:'0 - Nacional, exceto as indicadas',
+                  csosn:'102 - Tributada pelo Simples Nacional sem permissão de crédito',
+                  cstPisCofins:'01 - Operação Tributável com Alíquota Básica',
+                  cfopMesmo:'5102', cfopOutro:'6102', tributos:'12.5'};
 
   const produtos = [
     {sku:'PTE-009', nome:'Pote Hermético Retangular de Vidro 1040ml', preco:39.9,
-     estoque:999, peso:0.661, altura:8, largura:21, comprimento:16,
-     ean:'0631911390524', ncm:'70134290', imagem:'https://x/y.jpg'},
-    {sku:'PTE-008', nome:'Pote 370ml', preco:19.9, estoque:999, peso:0.328,
+     estoque:100, peso:0.661, altura:8, largura:21, comprimento:16,
+     ean:'0631911390524', ncm:'70134290', imagem:'https://x/y.jpg',
+     marca:'OLINDA', categoria:'Utilidades Domésticas'},
+    {sku:'PTE-008', nome:'Pote 370ml', preco:19.9, estoque:100, peso:0.328,
      altura:7, largura:16, comprimento:12, ean:'PTE-008', ncm:'70134290', imagem:''},
   ];
-  const aoa = SM.montarAoa(produtos, {unidadeMedida:'UN'});
+  const aoa = SM.montarAoa(produtos, {fiscal: FISCAL});
 
   ok(aoa.length === 6 + produtos.length, 'seis linhas de cabeçalho antes do primeiro produto',
      'saiu com ' + aoa.length + ' linhas');
   ok(aoa[0][0] === 'ps_category|0|0', 'a linha 1 mantém os códigos internos da Shopee');
+  ok(aoa[1][1] === 'ac8e918724da5bc1abc868704cc72f1a',
+     'a linha 2 mantém o hash que amarra o arquivo à conta');
   ok(aoa[2][1] === 'Nome do Produto', 'a linha 3 mantém os rótulos em português');
-  ok(aoa[4].every(v => v === '') && aoa[5].every(v => v === ''),
-     'as linhas 5 e 6 vão vazias, só segurando a posição');
 
   const p1 = aoa[6];
   ok(p1[SM.COL.ps_product_name] === 'Pote Hermético Retangular de Vidro 1040ml',
@@ -1054,40 +1061,90 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(p1[SM.COL.ps_sku_parent_short] === 'PTE-009' && p1[SM.COL.ps_sku_short] === 'PTE-009',
      'o SKU vai nos dois campos, principal e da variação');
   ok(p1[SM.COL.ps_invoice_ncm] === '70134290', 'o NCM do catálogo é aproveitado');
-  ok(p1[SM.COL.ps_invoice_measure_unit] === 'UN', 'a unidade de medida vem das opções');
 
-  /* sem descrição própria, o nome vira descrição — a Shopee exige as duas */
-  ok(p1[SM.COL.ps_product_description] === p1[SM.COL.ps_product_name],
-     'sem descrição no catálogo, o nome preenche a descrição');
+  /* "Pelo menos um canal de envio precisa estar ativo por produto" — este é o
+     campo que não aparece em planilha nenhuma e derruba o lote calado */
+  ok(p1[SM.COL['channel_id.90006']] === 'Ativar',
+     'o canal Correios sai ATIVO — sem canal a Shopee recusa o produto',
+     'veio ' + JSON.stringify(p1[SM.COL['channel_id.90006']]));
+
+  /* a coluna de retorno é dela, não nossa */
+  ok(p1[SM.COL.et_title_reason] === '', '"Motivo da Falha" sai vazia, é coluna de retorno dela');
+
+  /* fiscais iguais em todas as linhas: dependem do regime, não do produto */
+  ok(p1[SM.COL.ps_invoice_measure_unit] === 'UN (UNIDADE)',
+     'a unidade sai no formato da lista fechada, com o nome por extenso');
+  ok(p1[SM.COL.ps_invoice_csosn].indexOf('102 -') === 0, 'o CSOSN escolhido vai completo');
+  ok(p1[SM.COL.ps_invoice_cfop_same] === '5102' && p1[SM.COL.ps_invoice_cfop_diff] === '6102',
+     'os dois CFOP vão para as colunas certas');
+  perto(p1[SM.COL.ps_federal_state_taxes_default], 12.5, 'o total de tributos vai como número', 0.001);
+
+  /* sem descrição no catálogo, ela é montada com o que existe */
+  const d = p1[SM.COL.ps_product_description];
+  ok(d.length >= SM.DESC_MIN && d.indexOf('OLINDA') > 0 && d.indexOf('cm') > 0,
+     'a descrição é montada com nome, marca, categoria e medidas', d.slice(0, 60));
 
   /* EAN inválido é o caso mais comum do catálogo do fornecedor: quando não há
      código de barras, ele repete o SKU ali. Isso derruba a linha na Shopee. */
-  ok(aoa[7][SM.COL.ps_gtin_code] === '', 'EAN que não é código de barras vai em branco',
-     'veio ' + JSON.stringify(aoa[7][SM.COL.ps_gtin_code]));
-  ok(p1[SM.COL.ps_gtin_code] === '0631911390524', 'EAN de verdade é mantido');
+  ok(aoa[7][SM.COL.ps_gtin_code] === '', 'EAN que não é código de barras vai em branco');
+  ok(p1[SM.COL.ps_gtin_code] === '0631911390524', 'EAN de verdade é mantido, com o zero da frente');
 
-  /* o que é decisão fiscal do vendedor não pode sair chutado */
-  ok(p1[SM.COL.ps_invoice_cfop_same] === '' && p1[SM.COL.ps_invoice_origin] === ''
-     && p1[SM.COL.ps_invoice_csosn] === '' && p1[SM.COL.ps_category] === '',
-     'categoria, CFOP, origem e CSOSN saem em branco, para o vendedor decidir');
+  /* o que é decisão fiscal e não foi escolhido não pode sair chutado */
+  const semFiscal = SM.montarLinha(produtos[0], {});
+  ok(semFiscal[SM.COL.ps_invoice_origin] === '' && semFiscal[SM.COL.ps_invoice_csosn] === ''
+     && semFiscal[SM.COL.ps_category] === '',
+     'sem escolha na tela, origem, CSOSN e categoria saem em branco');
 
   /* limites que a Shopee impõe */
-  const longo = 'A'.repeat(200);
-  ok(SM.nomeValido(longo).length === 120, 'nome maior que 120 é cortado, não recusado');
+  ok(SM.nomeValido('A'.repeat(200)).length === 120, 'nome maior que 120 é cortado, não recusado');
   ok(SM.nomeValido('X') === '', 'nome de um caractere não passa');
   ok(SM.descricaoValida('', 'Kit').length >= 10,
      'descrição curta demais é completada até o mínimo da Shopee',
      JSON.stringify(SM.descricaoValida('', 'Kit')));
   ok(SM.ncmValido('7013.42.90') === '70134290', 'NCM com pontuação vira os 8 dígitos');
+  ok(SM.ncmValido('7013429') === '07013429', 'NCM que perdeu o zero à esquerda no Excel é recuperado');
   ok(SM.ncmValido('123') === '', 'NCM curto demais vai em branco');
 
+  const barato = SM.montarLinha({nome:'Item', preco:0.5, peso:0.2, estoque:1}, {});
+  ok(barato[SM.COL.ps_price] === '', 'preço abaixo de R$ 1,00 não vai — é o mínimo dela');
+
+  /* "preencher todas as dimensões ou deixar todas vazias" */
+  const meio = SM.montarLinha({nome:'Item', preco:10, peso:1, altura:10, largura:0, comprimento:5}, {});
+  ok(meio[SM.COL.ps_height] === '' && meio[SM.COL.ps_width] === '' && meio[SM.COL.ps_length] === '',
+     'dimensão preenchida pela metade sai inteira em branco');
+  const inteira = SM.dimensoes({altura:5, largura:6, comprimento:7});
+  ok(inteira.altura === 5 && inteira.largura === 6 && inteira.comprimento === 7,
+     'as três juntas passam');
+
+  /* o cabeçalho de verdade é o do arquivo carregado, não a cópia daqui */
+  const outroLayout = [['ps_price|1|1', 'ps_product_name|1|0', 'ps_weight|1|1']];
+  const ctx = SM.lerCabecalho(outroLayout);
+  ok(ctx.col.ps_price === 0 && ctx.col.ps_product_name === 1,
+     'o mapa de colunas sai do cabeçalho do arquivo, não de um mapa fixo');
+  const l = SM.montarLinha({nome:'Teste', preco:15, peso:1, estoque:1}, ctx);
+  ok(l.length === 3 && l[0] === 15 && l[1] === 'Teste',
+     'e a linha respeita esse layout, mesmo com outra quantidade de colunas');
+
+  /* as listas fechadas vêm da aba HiddenTax do próprio modelo */
+  const hidden = [[], [], [], [], [], [],
+    ['', '102 - Tributada', '0 - Nacional', '01 - Operação', 'UN (UNIDADE)'],
+    ['', '300 - Imune', '1 - Estrangeira', '02 - Operação', 'KG (QUILOGRAMA)']];
+  const listas = SM.lerListasFiscais(hidden);
+  ok(listas.csosn.length === 2 && listas.csosn[0] === '102 - Tributada', 'lê o CSOSN da HiddenTax');
+  ok(listas.unidade[1] === 'KG (QUILOGRAMA)', 'lê a unidade de medida com o nome por extenso');
+
   const conf = SM.conferir([
-    {nome:'Produto bom', preco:10, peso:0.5, estoque:5, ean:'0631911390524'},
-    {nome:'', preco:0, peso:0, estoque:0, ean:'ABC'},
-  ]);
+    {nome:'Produto bom', preco:10, peso:0.5, estoque:5, ean:'0631911390524', imagem:'http://x'},
+    {nome:'', preco:0, peso:0, estoque:0, ean:'ABC', imagem:''},
+    {nome:'Repetido', sku:'A1', preco:10, peso:1, estoque:1, imagem:'http://y'},
+    {nome:'Repetido de novo', sku:'A1', preco:10, peso:1, estoque:1, imagem:'http://z'},
+  ], {fiscal:{}});
   ok(conf.semNome.length === 1 && conf.semPreco.length === 1 && conf.semPeso.length === 1,
      'a conferência aponta nome, preço e peso que a Shopee recusaria');
   ok(conf.eanIgnorado.length === 1, 'e avisa o EAN que será ignorado');
+  ok(conf.semImagem.length === 1, 'e a linha sem imagem de capa, que não publica');
+  ok(conf.skuRepetido.length === 1, 'e o SKU repetido dentro do mesmo arquivo');
+  ok(conf.semUnidade === true, 'e avisa quando a unidade de medida não foi escolhida');
 }
 
 /* ── 20. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────

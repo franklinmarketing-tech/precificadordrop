@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v10';  // v10: arquivo comprimido e dividido no limite de 3 MB
+const VERSAO = 'v11';  // v11: cadastro em massa segue a especificacao da Shopee
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
