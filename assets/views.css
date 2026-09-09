@@ -4425,6 +4425,20 @@ footer.pe{padding-bottom:max(30px,env(safe-area-inset-bottom))}
   background:var(--sup);border:1px solid color-mix(in srgb,var(--blue) 40%,transparent)}
 .fiscal-padrao:hover{background:color-mix(in srgb,var(--blue) 8%,var(--sup))}
 
+/* uma linha por categoria do catálogo: nome livre + a escolha na árvore da
+   Shopee + o prazo de encomenda que aquela categoria aceita */
+.ass-vazio{font-size:13px;line-height:1.6;color:var(--sub);padding:10px 2px}
+.cat-lista{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.cat-linha{display:grid;grid-template-columns:1fr 2fr 84px;gap:8px;align-items:center}
+.cat-nome{font-size:12.5px;font-weight:700;color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.cat-linha select,.cat-linha input{width:100%}
+.cat-prazo{text-align:center}
+@media(max-width:640px){
+  .cat-linha{grid-template-columns:1fr}
+  .cat-nome{white-space:normal}
+}
+
 /* ═══ POP-UP DE CONCLUÍDO ══════════════════════════════════
    Fecha o ciclo de um download: em vez de deixar dois botões competindo na
    tela, o que aconteceu aparece aqui, isolado, com uma saída só. */

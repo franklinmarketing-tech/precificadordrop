@@ -937,6 +937,7 @@ function assIr(n){
 
   assDevolver();
   $('assPalco').innerHTML = '';
+  if(p.aoEntrar) p.aoEntrar();
   (p.blocos || []).forEach(assMover);
 
   $('assTitulo').textContent = p.titulo || assAtual.titulo;

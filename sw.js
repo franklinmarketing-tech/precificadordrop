@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v20';  // v20: botao certo por fluxo, pop-up de concluido, origem nacional
+const VERSAO = 'v21';  // v21: categoria e prazo de encomenda automaticos no cadastro em massa da Shopee
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

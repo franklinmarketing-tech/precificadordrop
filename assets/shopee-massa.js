@@ -208,6 +208,18 @@ function numero(v) {
   return isFinite(n) && n >= 0 ? n : '';
 }
 
+/* minúsculo, sem acento, sem pontuação — pra comparar texto livre do
+   catálogo com o caminho de categoria da Shopee sem falso negativo por
+   acento/maiúscula/plural de escrita. */
+function normalizarTexto(v) {
+  return texto(v)
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /* As três dimensões vão juntas ou nenhuma vai: "preencher todas as dimensões
    ou deixar todas vazias". Uma sozinha derruba a linha. */
 function dimensoes(p) {
@@ -233,6 +245,12 @@ function montarLinha(produto, ctx) {
   const nome = nomeValido(p.nome);
   const sku = texto(p.sku).slice(0, SKU_MAX);
   const dim = dimensoes(p);
+
+  /* categoria e prazo de encomenda vêm da escolha feita na tela — um por
+     texto de categoria do catálogo, não por produto — e podem faltar */
+  põe('ps_category', texto(p.categoriaId));
+  const prazo = numero(p.prazoPostagem);
+  põe('ps_product_pre_order_dts', prazo === '' ? '' : Math.round(prazo));
 
   põe('ps_product_name', nome);
   põe('ps_product_description', descricaoValida(p.descricao, nome, p));
@@ -424,6 +442,74 @@ function listasDeReserva() {
   return out;
 }
 
+/* ── categorias, lidas do próprio modelo ──────────────────────────────────
+   A coluna A (ps_category) quer o ID numérico de uma árvore com milhares de
+   nós, e não existe exportação oficial dela — só a busca por nome, produto a
+   produto, na Central do Vendedor. Mas a aba "Intervalo do PP para
+   Encomenda", que vem dentro de todo modelo, traz de graça uma fatia enorme
+   dessa árvore: quase 700 categorias, cada uma com ID, caminho completo e a
+   faixa de prazo de postagem que a coluna AF exige.
+
+   Não é a árvore inteira — só o que aceita venda por encomenda —, mas cobre
+   a maioria dos catálogos de dropshipping, e chega pronta no arquivo que o
+   vendedor já tem em mãos. Ler daqui em vez de guardar uma cópia é o que a
+   Shopee recomenda: ela reorganiza a árvore de tempos em tempos, e o modelo
+   novo que a pessoa baixar já vem com a lista atualizada. */
+function lerCategorias(aoaEncomenda) {
+  const linhas = (aoaEncomenda || []).slice(6);   // dados a partir da linha 7
+  const out = [];
+  linhas.forEach(l => {
+    const id = texto(l && l[1]);
+    const caminho = texto(l && l[0]).replace(/^[0-9]+-/, '');   // tira o "ID-" da frente
+    const prazo = texto(l && l[2]);
+    if (!id || !caminho) return;
+    const partes = caminho.split('/');
+    out.push({
+      id, caminho, prazo,
+      raiz: partes[0] || caminho,
+      folha: partes[partes.length - 1] || caminho,
+    });
+  });
+  return out;
+}
+
+/* Do texto de categoria do catálogo ("Utilidades Domésticas") para o ID da
+   Shopee. Não existe correspondência exata — o catálogo usa nomes livres, a
+   Shopee usa uma árvore própria —, então é uma sugestão para conferir, nunca
+   uma escolha automática que a pessoa não veja. Pontua por quanto do texto
+   do catálogo aparece no caminho da categoria, dando peso maior para bater
+   com a folha (o nó final, o que de fato recebe o produto). */
+function sugerirCategoria(categorias, textoCatalogo) {
+  const alvo = normalizarTexto(textoCatalogo);
+  if (!alvo) return null;
+  const palavras = alvo.split(/\s+/).filter(w => w.length > 2);
+  if (!palavras.length) return null;
+
+  let melhor = null, melhorPontos = 0;
+  (categorias || []).forEach(cat => {
+    const folha = normalizarTexto(cat.folha);
+    const caminho = normalizarTexto(cat.caminho);
+    let pontos = 0;
+    if (folha === alvo) pontos += 10;                          // igual, ganha de tudo
+    palavras.forEach(p => {
+      if (folha.indexOf(p) >= 0) pontos += 3;
+      else if (caminho.indexOf(p) >= 0) pontos += 1;
+    });
+    if (pontos > melhorPontos) { melhorPontos = pontos; melhor = cat; }
+  });
+  return melhorPontos > 0 ? melhor : null;
+}
+
+/* A Shopee assume 2 dias quando a coluna fica vazia, e 2 está fora de toda
+   faixa aceita nesta lista — o cadastro é reprovado por causa disso. O meio
+   da faixa é um palpite seguro: perto do que a doc do modelo sugere (7 a 10
+   dias) para quem depende do prazo do fornecedor. */
+function prazoSugerido(cat) {
+  const m = /^\s*([0-9]+)\s*-\s*([0-9]+)\s*$/.exec((cat && cat.prazo) || '');
+  if (!m) return '';
+  return Math.round((Number(m[1]) + Number(m[2])) / 2);
+}
+
 /* As listas fechadas (Origem, CSOSN, CST PIS/Cofins, Unidade de Medida) vivem
    na aba HiddenTax do próprio modelo, uma por coluna, a partir da linha 7.
    Ler de lá é melhor do que guardar cópia: valem os valores daquele arquivo. */
@@ -444,6 +530,7 @@ return {LINHA_CODIGOS, LINHA_ROTULOS, LINHA_ASSINATURA, N_COLUNAS, COL,
         NOME_MIN, NOME_MAX, DESC_MIN, DESC_MAX, PRECO_MIN, PRECO_MAX,
         nomeValido, descricaoValida, gtinValido, ncmValido, dimensoes, codigoDaShopee,
         mapaDeColunas, lerCabecalho, lerListasFiscais, lerValidacoesInline, lerLimiteLinhas,
+        lerCategorias, sugerirCategoria, prazoSugerido,
         listasDeReserva, LISTAS_RESERVA,
         montarLinha, montarAoa, conferir};
 });

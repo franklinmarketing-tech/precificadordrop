@@ -65,6 +65,10 @@ let mkModeloBytes = null, mkModeloNome = '';
 let mkModeloCtx = null, mkModeloListas = null, mkModeloInline = null;
 /* quantos produtos a Shopee aceita por arquivo, lido da própria planilha */
 let mkModeloLimite = 0;
+/* categorias lidas do modelo (id/caminho/prazo) e a escolha da pessoa por
+   texto de categoria do catálogo: {texto: {id, prazo}} */
+let mkCategoriasShopee = [];
+let mkCategoriaEscolha = {};
 
 function mkAbrir(id, opcoes){
   mkModoMassa = !!(opcoes && opcoes.massa) && id === 'shopee';
@@ -92,6 +96,7 @@ function mkAbrir(id, opcoes){
   mkModeloBytes = null; mkModeloNome = '';
   zonaLimpa('mkZone'); zonaLimpa('mkZoneModelo');
   mkModeloCtx = null; mkModeloListas = null; mkModeloInline = null; mkModeloLimite = 0;
+  mkCategoriasShopee = []; mkCategoriaEscolha = {};
   mostrar('mkFiscalBox', false);
   mostrar('mkModeloBox', mkModoMassa);
   mostrar('mkModeloInfo', false);
@@ -168,6 +173,15 @@ ASSISTENTES.massa = {
       blocos: ['mkColShopee'],
       pronto: () => parseInt(($('mkColNome') || {}).value) >= 0,
       falta: 'Escolha a coluna do nome do produto — a Shopee recusa o cadastro sem nome.',
+    },
+    {
+      nome: 'Categoria',
+      titulo: 'A categoria na Shopee',
+      explica: 'A Shopee usa uma árvore de categorias própria, diferente do texto livre do catálogo — '
+             + 'sem ela o cadastro sobe incompleto e pede pra escolher na hora de publicar. O app '
+             + 'sugere a partir do modelo carregado; confira ou troque cada uma antes de gerar.',
+      blocos: ['mkGrupoCategoria'],
+      aoEntrar: () => mkMontarCategorias(),
     },
     {
       nome: 'Margem',
@@ -316,6 +330,16 @@ async function mkCarregarModelo(file){
           XU.normalizarRef(wbTudo.Sheets[abaTax]), {header:1, defval:'', raw:false, blankrows:true}))
       : null;
 
+    /* categoria (ps_category) e prazo de encomenda vêm de "Intervalo do PP
+       para Encomenda" — não é a árvore inteira da Shopee, mas é a fatia que
+       o próprio modelo baixado traz, e ela muda quando a Shopee reorganiza
+       a árvore, então lê-la daqui bate sempre com o arquivo em mãos. */
+    const abaCat = wbTudo.SheetNames.find(n => /intervalo.*encomenda|encomenda.*intervalo/i.test(String(n)));
+    mkCategoriasShopee = abaCat
+      ? window.ShopeeMassa.lerCategorias(XLSX.utils.sheet_to_json(
+          XU.normalizarRef(wbTudo.Sheets[abaCat]), {header:1, defval:'', raw:false, blankrows:true}))
+      : [];
+
     /* As listas de canal e de tipo de operação não estão em aba nenhuma: são
        validações escritas na própria coluna. Só o XML cru tem isso, e é dele
        que sai a palavra certa — foi supor "Ativar" no lugar de "Ligado" que
@@ -450,6 +474,85 @@ function mkFiscalPadrao(){
     + 'Confira com a sua contabilidade antes de subir o lote. Produto IMPORTADO tem outra origem, '
     + 'e produto com substituição tributária muda o CSOSN e passa a exigir CEST.'
     + (achou.every(Boolean) ? '' : '\n\nAlgum campo não tinha essa opção na lista deste modelo — confira na tela.'));
+}
+
+/* ── categoria: uma escolha por texto de categoria do catálogo ────────────
+   O catálogo do fornecedor traz texto livre ("Utilidades Domésticas"), e a
+   Shopee quer o ID de uma categoria da árvore dela — não existe conversão
+   exata entre os dois. O app sugere a partir do que o próprio modelo trouxe
+   (aba "Intervalo do PP para Encomenda"), mas quem confirma é a pessoa: é só
+   uma vez por categoria do catálogo, não por produto. */
+function mkMontarCategorias(){
+  const box = $('mkGrupoCategoria');
+  if(!box) return;
+  const SM = window.ShopeeMassa;
+  const iCategoria = mkAcha(['categoria']);
+  if(iCategoria < 0 || !mkAoa){
+    box.innerHTML = '<p class="ass-vazio">Este catálogo não tem uma coluna de categoria — as linhas vão sem categoria, e a Shopee pede pra completar na hora de publicar.</p>';
+    return;
+  }
+  const textos = [...new Set(mkAoa.slice(mkLinhaCab + 1)
+    .map(l => String((l && l[iCategoria]) || '').trim())
+    .filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+  if(!textos.length){
+    box.innerHTML = '<p class="ass-vazio">Nenhuma linha deste catálogo tem categoria preenchida.</p>';
+    return;
+  }
+  if(!mkCategoriasShopee.length){
+    box.innerHTML = '<p class="ass-vazio">O modelo carregado não trouxe a aba de categorias — as linhas vão sem categoria, '
+      + 'e a Shopee pede pra completar cada anúncio na hora de publicar.</p>';
+    return;
+  }
+
+  /* a primeira vez que a categoria aparece, o app sugere; depois disso, o
+     que a pessoa escolher fica guardado mesmo trocando de passo */
+  textos.forEach(t => {
+    if(mkCategoriaEscolha[t]) return;
+    const sugestao = SM.sugerirCategoria(mkCategoriasShopee, t);
+    mkCategoriaEscolha[t] = sugestao
+      ? {id: sugestao.id, prazo: SM.prazoSugerido(sugestao)}
+      : {id: '', prazo: ''};
+  });
+
+  const opcoes = mkCategoriasShopee.map(c =>
+    `<option value="${esc(c.id)}">${esc(c.caminho.length > 90 ? c.caminho.slice(0, 90) + '…' : c.caminho)}</option>`).join('');
+
+  box.innerHTML = `
+    <div class="fiscal-t">
+      <i>Sugestão automática a partir do modelo carregado (${mkCategoriasShopee.length} categorias).
+         Confira ou troque cada uma — quem ficar em branco sobe sem categoria.</i>
+    </div>
+    <div class="cat-lista">
+      ${textos.map((t, i) => {
+        const esc_i = 'mkCat' + i;
+        const ea = mkCategoriaEscolha[t];
+        return `<div class="cat-linha" data-txt="${esc(t)}">
+          <div class="cat-nome">${esc(t)}</div>
+          <select id="${esc_i}sel" onchange="mkCategoriaMudou(${i})">
+            <option value="">— sem categoria —</option>${opcoes}
+          </select>
+          <input type="text" id="${esc_i}prz" class="cat-prazo" placeholder="prazo (dias)"
+                 value="${esc(String(ea.prazo || ''))}" onchange="mkCategoriaMudou(${i})"/>
+        </div>`;
+      }).join('')}
+    </div>`;
+  textos.forEach((t, i) => {
+    const s = $('mkCat' + i + 'sel');
+    if(s) s.value = mkCategoriaEscolha[t].id || '';
+  });
+  box.dataset.textos = JSON.stringify(textos);
+}
+
+function mkCategoriaMudou(i){
+  const textos = JSON.parse(($('mkGrupoCategoria') || {}).dataset.textos || '[]');
+  const t = textos[i];
+  if(t == null) return;
+  const sel = $('mkCat' + i + 'sel'), prz = $('mkCat' + i + 'prz');
+  mkCategoriaEscolha[t] = {
+    id: sel ? sel.value : '',
+    prazo: prz ? prz.value : '',
+  };
 }
 
 /* o que a tela escolheu, do jeito que a Shopee espera receber */
@@ -888,11 +991,16 @@ async function mkBaixarShopeeMassa(){
 
   /* só o que a Shopee aceita: linha sem preço não vira anúncio */
   const iMarca = mkAcha(['marca']), iCategoria = mkAcha(['categoria']);
-  const produtos = mkLinhas.filter(r => r.preco != null).map(r => ({
+  const produtos = mkLinhas.filter(r => r.preco != null).map(r => {
+    const categoriaTxto = dado(r.linha, iCategoria);
+    const escolha = mkCategoriaEscolha[categoriaTxto] || null;
+    return {
     sku:         dado(r.linha, iSku),
     nome:        dado(r.linha, iNome),
     marca:       dado(r.linha, iMarca),
-    categoria:   dado(r.linha, iCategoria),
+    categoria:   categoriaTxto,
+    categoriaId: escolha ? escolha.id : '',
+    prazoPostagem: escolha ? escolha.prazo : '',
     preco:       r.preco,
     estoque:     estoque,
     /* o peso do arquivo é o da balança, em quilos — o volumétrico é conta do
@@ -905,7 +1013,7 @@ async function mkBaixarShopeeMassa(){
     ncm:         dado(r.linha, iNcm),
     cest:        dado(r.linha, iCest),
     imagem:      dado(r.linha, iImg),
-  }));
+  };});
 
   if(!produtos.length){ alert('Nenhuma linha tem preço calculado para cadastrar.'); return; }
 
@@ -928,6 +1036,8 @@ async function mkBaixarShopeeMassa(){
   if(p.dimensaoParcial.length) avisos.push(`${p.dimensaoParcial.length} com medida pela metade — vão sem medida nenhuma, porque a Shopee exige as três juntas`);
   if(p.semEstoque.length) avisos.push('estoque zerado em todas as linhas: o anúncio sobe sem estoque');
   if(p.eanIgnorado.length) avisos.push(`${p.eanIgnorado.length} com EAN que não é código de barras — vão sem GTIN`);
+  const semCategoria = produtos.filter(pr => pr.categoria && !pr.categoriaId).length;
+  if(semCategoria) avisos.push(`${semCategoria} produtos com categoria não escolhida no passo Categoria — vão sem categoria, e a Shopee pede pra completar na hora de publicar`);
   if(p.semUnidade) avisos.push('a unidade de medida da nota não foi escolhida');
   if(p.semTipoOperacao) avisos.push('o TIPO DE OPERAÇÃO está vazio — quem emite nota fiscal pela Shopee tem o lote recusado sem ele');
   /* a Shopee reclama de um campo por vez: dizer todos de uma vez aqui poupa
@@ -944,7 +1054,7 @@ async function mkBaixarShopeeMassa(){
 
   const texto = `${produtos.length.toLocaleString('pt-BR')} produtos vão para o arquivo da Shopee.`
     + (avisos.length ? '\n\nAntes de subir, saiba que:\n· ' + avisos.join('\n· ') : '')
-    + '\n\nO canal de envio vai LIGADO em todas as linhas — sem canal a Shopee recusa o produto, e a palavra certa sai da própria planilha dela. A categoria sai em branco e ela mesma sugere.'
+    + '\n\nO canal de envio vai LIGADO em todas as linhas — sem canal a Shopee recusa o produto, e a palavra certa sai da própria planilha dela.'
     + (mkModeloLimite && produtos.length > mkModeloLimite
         ? `\n\nA Shopee aceita ${mkModeloLimite.toLocaleString('pt-BR')} produtos por arquivo (e no máximo 3 MB), então isto sai em ${Math.ceil(produtos.length / mkModeloLimite)} arquivos. O navegador vai pedir para autorizar vários downloads, e cada um é enviado separado lá.`
         : '\n\nA Shopee só aceita arquivo de até 3 MB. Se o catálogo passar disso, ele sai dividido em partes — e o navegador vai pedir para autorizar vários downloads.')

@@ -1200,6 +1200,41 @@ secao('19. Modelo de upload em massa da Shopee');
   ok(semXml.ps_operation_type_default[0] === '1 - Revendedor',
      'sem o XML da aba, o tipo de operação cai na lista de reserva');
   ok(semXml['channel_id.90006'][0] === 'Ligado', 'e o canal de envio também');
+
+  /* ── categoria (ps_category) e prazo de encomenda, lidos da aba "Intervalo
+     do PP para Encomenda" do próprio modelo — sem árvore fixa no código,
+     porque a Shopee reorganiza essa árvore de tempos em tempos. */
+  const aoaEncomenda = [
+    [], [], [], [], [], [],   // linhas 1-6: cabeçalho, sem dado
+    ['100972-Beleza e Cuidado Pessoal/Mãe e Bebê', '100972', '3 - 15', ''],
+    ['101407-Brinquedos/Hobbies e Coleções', '101407', '7 - 12', ''],
+    ['', '', '', ''],   // linha vazia no meio não deve virar categoria fantasma
+  ];
+  const cats = SM.lerCategorias(aoaEncomenda);
+  ok(cats.length === 2, 'lerCategorias ignora as linhas de cabeçalho e a linha vazia');
+  ok(cats[0].id === '100972' && cats[0].folha === 'Mãe e Bebê',
+     'guarda o ID e a folha (o nó final) do caminho da categoria');
+  ok(cats[1].prazo === '7 - 12', 'e a faixa de prazo de postagem, como veio na planilha');
+
+  ok(SM.sugerirCategoria(cats, 'Beleza e Cuidado Pessoal').id === '100972',
+     'sugerirCategoria acha por texto igual ao caminho');
+  ok(SM.sugerirCategoria(cats, 'brinquedos').id === '101407',
+     'e por palavra em comum, sem se importar com maiúscula/minúscula');
+  ok(SM.sugerirCategoria(cats, 'Peças automotivas') === null,
+     'e devolve null quando não acha nada parecido — nunca um palpite qualquer');
+
+  ok(SM.prazoSugerido({prazo: '3 - 15'}) === 9, 'prazoSugerido tira a média da faixa (3 e 15 → 9)');
+  ok(SM.prazoSugerido({prazo: ''}) === '', 'e fica em branco quando a categoria não tem faixa');
+
+  /* montarLinha escreve a categoria e o prazo escolhidos por fora — vêm da
+     tela, não do produto, porque um catálogo repete a mesma categoria em
+     muitas linhas */
+  const linhaCat = SM.montarLinha(
+    {nome: 'Produto X', preco: 50, categoriaId: '100972', prazoPostagem: 9},
+    {fiscal: {}, canalLigado: 'Ligado'});
+  ok(linhaCat[0] === '100972', 'ps_category (coluna A) recebe o ID escolhido no passo Categoria');
+  const linhaSemCat = SM.montarLinha({nome: 'Produto Y', preco: 50}, {fiscal: {}, canalLigado: 'Ligado'});
+  ok(linhaSemCat[0] === '', 'e fica em branco quando nenhuma categoria foi escolhida para aquele texto');
 }
 
 /* ── 20. Peso e medidas lidos do anúncio do Mercado Livre ──────────────────
