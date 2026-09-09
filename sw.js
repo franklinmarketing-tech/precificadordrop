@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v21';  // v21: categoria e prazo de encomenda automaticos no cadastro em massa da Shopee
+const VERSAO = 'v22';  // v22: apelidos de categoria-raiz da Shopee quando o texto do catalogo nao bate em nada
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 
