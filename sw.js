@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v22';  // v22: apelidos de categoria-raiz da Shopee quando o texto do catalogo nao bate em nada
+const VERSAO = 'v23';  // v23: assistente em todas as ferramentas, quadros iguais no canal, CSS sem duplicata
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

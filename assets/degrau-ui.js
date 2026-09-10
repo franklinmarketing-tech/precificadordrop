@@ -20,6 +20,11 @@ let dgMotor = null, dgResult = null, dgLinhas = [];
    Aqui ela é ainda pior: o frete inflado vira "prejuízo" na tela, e o vendedor
    sai atrás de um problema de custo que não existe. */
 let dgPesoSuspeito = false, dgPesoConfirmadoKg = false, dgPesoInfo = null;
+/* Pediu para procurar e ainda não procurou: fica ligado até o relatório sair.
+   Existe porque a revisão de escala de peso interrompe a busca e a retoma
+   depois — e porque só ela sabe distinguir quem chegou na revisão pedindo o
+   relatório de quem só clicou no aviso amarelo enquanto escolhia colunas. */
+let dgAguardando = false;
 
 /* Os três canais, com o motor de cada um. O Mercado Livre não é um motor do
    mkt-engine, então entra com as funções soltas do ml-engine. */
@@ -58,6 +63,7 @@ function dgDrop(ev){
 /* ── passo 1: a planilha ─────────────────────────────────────────────────── */
 async function dgCarregar(file){
   if(!file) return;
+  zonaLendo('dgZone', file.name);
   try{
     await garantirXLSX();
     const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
@@ -80,14 +86,19 @@ async function dgCarregar(file){
     dgNome = file.name;
 
     const n = Math.max(0, aoa.length - dgLinhaCab - 1);
-    $('dgStep1').querySelector('.zone-t').textContent = file.name;
-    $('dgStep1').querySelector('.zone-s').textContent =
-      `aba ${nomeAba} · ${n.toLocaleString('pt-BR')} produtos · ${dgCab.length} colunas`;
+    /* a própria zona vira o retorno. Procurar o texto por dentro de dgStep1
+       não servia: dentro do assistente a zona sai do painel e vai para o
+       pop-up, e a busca voltava vazia. */
+    zonaPronta('dgZone', file.name,
+      `aba <b>${esc(nomeAba)}</b> · <b>${n.toLocaleString('pt-BR')}</b> produtos · ${dgCab.length} colunas`,
+      "document.getElementById('dgFi').click()");
 
     dgMontarForm();
     mostrar('dgStep2', true);
-    $('dgStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
+    if($('popAss') && !$('popAss').classList.contains('open'))
+      $('dgStep2').scrollIntoView({behavior: reduzido ? 'instant' : 'smooth', block:'start'});
   }catch(e){
+    zonaLimpa('dgZone');
     alert('Não consegui ler a planilha.\n\n' + (e && e.message ? e.message : e));
   }
 }
@@ -184,13 +195,21 @@ function dgRevisarPeso(){
     canal: 'o ' + (dgMotor ? dgMotor.nome : 'canal'),
     peso: dgPesoSuspeito ? dgPesoInfo : null,
     dim: null,
+    /* Os dois lados retomam a busca — mas só se ela chegou a ser pedida.
+       Quem abriu esta janela pelo aviso amarelo, ainda escolhendo colunas,
+       volta para o formulário; quem clicou em procurar recebe o relatório.
+       Antes, "usar como está" não retomava nada e a busca morria ali. */
     aplicar(){
       const sel = $('dgPesoUnidade');
       if(sel) sel.value = dgPesoInfo && dgPesoInfo.todosGrandes ? 'g' : 'auto';
       dgChecarPeso();
-      dgProcurar();
+      if(dgAguardando) dgProcurar();
     },
-    ignorar(){ dgPesoConfirmadoKg = true; dgChecarPeso(); },
+    ignorar(){
+      dgPesoConfirmadoKg = true;
+      dgChecarPeso();
+      if(dgAguardando) dgProcurar();
+    },
   });
 }
 
@@ -248,7 +267,9 @@ async function dgProcurar(){
     return alert('O custo e o preço praticado não podem ser a mesma coluna.\n\n'
       + 'O app compara os dois — apontando a mesma, toda linha pareceria uma oportunidade.');
 
-  if(dgPesoSuspeito){ dgRevisarPeso(); return; }
+  /* a revisão de escala interrompe aqui e retoma pelos botões dela */
+  if(dgPesoSuspeito){ dgAguardando = true; dgRevisarPeso(); return; }
+  dgAguardando = false;
 
   const p = dgLerParams();
   const unidade = ($('dgPesoUnidade') || {}).value || 'kg';
@@ -411,4 +432,71 @@ function dgAbrir(canal){
   const sel = $('dgCanalSel');
   if(sel){ sel.value = dgCanalId; dgTrocarCanal(); }
   ir('degrau');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ASSISTENTE — os mesmos campos, um de cada vez, em pop-up
+
+   A tela inteira é longa e a pessoa não sabe por onde começar. Aqui a receita
+   diz só a ordem; quem conduz é o assistente genérico do app.js, que move
+   estes mesmos blocos da página para dentro da janela e devolve ao fechar.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+ASSISTENTES.degrau = {
+  titulo: 'Dinheiro parado num degrau',
+  passos: [
+    {
+      nome: 'Planilha',
+      titulo: 'Os preços que você pratica hoje',
+      explica: 'A planilha do que já está no ar — a exportação do Bling, a do canal ou a sua. '
+             + 'Precisa ter o custo e o preço praticado; o resto o app procura sozinho.',
+      blocos: ['dgGrupoArquivo'],
+      pronto: () => !!(dgAoa && dgAoa.length),
+      falta: 'Carregue a planilha para continuar.',
+    },
+    {
+      nome: 'Colunas',
+      titulo: 'Qual coluna é qual',
+      explica: 'O custo e o preço praticado são obrigatórios: é a diferença entre os dois que '
+             + 'diz onde há dinheiro parado. O peso entra na conta do frete.',
+      blocos: ['dgColunas'],
+      pronto: () => {
+        const c = parseInt(($('dgColCusto') || {}).value);
+        const p = parseInt(($('dgColPreco') || {}).value);
+        return c >= 0 && p >= 0 && c !== p;
+      },
+      falta: 'Escolha a coluna do custo e a do preço praticado — e não podem ser a mesma.',
+    },
+    {
+      nome: 'Canal',
+      titulo: 'Onde esses produtos estão anunciados',
+      explica: 'Cada canal tem os próprios degraus de taxa. É a tabela desse canal que diz em '
+             + 'que preço passar um centavo custa a faixa inteira.',
+      blocos: ['dgGrupoCanal'],
+      pronto: () => !!dgMotor,
+      falta: 'Escolha o canal onde esses produtos estão anunciados.',
+    },
+    {
+      nome: 'Taxas',
+      titulo: 'Como esse canal cobra de você',
+      explica: 'Tipo de conta, quem entrega e o que sai do seu bolso. É o que separa o degrau '
+             + 'de verdade do que só parece: sem isso, a conta acha economia onde não há.',
+      blocos: ['dgParams'],
+      rotulo: 'Procurar dinheiro parado',
+    },
+  ],
+  concluir: () => {
+    dgAguardando = true;
+    /* a busca não é chamada aqui: quem dispara é o fim dela, que pode
+       acontecer agora ou depois da revisão de escala de peso */
+    setTimeout(() => dgProcurar(), 220);
+  },
+};
+
+/* o quadro do canal entra por aqui: abre a ferramenta e já conduz os passos */
+function dgAssistente(canal){
+  dgAbrir(canal);
+  const def = DG_CANAIS[canal];
+  ASSISTENTES.degrau.titulo = 'Dinheiro parado' + (def ? ' · ' + def.nome : '');
+  assAbrir('degrau');
 }

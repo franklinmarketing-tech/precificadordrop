@@ -1020,14 +1020,20 @@ ASSISTENTES.ml = {
       falta: 'Carregue a planilha para continuar.',
     },
     {
-      nome: 'Colunas',
-      titulo: 'De onde vem cada dado',
-      explica: 'Confira o que o app reconheceu. O custo é o único obrigatório; peso e medidas '
-             + 'mudam o frete, e sem eles a conta usa estimativa — o lucro que aparece pode ser '
-             + 'maior que o real.',
-      blocos: ['mlGrupoColunas'],
+      nome: 'Custo',
+      titulo: 'O custo e o peso',
+      explica: 'O custo é a base de toda a conta e o único obrigatório. O peso muda o frete — e '
+             + 'quando os números parecem estar em gramas numa coluna que diz quilos, o app avisa aqui.',
+      blocos: ['mlColCusto'],
       pronto: () => parseInt(($('mlCusto') || {}).value) >= 0,
       falta: 'Escolha a coluna do custo do produto.',
+    },
+    {
+      nome: 'Medidas',
+      titulo: 'Medidas e o que identifica o produto',
+      explica: 'O Mercado Livre cobra pelo maior entre o peso da balança e o volumétrico. O título '
+             + 'serve para descobrir a categoria, e é ela que define a tarifa.',
+      blocos: ['mlColMedidas'],
     },
     {
       nome: 'Conta',
@@ -1054,6 +1060,38 @@ ASSISTENTES.ml = {
   ],
   concluir: () => setTimeout(() => mlProcessar(), 220),
 };
+
+/* ── o assistente da Planilha de produtos ──────────────────────────────────
+   Aqui só existe um campo de verdade — o arquivo. O que a ferramenta faz
+   depois é tudo automático, e o valor do assistente é outro: separar o
+   "subiu" do "está válido", que na página apareciam juntos e faziam gente
+   baixar o arquivo sem olhar a validação. */
+ASSISTENTES.planilha = {
+  titulo: 'Planilha de produtos',
+  preparar: () => ir('planilha'),
+  passos: [
+    {
+      nome: 'Planilha',
+      titulo: 'A planilha do fornecedor',
+      explica: 'O app encurta a descrição para o limite do anúncio, tira o bloco cadastral do fim, '
+             + 'padroniza a condição como NOVO e gera a coluna Modelo que o Mercado Livre exige.',
+      blocos: ['plZoneWrap'],
+      pronto: () => !!(plAoa && plAoa.length),
+      falta: 'Carregue a planilha para continuar.',
+    },
+    {
+      nome: 'Conferência',
+      titulo: 'O que precisa passar antes de subir',
+      explica: 'São os pontos que o Bling e o Mercado Livre recusam. O arquivo sai mesmo com '
+             + 'pendência — mas o que estiver vermelho aqui volta como erro lá.',
+      blocos: ['plGrupoChecks'],
+      rotulo: 'Baixar o Excel',
+    },
+  ],
+  concluir: () => plBaixar(),
+};
+
+function plAssistente(){ assAbrir('planilha'); }
 
 /* ── o assistente do Precificar Shopee / Amazon ────────────────────────────
    O mesmo caminho do cadastro em massa, sem os passos que só o arquivo da
@@ -4018,29 +4056,32 @@ async function plCarregar(f){
   if(!f) return;
   if(!await garantirXLSX()) return;
   plNome = f.name;
+  zonaLendo('plZone', f.name);
   const rd = new FileReader();
-  rd.onerror = () => alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.');
+  rd.onerror = () => { zonaLimpa('plZone');
+    alert('Não consegui ler esse arquivo. Verifique se ele ainda existe e tente de novo.'); };
   rd.onload = ev => {
     try{
       plBytes = ev.target.result;
       plWb  = XLSX.read(plBytes, {type:'array', cellStyles:true});
       plAoa = XLSX.utils.sheet_to_json(XU.normalizarRef(plWb.Sheets[plWb.SheetNames[0]]), {header:1, defval:'', raw:false});
       if(plAoa.length < 2) throw new Error('A planilha não tem linhas de produto.');
-      $('plFName').textContent = f.name;
-      $('plFInfo').textContent =
-        `${plAoa.length - 1} produtos · ${plAoa.reduce((m,r) => Math.max(m, r.length), 0)} colunas · aba "${plWb.SheetNames[0]}"`;
-      mostrar('plZoneWrap', false);
-      mostrar('plFileInfo', true);
+      /* a zona vira o retorno, como nas outras telas. Antes o dropzone sumia
+         e um cartão tomava o lugar dele — dentro do assistente isso deixava
+         o passo vazio, porque o que fica visível é decidido depois de mover. */
+      const colunas = plAoa.reduce((m, r) => Math.max(m, r.length), 0);
+      zonaPronta('plZone', f.name,
+        `<b>${(plAoa.length - 1).toLocaleString('pt-BR')}</b> produtos · ${colunas} colunas · aba <b>${esc(plWb.SheetNames[0])}</b>`,
+        'plReset()');
       plProcessar();
-    }catch(err){ alert('Não consegui ler esse arquivo: ' + err.message); }
+    }catch(err){ zonaLimpa('plZone'); alert('Não consegui ler esse arquivo: ' + err.message); }
   };
   rd.readAsArrayBuffer(f);
 }
 function plReset(){
   plWb = plAoa = plRes = plBytes = null; plNome = '';
   $('plFi').value = '';
-  mostrar('plZoneWrap', true);
-  mostrar('plFileInfo', false);
+  zonaLimpa('plZone');
   mostrar('plResultado', false);
 }
 
@@ -4286,21 +4327,18 @@ function wsAbrir(canal){
   const info = WS_CANAIS[canal];
   if(!info) return;
   $('wsPainelMarca').innerHTML = info.marca;
-  /* a grade muda conforme o canal: com principais, seis colunas (duas
-     retangulares em cima ocupando três cada, o apoio embaixo); sem
-     principais, os quadros se distribuem sozinhos */
-  /* a largura de cada principal sai da conta: seis colunas divididas pelo
-     número delas. Com duas, cada uma ocupa três; com três, duas. Assim a
-     primeira linha sempre fecha certo em vez de sobrar meia coluna. */
-  const nDest = (WS_FERRAMENTAS[canal] || []).filter(f => f.destaque).length;
-  const cls = nDest ? ' com-destaque d' + nDest : '';
+  /* uma grade só, com quadros do mesmo tamanho: quem tem mais ferramentas
+     ganha mais linhas, e nenhuma coluna sobra pela metade */
   $('wsPainelCorpo').innerHTML =
-    `<div class="ws-minis${cls}">` + wsCards(canal) + '</div>';
+    '<div class="ws-minis">' + wsCards(canal) + '</div>';
   $('wsPainel').className = 'ws-painel ws-' + canal;
   mostrar('wsGrade', false);
   mostrar('wsPainel', true);
-  const primeiro = $('wsPainelCorpo').querySelector('button:not(:disabled)');
-  if(primeiro) primeiro.focus({preventScroll:true});
+  /* o foco entra pelo "Todos os canais", não pela primeira ferramenta: focar
+     um quadro fazia nascer o balão de explicação dele por cima dos vizinhos,
+     sem ninguém ter apontado nada */
+  const volta = $('wsPainel').querySelector('.ws-voltar');
+  if(volta) volta.focus({preventScroll:true});
   try{ localStorage.setItem('drop-canal', canal); }catch(e){}
 }
 
@@ -4323,7 +4361,7 @@ document.addEventListener('keydown', e => {
    fora, o que a ferramenta fazia sem abrir. */
 const WS_FERRAMENTAS = {
   ml: [
-    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('ml')", destaque:true,
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAssistente('ml')", destaque:true,
      fluxo:['Preços que você pratica','Onde perde dinheiro'],
      resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
      itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
@@ -4340,7 +4378,7 @@ const WS_FERRAMENTAS = {
             'Peso volumétrico: cobra pelo maior entre ele e o real',
             'Acha produtos parados num degrau de taxa, onde baixar rende mais',
             'Sai um arquivo pronto para o Bling']},
-    {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"ir('planilha')", destaque:true,
+    {nome:'Planilha de produtos', img:'assets/img/ic-planilha.webp', acao:"plAssistente()", destaque:true,
      fluxo:['Planilha do fornecedor','Bling'],
      resumo:'Arruma a estrutura do arquivo para subir no Bling sem erro.',
      itens:['Encurta a descrição para os 60 caracteres do anúncio',
@@ -4349,7 +4387,7 @@ const WS_FERRAMENTAS = {
             'Gera a coluna Modelo, que o Mercado Livre exige',
             'Remove termos que o marketplace não aceita',
             'Confere 8 pontos antes de gerar o arquivo']},
-    {nome:'Ajustar preços no ML', img:'assets/img/ic-base-ml.webp', acao:"ir('anuncios')", destaque:true,
+    {nome:'Ajustar preços no ML', img:'assets/img/ic-base-ml.webp', acao:"anAssistente()", destaque:true,
      fluxo:['Preços calculados','Mercado Livre'],
      resumo:'A planilha do ML volta igual, só com o preço trocado.',
      itens:['Você sobe a planilha do ML e a de preços',
@@ -4377,7 +4415,7 @@ const WS_FERRAMENTAS = {
      itens:['Formas de entrega', 'Regra de cada uma']},
   ],
   shopee: [
-    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('shopee')", destaque:true,
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAssistente('shopee')", destaque:true,
      fluxo:['Preços que você pratica','Onde perde dinheiro'],
      resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
      itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
@@ -4407,7 +4445,7 @@ const WS_FERRAMENTAS = {
      itens:['Revisar preço do que já está publicado']},
   ],
   amazon: [
-    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAbrir('amazon')", destaque:true,
+    {nome:'Dinheiro parado', svg:'lupa', acao:"dgAssistente('amazon')", destaque:true,
      fluxo:['Preços que você pratica','Onde perde dinheiro'],
      resumo:'Acha produtos em que BAIXAR o preço aumenta o lucro.',
      itens:['As taxas sobem em degrau: um centavo cobra a faixa inteira',
@@ -4522,18 +4560,20 @@ function wsCards(canal){
   return lista.map((f, i) => {
     const cls = 'ws-mini' + (f.destaque ? ' destaque' : '') + (f.breve ? ' breve' : '');
     const clique = f.breve ? '' : ` onclick="${f.acao}"`;
-    /* a principal é retangular e mostra o resumo: ela tem o dobro da largura,
-       então cabe dizer o que faz sem depender do balão */
+    /* Todos os quadros têm a mesma forma e dizem o que fazem. Antes as
+       principais eram retangulares e as de apoio, quadradinhas com só o nome:
+       a grade abria buracos, o quadro "em breve" esticava para a altura da
+       linha e quem não passasse o mouse não descobria o que a ferramenta de
+       apoio fazia. O destaque agora é só o aro da cor do canal. */
     return `<button class="${cls}"${clique}${f.breve ? ' disabled' : ''}
         onmouseenter="wsExplicar(this,'${canal}',${i})" onmouseleave="wsEsconder()"
-        onfocus="wsExplicar(this,'${canal}',${i})" onblur="wsEsconder()">
+        onfocus="wsFocar(this,'${canal}',${i})" onblur="wsEsconder()">
       <span class="ws-mini-ic${f.svg ? ' desenho' : ''}">${f.svg
         ? wsIcone(f.svg)
         : `<img src="${f.img}" alt="" loading="lazy"/>`}</span>
       <span class="ws-mini-txt">
         <span class="ws-mini-n">${esc(f.nome)}</span>
-        ${f.destaque ? `<span class="ws-mini-r">${esc(f.resumo)}</span>` : ''}
-        ${f.destaque && f.fluxo ? wsFluxo(f.fluxo) : ''}
+        <span class="ws-mini-r">${esc(f.resumo)}</span>
       </span>
       ${f.breve ? '<span class="ws-mini-tag">em breve</span>'
         : f.tag ? `<span class="ws-mini-tag ws-mini-tag-pdf">${esc(f.tag)}</span>` : ''}
@@ -4582,6 +4622,13 @@ let wsTimer = null;
 function wsSoltarPop(pop){
   if(pop.parentElement !== document.body) document.body.appendChild(pop);
 }
+/* O balão só acompanha foco de TECLADO. O foco que o próprio código dá ao
+   abrir o painel não é :focus-visible — e era ele que fazia o balão nascer
+   sozinho em cima dos quadros vizinhos, antes de a pessoa apontar nada. */
+function wsFocar(el, canal, i){
+  if(el.matches(':focus-visible')) wsExplicar(el, canal, i);
+}
+
 function wsExplicar(el, canal, i){
   clearTimeout(wsTimer);
   const f = (WS_FERRAMENTAS[canal] || [])[i];

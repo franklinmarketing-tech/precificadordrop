@@ -23,15 +23,10 @@ function anDrop(ev, qual){
   if(f) (qual === 'ml' ? anCarregarML : anCarregarPrecos)(f);
 }
 
-function anCartao(nome, info){
-  return `<div class="file-row">
-    <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-    <div><div class="file-n">${esc(nome)}</div><div class="file-i">${info}</div></div></div>`;
-}
-
 /* ── a planilha do Mercado Livre ─────────────────────────────────────────── */
 async function anCarregarML(file){
   if(!file) return;
+  zonaLendo('anZoneML', file.name);
   try{
     await garantirXLSX();
     /* guarda o arquivo como veio: é dentro dele que o preço é trocado */
@@ -46,18 +41,21 @@ async function anCarregarML(file){
       if(m.ok){ nome = cand; aoa = a; modelo = m; break; }
     }
     if(!modelo){
+      zonaLimpa('anZoneML');
       alert('Esta não parece a planilha de anúncios do Mercado Livre.\n\n'
         + 'Ela precisa ter as colunas ITEM_ID, SKU e PRICE na primeira linha.\n\n'
         + 'Baixe em: Anúncios → Editar em massa → Baixar planilha.');
       return;
     }
     anBytesML = bytes; anAoaML = aoa; anModeloML = modelo; anModeloML.aba = nome;
-    $('anMLInfo').innerHTML = anCartao(file.name,
-      `<b>${modelo.total.toLocaleString('pt-BR')}</b> anúncios · aba ${esc(nome)}`);
-    mostrar('anMLInfo', true);
+    /* a própria zona vira o retorno, como nas outras telas */
+    zonaPronta('anZoneML', file.name,
+      `<b>${modelo.total.toLocaleString('pt-BR')}</b> anúncios · aba ${esc(nome)}`,
+      "document.getElementById('anFi2').click()");
     $('arqML').classList.add('pronto');
     anTentarCasar();
   }catch(e){
+    zonaLimpa('anZoneML');
     alert('Não consegui ler a planilha do Mercado Livre.\n\n' + (e && e.message ? e.message : e));
   }
 }
@@ -65,6 +63,7 @@ async function anCarregarML(file){
 /* ── a planilha de preços ────────────────────────────────────────────────── */
 async function anCarregarPrecos(file){
   if(!file) return;
+  zonaLendo('anZonePrecos', file.name);
   try{
     await garantirXLSX();
     const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), {type:'array'});
@@ -86,12 +85,13 @@ async function anCarregarPrecos(file){
     anCabPrecos = (aoa[anLinhaCabPrecos] || []).map(v => v == null ? '' : String(v));
 
     const n = Math.max(0, aoa.length - anLinhaCabPrecos - 1);
-    $('anPrecosInfo').innerHTML = anCartao(file.name,
-      `<b>${n.toLocaleString('pt-BR')}</b> produtos · aba ${esc(nomeAba)}`);
-    mostrar('anPrecosInfo', true);
+    zonaPronta('anZonePrecos', file.name,
+      `<b>${n.toLocaleString('pt-BR')}</b> produtos · aba ${esc(nomeAba)}`,
+      "document.getElementById('anFi').click()");
     $('arqPrecos').classList.add('pronto');
     anTentarCasar();
   }catch(e){
+    zonaLimpa('anZonePrecos');
     alert('Não consegui ler a planilha de preços.\n\n' + (e && e.message ? e.message : e));
   }
 }
@@ -162,8 +162,9 @@ function anCasar(){
 function anRecomecar(){
   anBytesML = anAoaML = anModeloML = anAoaPrecos = anResultado = null;
   anFiltro = null; anPagina = 0;
-  ['anStep4','anMapa','anMLInfo','anPrecosInfo'].forEach(id => mostrar(id, false));
+  ['anStep4','anMapa'].forEach(id => mostrar(id, false));
   ['arqML','arqPrecos'].forEach(id => $(id).classList.remove('pronto'));
+  ['anZoneML','anZonePrecos'].forEach(zonaLimpa);
   $('anFi').value = ''; $('anFi2').value = '';
   window.scrollTo({top:0, behavior: reduzido ? 'instant' : 'smooth'});
 }
@@ -641,3 +642,47 @@ function anCartaoConta(){
 }
 
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ASSISTENTE — um arquivo de cada vez, em pop-up
+
+   São dois arquivos e um punhado de colunas; lado a lado numa página só,
+   ninguém sabia qual vinha primeiro. A receita abaixo diz só a ordem — quem
+   conduz é o assistente genérico do app.js.
+   ══════════════════════════════════════════════════════════════════════════ */
+ASSISTENTES.anuncios = {
+  titulo: 'Ajustar preços no Mercado Livre',
+  preparar: () => ir('anuncios'),
+  passos: [
+    {
+      nome: 'Planilha do ML',
+      titulo: 'A planilha de anúncios do Mercado Livre',
+      explica: 'Baixe em Anúncios → Editar em massa → Baixar planilha. É dentro desse arquivo '
+             + 'que o preço é trocado: ele volta igual, com título, código e cores intactos.',
+      blocos: ['arqML'],
+      pronto: () => !!anModeloML,
+      falta: 'Carregue a planilha de anúncios do Mercado Livre para continuar.',
+    },
+    {
+      nome: 'Preços',
+      titulo: 'A planilha com os preços novos',
+      explica: 'A que você gerou aqui no app, com o preço certo de cada SKU. O SKU é o que liga '
+             + 'as duas: anúncio sem SKU, ou com SKU escrito diferente, fica com o preço antigo.',
+      blocos: ['arqPrecos'],
+      pronto: () => !!anAoaPrecos,
+      falta: 'Carregue a planilha de preços para continuar.',
+    },
+    {
+      nome: 'Colunas',
+      titulo: 'De onde vem o SKU e o preço',
+      explica: 'O app tenta adivinhar sozinho e só pede aqui para você conferir. Nada é publicado: '
+             + 'o que sai é um arquivo para você subir de volta no Mercado Livre.',
+      blocos: ['anMapa'],
+      rotulo: 'Conferir os preços',
+    },
+  ],
+  concluir: () => anCasar(),
+};
+
+/* o quadro do canal entra por aqui */
+function anAssistente(){ assAbrir('anuncios'); }

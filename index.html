@@ -103,12 +103,12 @@
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Mercado Livre</b><i>Preço com a margem que você pede</i></span>
           </button>
-          <button class="mn-i" onclick="dgAbrir('ml')">
+          <button class="mn-i" onclick="dgAssistente('ml')">
             <img src="assets/img/ic-base-ml.webp" alt=""/>
             <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
           <div class="mn-grupo">CATÁLOGO</div>
-          <button class="mn-i" onclick="ir('planilha')">
+          <button class="mn-i" onclick="plAssistente()">
             <img src="assets/img/ic-planilha.webp" alt=""/>
             <span><b>Planilha de produtos</b><i>Trata o catálogo do fornecedor</i></span>
           </button>
@@ -146,7 +146,7 @@
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Precificar Shopee</b><i>Comissão e taxa fixa da Shopee</i></span>
           </button>
-          <button class="mn-i" onclick="dgAbrir('shopee')">
+          <button class="mn-i" onclick="dgAssistente('shopee')">
             <img src="assets/img/ic-shopee.webp" alt=""/>
             <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
@@ -174,7 +174,7 @@
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Precificar Amazon</b><i>Referral fee e tarifa por categoria</i></span>
           </button>
-          <button class="mn-i" onclick="dgAbrir('amazon')">
+          <button class="mn-i" onclick="dgAssistente('amazon')">
             <img src="assets/img/ic-ml.webp" alt=""/>
             <span><b>Dinheiro parado</b><i>Onde baixar o preço rende mais</i></span>
           </button>
@@ -469,6 +469,7 @@
           </div>
 
           <div id="mlGrupoColunas">
+          <div id="mlColCusto">
           <div class="grid3" style="margin-bottom:18px">
             <div>
               <div class="lbl verde">Coluna do custo do produto *</div>
@@ -499,7 +500,9 @@
               <div class="nota" id="mlPrecoNota" style="color:var(--amber)"></div>
             </div>
           </div>
+          </div>
 
+          <div id="mlColMedidas">
           <div class="grid3" style="margin-bottom:18px">
             <div>
               <div class="lbl verde">Coluna da altura (cm)</div>
@@ -536,6 +539,7 @@
               <div class="nota">Com ela o app procura produtos parados logo acima de um
                 degrau de taxa — onde baixar o preço rende mais.</div>
             </div>
+          </div>
           </div>
           </div>
 
@@ -670,19 +674,12 @@
           <div class="zone-s">ou clique para selecionar · .xlsx · .xls · .csv</div>
         </div>
       </div>
-      <div id="plFileInfo" class="hide">
-        <div class="file-row">
-          <div class="file-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-          <div><div class="file-n" id="plFName">—</div><div class="file-i" id="plFInfo">—</div></div>
-          <button class="btn btn-ghost" style="margin-left:auto" onclick="plReset()">Trocar arquivo</button>
-        </div>
-      </div>
     </div>
 
     <div id="plResultado" class="hide">
       <div class="stats stats-5" id="plStats"></div>
 
-      <div class="panel">
+      <div class="panel" id="plGrupoChecks">
         <div class="panel-h">
           <div class="panel-t"><span class="n">2</span> Validação obrigatória</div>
           <span id="plBadge" class="pill"></span>
@@ -801,7 +798,6 @@
             <div class="zone-t">Arraste aqui</div>
             <div class="zone-s">ou clique · .xlsx</div>
           </div>
-          <div id="anMLInfo" class="hide"></div>
         </div>
 
         <div class="arq" id="arqPrecos">
@@ -815,7 +811,6 @@
             <div class="zone-t">Arraste aqui</div>
             <div class="zone-s">ou clique · .xlsx · .csv</div>
           </div>
-          <div id="anPrecosInfo" class="hide"></div>
         </div>
       </div>
 
@@ -969,11 +964,15 @@
           <div class="zone-s">ou clique · .xlsx</div>
         </div>
         <div id="mkModeloInfo" class="hide"></div>
-        <!-- As listas de Origem, CSOSN, CST e Unidade saem da aba HiddenTax do
-             próprio arquivo carregado: são listas fechadas, e valor fora delas
-             derruba o lote. Por isso só aparecem depois do modelo. -->
-        <div class="fiscal-box hide" id="mkFiscalBox"></div>
       </div>
+
+      <!-- As listas de Origem, CSOSN, CST e Unidade saem da aba HiddenTax do
+           próprio arquivo carregado: são listas fechadas, e valor fora delas
+           derruba o lote. Por isso só aparecem depois do modelo.
+
+           Fica FORA da caixa do modelo de propósito: dentro dela, o passo que
+           só pedia o arquivo aparecia com o painel fiscal inteiro embaixo. -->
+      <div class="fiscal-box hide" id="mkFiscalBox"></div>
 
       <div id="mkGrupoCategoria" class="hide"></div>
 
@@ -1075,6 +1074,7 @@
 
     <div class="panel" id="dgStep1">
       <div class="panel-h"><div class="panel-t verde"><span class="n">1</span> Carregar a planilha</div></div>
+      <div id="dgGrupoArquivo">
       <div class="zone" id="dgZone" onclick="document.getElementById('dgFi').click()"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')" ondrop="dgDrop(event)">
@@ -1090,14 +1090,17 @@
           com o preço que está no ar. Nada é enviado para lugar nenhum: a conta roda aqui
           no seu navegador.</div>
       </div>
+      </div>
     </div>
 
     <div class="panel hide" id="dgStep2">
       <div class="panel-h"><div class="panel-t verde"><span class="n">2</span> Colunas e canal</div></div>
       <div class="campos" id="dgColunas"></div>
 
-      <div class="grp-t" style="margin-top:22px">ONDE ESSES PRODUTOS ESTÃO ANUNCIADOS</div>
-      <div class="campos" id="dgCanal"></div>
+      <div id="dgGrupoCanal">
+        <div class="grp-t" style="margin-top:22px">ONDE ESSES PRODUTOS ESTÃO ANUNCIADOS</div>
+        <div class="campos" id="dgCanal"></div>
+      </div>
       <div id="dgParams" class="campos" style="margin-top:15px"></div>
 
       <button class="btn btn-green btn-block" style="margin-top:18px" onclick="dgProcurar()">
