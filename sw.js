@@ -18,7 +18,7 @@
    a versão atual sem precisar tocar aqui.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const VERSAO = 'v23';  // v23: assistente em todas as ferramentas, quadros iguais no canal, CSS sem duplicata
+const VERSAO = 'v24';  // v24: quadro da Amazon e menu do ML abrindo o assistente
 const CACHE_SHELL = `pdrop-shell-${VERSAO}`;
 const CACHE_MIDIA = `pdrop-midia-${VERSAO}`;
 

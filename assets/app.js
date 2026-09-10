@@ -4453,7 +4453,7 @@ const WS_FERRAMENTAS = {
             'Diz quanto cada produto rende a mais se você baixar',
             'E a partir de que preço volta a compensar cobrar mais',
             'Roda sobre o preço que já está no ar, não sobre o custo']},
-    {nome:'Precificar Amazon', img:'assets/img/ic-ml.webp', acao:"mkAbrir('amazon')", destaque:true,
+    {nome:'Precificar Amazon', img:'assets/img/ic-ml.webp', acao:"mktAssistente('amazon')", destaque:true,
      fluxo:['Planilha de custos','Preços da Amazon'],
      resumo:'O preço que entrega a margem, por categoria.',
      itens:['A comissão é por categoria: 37 delas, de 10% a 15%',
